@@ -257,6 +257,7 @@ pub struct WcpClientCapabilities {
     pub goto_declaration: bool,
     pub add_drivers: bool,
     pub add_loads: bool,
+    pub cursor_set: bool,
 }
 impl WcpClientCapabilities {
     fn new() -> Self {
@@ -265,6 +266,7 @@ impl WcpClientCapabilities {
             goto_declaration: false,
             add_drivers: false,
             add_loads: false,
+            cursor_set: false,
         }
     }
 }
@@ -1020,7 +1022,17 @@ impl SystemState {
             }
             Message::CursorSet(time) => {
                 let waves = self.user.waves.as_mut()?;
-                waves.cursor = Some(time);
+                waves.cursor = Some(time.clone());
+
+                if self.wcp_greeted_signal.load(Ordering::Relaxed)
+                    && self.wcp_client_capabilities.cursor_set
+                {
+                    self.channels.wcp_s2c_sender.as_ref().map(|ch| {
+                        block_on(
+                            ch.send(WcpSCMessage::event(WcpEvent::cursor_set { time })),
+                        )
+                    });
+                }
             }
             Message::ExpandParameterSection => {
                 self.expand_parameter_section = true;

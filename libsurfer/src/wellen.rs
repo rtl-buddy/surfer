@@ -275,6 +275,7 @@ impl WellenContainer {
                         scope_ref.clone(),
                         h[id].name(h).to_string(),
                         VarId::Wellen(id),
+                        h[id].index().map(VariableIndex::from_wellen_type),
                     )
                 })
                 .collect::<Vec<_>>()
@@ -293,6 +294,7 @@ impl WellenContainer {
                         scope_ref.clone(),
                         h[id].name(h).to_string(),
                         VarId::Wellen(id),
+                        h[id].index().map(VariableIndex::from_wellen_type),
                     )
                 })
                 .collect::<Vec<_>>()
@@ -310,6 +312,7 @@ impl WellenContainer {
                         scope_ref.clone(),
                         h[id].name(h).to_string(),
                         VarId::Wellen(id),
+                        h[id].index().map(VariableIndex::from_wellen_type),
                     )
                 })
                 .collect::<Vec<_>>()
@@ -328,6 +331,7 @@ impl WellenContainer {
                         scope_ref.clone(),
                         h[id].name(h).to_string(),
                         VarId::Wellen(id),
+                        h[id].index().map(VariableIndex::from_wellen_type),
                     )
                 })
                 .collect::<Vec<_>>()
@@ -354,22 +358,40 @@ impl WellenContainer {
     pub fn update_variable_ref(&self, variable: &VariableRef) -> Option<VariableRef> {
         // IMPORTANT: lookup by name!
         let h = &self.hierarchy;
-
+        let index = variable.index.as_ref().map(|i| i.to_wellen_type());
         let (var, new_scope_ref) = if variable.path.has_empty_strs() {
-            let var = h.lookup_var(&[], &variable.name)?;
-            (var, variable.path.clone())
+            // lookup the variable with index if provided
+            if let Some(var) = h.lookup_var_with_index(&[], &variable.name, &index) {
+                (var, variable.path.clone())
+            } else {
+                // fallback to lookup without index
+                let var = h.lookup_var(&[], &variable.name)?;
+                (var, variable.path.clone())
+            }
         } else {
             // first we lookup the scope in order to update the scope reference
             let scope = h.lookup_scope(variable.path.strs())?;
             let new_scope_ref = variable.path.with_id(ScopeId::Wellen(scope));
 
-            // now we lookup the variable
-            let var = h[scope].vars(h).find(|r| h[*r].name(h) == variable.name)?;
-            (var, new_scope_ref)
+            // now we lookup the variable with index if provided
+            if let Some(var) = h[scope]
+                .vars(h)
+                .find(|r| h[*r].name(h) == variable.name && h[*r].index() == index)
+            {
+                (var, new_scope_ref)
+            } else {
+                // fallback to lookup without index
+                let var = h[scope].vars(h).find(|r| h[*r].name(h) == variable.name)?;
+                (var, new_scope_ref)
+            }
         };
 
-        let new_variable_ref =
-            VariableRef::new_with_id(new_scope_ref, variable.name.clone(), VarId::Wellen(var));
+        let new_variable_ref = VariableRef::new_with_id(
+            new_scope_ref,
+            variable.name.clone(),
+            VarId::Wellen(var),
+            h[var].index().map(VariableIndex::from_wellen_type),
+        );
         Some(new_variable_ref)
     }
 

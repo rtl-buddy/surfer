@@ -574,7 +574,7 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
                     Box::new(move |name| {
                         active_scope.as_ref().map(|scope| match scope {
                             ScopeType::WaveScope(w) => Command::Terminal(Message::AddVariables(
-                                vec![VariableRef::new(w.clone(), name.to_string())],
+                                vec![VariableRef::new(w.clone(), name.to_string(), None)],
                             )),
                             ScopeType::StreamScope(stream_scope) => {
                                 Command::Terminal(Message::AddStreamOrGeneratorFromName(

@@ -1,4 +1,4 @@
-use crate::{ScopeRef, VariableIndex};
+use crate::ScopeRef;
 #[cfg(feature = "wasm_plugins")]
 use extism_convert::{FromBytes, Json, ToBytes};
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,11 @@ pub struct VariableRef<VarId, ScopeId> {
     /// Backend specific numeric ID. Performance optimization.
     pub id: VarId,
     /// Index
-    pub index: Option<VariableIndex>,
+    ///
+    /// Only used to point out a variable in an array of variables,
+    /// not variables that are arrays themselves, so only a single index required.
+    #[serde(default)]
+    pub index: Option<i64>,
 }
 
 impl<VarId, ScopeId> VariableRef<VarId, ScopeId> {

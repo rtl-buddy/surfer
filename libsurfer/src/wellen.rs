@@ -137,7 +137,18 @@ impl WellenContainer {
         // generate a list of names for all variables and scopes since they will be requested by the parser
         let h = &hierarchy;
         let scopes = h.iter_scopes().map(|r| r.full_name(h)).collect::<Vec<_>>();
-        let vars: Vec<String> = h.iter_vars().map(|r| r.full_name(h)).collect::<Vec<_>>();
+        let vars: Vec<String> = h
+            .iter_vars()
+            .map(|r| {
+                if let Some(i) = r.index()
+                    && i.length() == 1
+                {
+                    format!("{}[{}]", r.full_name(h), i.lsb())
+                } else {
+                    r.full_name(h)
+                }
+            })
+            .collect::<Vec<_>>();
         let varrefs = vars
             .iter()
             .enumerate()
@@ -271,11 +282,15 @@ impl WellenContainer {
             h.vars()
                 .filter(|id| !h[*id].var_type().is_parameter())
                 .map(|id| {
+                    let v = &h[id];
+                    let index = v
+                        .index()
+                        .and_then(|i| if i.length() == 1 { Some(i.lsb()) } else { None });
                     VariableRef::new_with_id(
                         scope_ref.clone(),
-                        h[id].name(h).to_string(),
+                        v.name(h).to_string(),
                         VarId::Wellen(id),
-                        h[id].index().map(VariableIndex::from_wellen_type),
+                        index,
                     )
                 })
                 .collect::<Vec<_>>()
@@ -290,11 +305,15 @@ impl WellenContainer {
                 .vars(h)
                 .filter(|id| !h[*id].var_type().is_parameter())
                 .map(|id| {
+                    let v = &h[id];
+                    let index = v
+                        .index()
+                        .and_then(|i| if i.length() == 1 { Some(i.lsb()) } else { None });
                     VariableRef::new_with_id(
                         scope_ref.clone(),
-                        h[id].name(h).to_string(),
+                        v.name(h).to_string(),
                         VarId::Wellen(id),
-                        h[id].index().map(VariableIndex::from_wellen_type),
+                        index,
                     )
                 })
                 .collect::<Vec<_>>()
@@ -308,11 +327,15 @@ impl WellenContainer {
             h.vars()
                 .filter(|id| h[*id].var_type().is_parameter())
                 .map(|id| {
+                    let v = &h[id];
+                    let index = v
+                        .index()
+                        .and_then(|i| if i.length() == 1 { Some(i.lsb()) } else { None });
                     VariableRef::new_with_id(
                         scope_ref.clone(),
-                        h[id].name(h).to_string(),
+                        v.name(h).to_string(),
                         VarId::Wellen(id),
-                        h[id].index().map(VariableIndex::from_wellen_type),
+                        index,
                     )
                 })
                 .collect::<Vec<_>>()
@@ -327,11 +350,15 @@ impl WellenContainer {
                 .vars(h)
                 .filter(|id| h[*id].var_type().is_parameter())
                 .map(|id| {
+                    let v = &h[id];
+                    let index = v
+                        .index()
+                        .and_then(|i| if i.length() == 1 { Some(i.lsb()) } else { None });
                     VariableRef::new_with_id(
                         scope_ref.clone(),
-                        h[id].name(h).to_string(),
+                        v.name(h).to_string(),
                         VarId::Wellen(id),
-                        h[id].index().map(VariableIndex::from_wellen_type),
+                        index,
                     )
                 })
                 .collect::<Vec<_>>()
@@ -356,9 +383,12 @@ impl WellenContainer {
 
     #[must_use]
     pub fn update_variable_ref(&self, variable: &VariableRef) -> Option<VariableRef> {
-        // IMPORTANT: lookup by name!
+        // IMPORTANT: lookup by name! Also consider index if provided.
         let h = &self.hierarchy;
-        let index = variable.index.as_ref().map(|i| i.to_wellen_type());
+        let index = variable
+            .index
+            .as_ref()
+            .map(|i| wellen::VarIndex::new(*i, *i));
         let (var, new_scope_ref) = if variable.path.has_empty_strs() {
             // lookup the variable with index if provided
             if let Some(var) = h.lookup_var_with_index(&[], &variable.name, &index) {
@@ -390,7 +420,7 @@ impl WellenContainer {
             new_scope_ref,
             variable.name.clone(),
             VarId::Wellen(var),
-            h[var].index().map(VariableIndex::from_wellen_type),
+            variable.index,
         );
         Some(new_variable_ref)
     }
@@ -417,7 +447,10 @@ impl WellenContainer {
             VarId::Wellen(id) => Ok(id),
             VarId::None => {
                 let h = &self.hierarchy;
-                let Some(var) = h.lookup_var(r.path.strs(), r.name.clone()) else {
+                let index = r.index.as_ref().map(|i| wellen::VarIndex::new(*i, *i));
+
+                let Some(var) = h.lookup_var_with_index(r.path.strs(), r.name.clone(), &index)
+                else {
                     bail!("Failed to find variable: {r:?}")
                 };
                 Ok(var)
@@ -602,7 +635,7 @@ impl WellenContainer {
 
     #[must_use]
     pub fn scope_exists(&self, scope: &ScopeRef) -> bool {
-        scope.has_empty_strs() | self.has_scope(scope)
+        scope.has_empty_strs() || self.has_scope(scope)
     }
 
     #[must_use]

@@ -8,8 +8,4 @@ impl VariableIndexExt for VariableIndex {
             lsb: index.lsb(),
         }
     }
-
-    fn to_wellen_type(&self) -> wellen::VarIndex {
-        wellen::VarIndex::new(self.msb, self.lsb)
-    }
 }

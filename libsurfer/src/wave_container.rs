@@ -4,7 +4,7 @@ use chrono::prelude::{DateTime, Utc};
 use eyre::{Result, bail};
 use num::BigUint;
 use serde::{Deserialize, Serialize};
-use surfer_translation_types::{VariableIndex, VariableValue};
+use surfer_translation_types::VariableValue;
 
 use crate::cxxrtl_container::CxxrtlContainer;
 use crate::time::{TimeScale, TimeUnit};
@@ -135,13 +135,32 @@ impl ScopeRefExt for ScopeRef {
     }
 }
 
+fn extract_index(s: String) -> (String, Option<i64>) {
+    if let Some(start_idx) = s.rfind('[')
+        && start_idx > 0
+        && s.ends_with(']')
+    {
+        let index_str = &s[start_idx + 1..s.len() - 1];
+        if let Ok(index) = index_str.parse::<i64>() {
+            let name = s[..start_idx].to_string();
+            return (name, Some(index));
+        }
+    }
+    (s, None)
+}
+
 #[local_impl::local_impl]
 impl VariableRefExt for VariableRef {
-    fn new(path: ScopeRef, name: String, index: Option<VariableIndex>) -> Self {
+    fn new(path: ScopeRef, name: String, index: Option<i64>) -> Self {
         Self::new_with_id(path, name, VarId::default(), index)
     }
 
-    fn new_with_id(path: ScopeRef, name: String, id: VarId, index: Option<VariableIndex>) -> Self {
+    fn new_with_id(path: ScopeRef, name: String, id: VarId, index: Option<i64>) -> Self {
+        let (name, index) = if index.is_none() {
+            extract_index(name)
+        } else {
+            (name, index)
+        };
         Self {
             path,
             name,
@@ -161,11 +180,13 @@ impl VariableRefExt for VariableRef {
                 index: None,
             }
         } else {
+            let name = components.last().unwrap().to_string();
+            let (name, index) = extract_index(name);
             Self {
                 path: ScopeRef::from_strs(&components[..(components.len()) - 1]),
-                name: components.last().unwrap().to_string(),
+                name,
                 id: VarId::default(),
-                index: None,
+                index,
             }
         }
     }
@@ -181,12 +202,14 @@ impl VariableRefExt for VariableRef {
                 path: ScopeRef::empty(),
                 name: String::new(),
                 id,
+                index: None,
             }
         } else {
             Self {
                 path: ScopeRef::from_strs(&components[..(components.len()) - 1]),
                 name: components.last().unwrap().to_string(),
                 id,
+                index: None,
             }
         }
     }

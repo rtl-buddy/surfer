@@ -26,6 +26,20 @@ impl VariableType {
             VariableType::Generator(g) => g.name.clone(),
         }
     }
+
+    #[must_use]
+    pub fn name_with_index(&self) -> String {
+        match self {
+            VariableType::Variable(v) => {
+                if let Some(index) = v.index {
+                    format!("{}[{}]", v.name, index)
+                } else {
+                    v.name.clone()
+                }
+            }
+            VariableType::Generator(g) => g.name.clone(),
+        }
+    }
 }
 
 impl DataContainer {

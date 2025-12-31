@@ -100,7 +100,7 @@ fn select_preferred_translator(var: &VariableMeta, translators: &TranslatorList)
                 error!(
                     "Failed to check if {} translates {}\n{e:#?}",
                     t.name(),
-                    var.var.full_path_string()
+                    var.var.full_path_string_no_index()
                 );
                 None
             }

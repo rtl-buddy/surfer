@@ -569,12 +569,12 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
                 "variable_add_from_scope" | "generator_add_from_stream" => single_word(
                     variables_in_active_scope
                         .into_iter()
-                        .map(|s| s.name())
+                        .map(|s| s.name_with_index())
                         .collect(),
                     Box::new(move |name| {
                         active_scope.as_ref().map(|scope| match scope {
                             ScopeType::WaveScope(w) => Command::Terminal(Message::AddVariables(
-                                vec![VariableRef::new(w.clone(), name.to_string(), None)],
+                                vec![VariableRef::new(w.clone(), name.to_string())],
                             )),
                             ScopeType::StreamScope(stream_scope) => {
                                 Command::Terminal(Message::AddStreamOrGeneratorFromName(

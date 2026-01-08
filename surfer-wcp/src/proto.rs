@@ -181,6 +181,12 @@ pub enum WcpCommand {
     /// Zooms out fully to fit the whole waveform in the view
     /// Responds instantly with [`WcpResponse::ack`]
     zoom_to_fit { viewport_idx: usize },
+    /// Set the cursor to the given time.
+    /// Responds instantly with [`WcpResponse::ack`]
+    set_cursor {
+        #[serde(deserialize_with = "deserialize_timestamp")]
+        timestamp: BigInt,
+    },
     /// Shut down the WCP server.
     // FIXME: What does this mean? Does it kill the server, the current connection or surfer itself?
     shutdown,

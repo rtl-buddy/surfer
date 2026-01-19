@@ -223,20 +223,21 @@ impl Viewport {
             (Relative(-self.edge_space), Relative(1.0 + self.edge_space))
         } else {
             // our zoom level is achievable but we don't know the waveform is long enough
-
-            let unmoved_right = Relative(
-                (left_timestamp + absolute_width).0.to_f64().unwrap()
-                    / new_num_timestamps.to_f64().unwrap(),
-            );
+            let new_num_ts_f64 = new_num_timestamps
+                .to_f64()
+                .expect("Failed to convert timestamp to f64");
+            let unmoved_left = Relative(left_timestamp.0 / new_num_ts_f64);
+            let unmoved_right = Relative((left_timestamp + absolute_width).0 / new_num_ts_f64);
             if unmoved_right <= Relative(1.0 + self.edge_space) {
                 // waveform is long enough, keep current view as-is
-                (self.curr_left, unmoved_right)
+                (unmoved_left, unmoved_right)
             } else {
                 // waveform is too short, clip end to the right edge (including empty space)
                 // since we checked above for zoom level, we know that there must be enough
                 // waveform to the left to keep the current zoom level
+                let relative_width = absolute_width.0 / new_num_ts_f64;
                 (
-                    Relative(1.0 + self.edge_space - absolute_width.0),
+                    Relative(1.0 + self.edge_space - relative_width),
                     Relative(1.0 + self.edge_space),
                 )
             }
@@ -584,5 +585,105 @@ mod tests {
         assert!(!vp.is_moving());
         assert!((vp.curr_left.0 - 0.1).abs() < 1e-6);
         assert!((vp.curr_right.0 - 0.3).abs() < 1e-6);
+    }
+
+    #[test]
+    fn clip_to_does_not_invert_viewport() {
+        // Regression test: when clipping viewport to a file with different num_timestamps,
+        // the viewport should never become inverted (left > right).
+        // This reproduces the exact scenario from the bug report.
+        let mut vp = Viewport::default();
+        vp.curr_left = Relative(0.9027133537478365);
+        vp.curr_right = Relative(0.9455180041784441);
+        vp.target_left = vp.curr_left;
+        vp.target_right = vp.curr_right;
+
+        let old_num_timestamps = bi(122055);
+        let new_num_timestamps = bi(131445);
+
+        let clipped = vp.clip_to(&old_num_timestamps, &new_num_timestamps);
+
+        assert!(
+            clipped.curr_left.0 < clipped.curr_right.0,
+            "Viewport inverted after clip_to: left={} >= right={}",
+            clipped.curr_left.0,
+            clipped.curr_right.0
+        );
+    }
+
+    #[test]
+    fn clip_to_preserves_valid_viewport_on_file_growth() {
+        // When file grows, viewport should still be valid and maintain approximate position
+        let mut vp = Viewport::default();
+        vp.curr_left = Relative(0.8);
+        vp.curr_right = Relative(0.9);
+        vp.target_left = vp.curr_left;
+        vp.target_right = vp.curr_right;
+
+        let old_num_timestamps = bi(1000);
+        let new_num_timestamps = bi(2000); // file doubled in size
+
+        let clipped = vp.clip_to(&old_num_timestamps, &new_num_timestamps);
+
+        // Must not be inverted
+        assert!(
+            clipped.curr_left.0 < clipped.curr_right.0,
+            "Viewport inverted: left={} >= right={}",
+            clipped.curr_left.0,
+            clipped.curr_right.0
+        );
+
+        // Width should be preserved (in absolute terms, so halved in relative terms)
+        let old_width = 0.1; // 0.9 - 0.8
+        let expected_relative_width = old_width * 1000.0 / 2000.0; // 0.05
+        let actual_width = clipped.curr_right.0 - clipped.curr_left.0;
+        assert!(
+            (actual_width - expected_relative_width).abs() < 1e-9,
+            "Width not preserved: expected={}, actual={}",
+            expected_relative_width,
+            actual_width
+        );
+    }
+
+    #[test]
+    fn clip_to_handles_file_shrink_with_viewport_overshoot() {
+        // When file shrinks and viewport would overshoot the new file boundary,
+        // clip_to must correctly reposition the viewport to stay within bounds.
+        let mut vp = Viewport::default();
+        // Viewing timestamps 950-1000 in a 1000-timestamp file (relative 0.95-1.0)
+        vp.curr_left = Relative(0.95);
+        vp.curr_right = Relative(1.0);
+        vp.target_left = vp.curr_left;
+        vp.target_right = vp.curr_right;
+
+        let old_num_timestamps = bi(1000);
+        let new_num_timestamps = bi(500); // file shrinks
+
+        let clipped = vp.clip_to(&old_num_timestamps, &new_num_timestamps);
+
+        // Must not be inverted
+        assert!(
+            clipped.curr_left.0 < clipped.curr_right.0,
+            "Viewport inverted: left={} >= right={}",
+            clipped.curr_left.0,
+            clipped.curr_right.0
+        );
+
+        // Left edge must be valid (>= -edge_space)
+        assert!(
+            clipped.curr_left.0 >= -vp.edge_space,
+            "Left edge out of bounds: {}",
+            clipped.curr_left.0
+        );
+
+        // Width should be preserved in absolute terms (50 timestamps = 0.1 relative in new file)
+        let expected_relative_width = 50.0 / 500.0; // 0.1
+        let actual_width = clipped.curr_right.0 - clipped.curr_left.0;
+        assert!(
+            (actual_width - expected_relative_width).abs() < 1e-9,
+            "Width not preserved: expected={}, actual={}",
+            expected_relative_width,
+            actual_width
+        );
     }
 }

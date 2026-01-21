@@ -60,6 +60,7 @@ egui.workspace = true
 egui-remixicon.workspace = true
 egui_extras.workspace = true
 egui_plot = { workspace = true, optional = true }
+egui_tiles.workspace = true
 emath.workspace = true
 enum-iterator.workspace = true
 epaint.workspace = true

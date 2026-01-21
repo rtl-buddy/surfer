@@ -51,6 +51,7 @@ egui = { version = "0.33", default-features = false, features = ["serde"] }
 egui-remixicon = { version = "0.33.1", default-features = false }
 egui_extras = { version = "0.33", default-features = false }
 egui_plot = "0.34"
+egui_tiles = { version = "0.14.1", features = ["serde"] }
 emath = "0.33"
 enum-iterator = "2.1"
 epaint = "0.33"

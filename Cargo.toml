@@ -106,13 +106,13 @@ tokio-stream = "0.1.17"
 toml = { version = "0.9.8", default-features = false, features = ["parse"] }
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
-vergen-gitcl = "1.0"
-wasm-bindgen = "0.2.91"
-wasm-bindgen-futures = "0.4.50"
+vergen-gitcl = "9.1"
+wasm-bindgen = "0.2.106"
+wasm-bindgen-futures = "0.4.58"
 wasm-tracing = "2.1"
-web-sys = { version = "= 0.3.83", features = ["Location", "UrlSearchParams"] }
+web-sys = { version = "= 0.3.85", features = ["Location", "UrlSearchParams"] }
 web-time = "1.1.0"
-wellen = { version = "0.20.1", features = ["serde1"] }
+wellen = { version = "0.20.2", features = ["serde1"] }
 whoami = "2"
 
 [profile.release]

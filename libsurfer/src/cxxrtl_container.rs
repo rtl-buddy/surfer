@@ -460,6 +460,7 @@ impl CxxrtlContainer {
                             ),
                             name: (*sp.last().unwrap()).to_string(),
                             id: VarId::None,
+                            index: None,
                         },
                         v,
                     ))

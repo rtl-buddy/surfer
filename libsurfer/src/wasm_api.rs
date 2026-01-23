@@ -29,6 +29,7 @@ use crate::graphics::GraphicId;
 use crate::graphics::GraphicsY;
 use crate::setup_custom_font;
 use crate::wasm_panic;
+#[cfg(target_arch = "wasm32")]
 use crate::wave_container::VariableRefExt;
 use crate::wave_source::CxxrtlKind;
 

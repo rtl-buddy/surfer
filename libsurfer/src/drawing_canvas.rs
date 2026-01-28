@@ -716,7 +716,7 @@ impl SystemState {
         let (response, mut painter) =
             ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
 
-        if response.rect.size().x < 1. {
+        if response.rect.size().x < 1. || response.rect.size().y < 1. {
             return;
         }
 

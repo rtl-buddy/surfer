@@ -936,7 +936,7 @@ impl SystemState {
         if !ticks.is_empty() && self.show_ticks() {
             let stroke = Stroke::from(&self.user.config.theme.ticks.style);
 
-            for (_, x) in ticks {
+            for (_, x, _) in ticks {
                 waves.draw_tick_line(*x, ctx, &stroke);
             }
         }
@@ -1123,7 +1123,7 @@ impl SystemState {
         if !ticks.is_empty() && self.show_ticks() {
             let stroke = Stroke::from(&self.user.config.theme.ticks.style);
 
-            for (_, x) in &ticks {
+            for (_, x, _) in &ticks {
                 waves.draw_tick_line(*x, ctx, &stroke);
             }
         }

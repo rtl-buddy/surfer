@@ -815,12 +815,12 @@ impl WaveData {
     pub(crate) fn draw_ticks(
         &self,
         color: Color32,
-        ticks: &[(String, f32)],
+        ticks: &[(String, f32, i64)],
         ctx: &DrawingContext<'_>,
         y_offset: f32,
         align: Align2,
     ) {
-        for (tick_text, x) in ticks {
+        for (tick_text, x, _) in ticks {
             ctx.painter.text(
                 (ctx.to_screen)(*x, y_offset),
                 align,
@@ -847,7 +847,7 @@ impl SystemState {
         waves: &WaveData,
         viewport_idx: usize,
         cfg: &DrawConfig,
-    ) -> Vec<(String, f32)> {
+    ) -> Vec<(String, f32, i64)> {
         self.get_ticks_for_viewport(waves, &waves.viewports[viewport_idx], cfg)
     }
 
@@ -856,7 +856,7 @@ impl SystemState {
         waves: &WaveData,
         viewport: &Viewport,
         cfg: &DrawConfig,
-    ) -> Vec<(String, f32)> {
+    ) -> Vec<(String, f32, i64)> {
         get_ticks_internal(
             viewport,
             &waves.inner.metadata().timescale,
@@ -884,7 +884,7 @@ fn get_ticks_internal(
     time_format: &TimeFormat,
     density: f32,
     num_timestamps: &BigInt,
-) -> Vec<(String, f32)> {
+) -> Vec<(String, f32, i64)> {
     let char_width = text_size * (20. / 31.);
     let rightexp = viewport
         .curr_right
@@ -911,7 +911,7 @@ fn get_ticks_internal(
         .floor(),
     );
 
-    let mut ticks: Vec<(String, f32)> = [].to_vec();
+    let mut ticks: Vec<(String, f32, i64)> = [].to_vec();
     for step in &TICK_STEPS {
         let scaled_step = scale * step;
         let rounded_min_label_time =
@@ -934,9 +934,11 @@ fn get_ticks_internal(
                         time_formatter.format(&tick),
                         // X position
                         viewport.pixel_from_time(&tick, frame_width, num_timestamps),
+                        // Absolute time
+                        tick.to_i64().unwrap_or_default(),
                     )
                 })
-                .collect::<Vec<(String, f32)>>();
+                .collect::<Vec<(String, f32, i64)>>();
             break;
         }
     }
@@ -1728,7 +1730,7 @@ mod get_ticks_tests {
         // Check monotonic x positions and collect labels for uniqueness check
         let mut last_x = -1.0_f32;
         let mut labels: Vec<String> = Vec::with_capacity(ticks.len());
-        for (label, x) in &ticks {
+        for (label, x, _) in &ticks {
             assert!(
                 *x >= last_x,
                 "tick x not monotonic: {x} < {last_x} for label {label}"
@@ -1792,7 +1794,7 @@ mod get_ticks_tests {
         // monotonic x positions and unique labels
         let mut last_x = -1.0_f32;
         let mut labels: Vec<String> = Vec::with_capacity(ticks.len());
-        for (label, x) in &ticks {
+        for (label, x, _) in &ticks {
             assert!(
                 *x >= last_x,
                 "tick x not monotonic: {x} < {last_x} for label {label}"

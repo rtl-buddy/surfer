@@ -467,6 +467,11 @@ impl SystemState {
                 .then(|| {
                     msgs.push(Message::EnableAnimations(!self.animation_enabled()));
                 });
+            ui.radio(self.double_click_add(), "Double click to add")
+                .clicked()
+                .then(|| {
+                    msgs.push(Message::DoubleClickAdd(!self.double_click_add()));
+                });
             ui.radio(self.use_dinotrace_style(), "Dinotrace style")
                 .clicked()
                 .then(|| {

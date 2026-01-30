@@ -145,6 +145,8 @@ pub struct SurferConfig {
     /// Keyboard shortcuts
     #[serde(deserialize_with = "deserialize_shortcuts")]
     pub shortcuts: SurferShortcuts,
+    /// Use double-click to add signals rather than a single click
+    pub double_click_add: bool,
 }
 
 impl SurferConfig {
@@ -166,6 +168,11 @@ impl SurferConfig {
     #[must_use]
     pub fn animation_enabled(&self) -> bool {
         self.animation_enabled
+    }
+
+    #[must_use]
+    pub fn double_click_add(&self) -> bool {
+        self.double_click_add
     }
 }
 

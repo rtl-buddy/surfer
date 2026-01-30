@@ -797,9 +797,13 @@ impl SystemState {
                             msgs.push(Message::AddDraggedVariables(vec![variable.clone()]));
                         }
                     });
-                    response
-                        .clicked()
-                        .then(|| msgs.push(Message::AddVariables(vec![variable.clone()])));
+
+                    if self.double_click_add() {
+                        response.double_clicked()
+                    } else {
+                        response.clicked()
+                    }
+                    .then(|| msgs.push(Message::AddVariables(vec![variable.clone()])));
                 },
             );
         }

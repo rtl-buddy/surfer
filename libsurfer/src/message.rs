@@ -403,6 +403,8 @@ pub enum Message {
     SelectTheme(Option<String>),
     /// Enable animations
     EnableAnimations(bool),
+    /// Use Double-click to add signals rather than single click
+    DoubleClickAdd(bool),
     /// Undo the last n changes
     Undo(usize),
     /// Redo the last n changes

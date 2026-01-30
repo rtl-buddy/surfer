@@ -140,6 +140,11 @@ impl SystemState {
     }
 
     #[inline]
+    pub fn double_click_add(&self) -> bool {
+        self.user.config.double_click_add()
+    }
+
+    #[inline]
     pub fn primary_button_drag_behavior(&self) -> PrimaryMouseDrag {
         self.user
             .primary_button_drag_behavior

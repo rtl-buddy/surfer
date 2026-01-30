@@ -1076,7 +1076,7 @@ impl SystemState {
                         }
                     }
                 }
-                ItemDrawingInfo::Divider(_) => {
+                ItemDrawingInfo::Divider(_) | ItemDrawingInfo::Group(_) => {
                     if !self.show_divider_text() {
                         continue;
                     }
@@ -1118,7 +1118,6 @@ impl SystemState {
                     waves.draw_ticks(text_color, ticks, ctx, y_offset, Align2::CENTER_TOP);
                 }
                 ItemDrawingInfo::Stream(_) => {}
-                ItemDrawingInfo::Group(_) => {}
                 ItemDrawingInfo::Placeholder(_) => {}
             }
         }

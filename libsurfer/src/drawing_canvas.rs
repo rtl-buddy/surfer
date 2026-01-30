@@ -1081,7 +1081,6 @@ impl SystemState {
                         continue;
                     }
 
-                    let font = FontId::monospace(ctx.cfg.text_size);
                     let text_color = color.unwrap_or(
                         // Get background color and determine best text color
                         self.user
@@ -1093,42 +1092,15 @@ impl SystemState {
                                 item_count,
                             )),
                     );
-                    let text = displayed_item.map(|item| item.name()).unwrap_or_default();
 
-                    let layout = ctx
-                        .painter
-                        .layout_no_wrap(text.clone(), font.clone(), text_color);
-                    let text_width = layout.rect.width() + (font.size * 2.);
-
-                    let (next_tick, next_stamp) = ticks
-                        .get(1)
-                        .map_or_else(|| (1., 1), |&(_, dist, stamp)| (dist, stamp));
-
-                    let (first_tick, first_stamp) = ticks
-                        .first()
-                        .map_or_else(|| (0., 0), |&(_, dist, stamp)| (dist, stamp));
-
-                    let tick_delta = (next_tick - first_tick).abs();
-                    let stamp_delta = next_stamp - first_stamp;
-                    let tick_stride = (text_width / tick_delta).ceil();
-                    let stamp_stride = stamp_delta * tick_stride as i64;
-                    let elapsed = first_stamp / stamp_stride;
-                    let mut last_stamp = (elapsed * stamp_stride) - (stamp_stride / 2);
-
-                    for (_, x, stamp) in ticks {
-                        if (*stamp < last_stamp + stamp_stride) || *stamp < 0 {
-                            continue;
-                        }
-                        last_stamp = *stamp;
-
-                        ctx.painter.text(
-                            (ctx.to_screen)(*x, y_offset),
-                            Align2::CENTER_TOP,
-                            text.clone(),
-                            font.clone(),
-                            text_color,
-                        );
-                    }
+                    waves.draw_divider_text(
+                        Some(text_color),
+                        displayed_item.map(|item| item.name()).unwrap_or_default(),
+                        ticks,
+                        ctx,
+                        y_offset,
+                        &self.user.config,
+                    );
                 }
                 ItemDrawingInfo::Marker(_) => {}
                 ItemDrawingInfo::TimeLine(_) => {

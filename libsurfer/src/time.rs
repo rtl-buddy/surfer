@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use sys_locale::get_locale;
 
+use crate::config::SurferConfig;
 use crate::viewport::Viewport;
 use crate::wave_data::WaveData;
 use crate::{
@@ -826,6 +827,55 @@ impl WaveData {
                 align,
                 tick_text,
                 FontId::proportional(ctx.cfg.text_size),
+                color,
+            );
+        }
+    }
+
+    /// Draw the divider text in a stable manner inline
+    pub fn draw_divider_text(
+        &self,
+        color: Option<Color32>,
+        text: String,
+        ticks: &[(String, f32, i64)],
+        ctx: &DrawingContext<'_>,
+        y_offset: f32,
+        config: &SurferConfig,
+    ) {
+        let font = FontId::monospace(ctx.cfg.text_size);
+        let color = color.unwrap_or(config.theme.foreground);
+
+        let layout = ctx
+            .painter
+            .layout_no_wrap(text.clone(), font.clone(), color);
+        let text_width = layout.rect.width() + (font.size * 2.);
+
+        let (next_tick, next_stamp) = ticks
+            .get(1)
+            .map_or_else(|| (1., 1), |&(_, dist, stamp)| (dist, stamp));
+
+        let (first_tick, first_stamp) = ticks
+            .first()
+            .map_or_else(|| (0., 0), |&(_, dist, stamp)| (dist, stamp));
+
+        let tick_delta = (next_tick - first_tick).abs();
+        let stamp_delta = next_stamp - first_stamp;
+        let tick_stride = (text_width / tick_delta).ceil();
+        let stamp_stride = stamp_delta * tick_stride as i64;
+        let elapsed = first_stamp / stamp_stride;
+        let mut last_stamp = (elapsed * stamp_stride) - (stamp_stride / 2);
+
+        for (_, x, stamp) in ticks {
+            if (*stamp < last_stamp + stamp_stride) || *stamp < 0 {
+                continue;
+            }
+            last_stamp = *stamp;
+
+            ctx.painter.text(
+                (ctx.to_screen)(*x, y_offset),
+                Align2::CENTER_TOP,
+                text.clone(),
+                font.clone(),
                 color,
             );
         }

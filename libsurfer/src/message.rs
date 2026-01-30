@@ -408,6 +408,8 @@ pub enum Message {
     SelectTheme(Option<String>),
     /// Enable animations
     EnableAnimations(bool),
+    /// Show text of the dividers inline with the signals
+    ShowDividerText(bool),
     /// Undo the last n changes
     Undo(usize),
     /// Redo the last n changes

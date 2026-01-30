@@ -2191,6 +2191,9 @@ impl SystemState {
                     };
                 });
             }
+            Message::ShowDividerText(show) => {
+                self.user.config.show_divider_text = show;
+            }
             Message::AsyncDone(_) => (),
             Message::AddGraphic(id, g) => {
                 let waves = self.user.waves.as_mut()?;

@@ -470,6 +470,11 @@ impl SystemState {
                 .then(|| {
                     msgs.push(Message::EnableAnimations(!self.animation_enabled()));
                 });
+            ui.radio(self.show_divider_text(), "Show Divider Text")
+                .clicked()
+                .then(|| {
+                    msgs.push(Message::ShowDividerText(!self.show_divider_text()));
+                });
             ui.radio(self.use_dinotrace_style(), "Dinotrace style")
                 .clicked()
                 .then(|| {

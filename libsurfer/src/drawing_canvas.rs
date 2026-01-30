@@ -1076,7 +1076,11 @@ impl SystemState {
                         }
                     }
                 }
-                ItemDrawingInfo::Divider(_) => {}
+                ItemDrawingInfo::Divider(_) => {
+                    if !self.show_divider_text() {
+                        continue;
+                    }
+                }
                 ItemDrawingInfo::Marker(_) => {}
                 ItemDrawingInfo::TimeLine(_) => {
                     let text_color = color.unwrap_or(

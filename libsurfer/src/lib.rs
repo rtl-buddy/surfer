@@ -2048,7 +2048,8 @@ impl SystemState {
                 let waves = self.user.waves.as_mut()?;
                 let item_index = waves.index_for_ref_or_focus(item_ref)?;
 
-                waves.items_tree.remove_dissolve(item_index);
+                let removed = waves.items_tree.remove_dissolve(item_index);
+                waves.displayed_items.remove(&removed);
             }
             Message::GroupFold(item_ref)
             | Message::GroupUnfold(item_ref)

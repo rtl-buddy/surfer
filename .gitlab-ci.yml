@@ -2,6 +2,9 @@ image: rust:latest
 
 variables:
     CARGO_HOME: $CI_PROJECT_DIR/cargo
+    # no need to create files for incremental builds, with a new clone everything is rebuilt anyways
+    # this saves build time and cache space
+    CARGO_INCREMENTAL: 0
     FF_ENABLE_BASH_EXIT_CODE_CHECK: "true"
     GIT_SUBMODULE_STRATEGY: normal
     EPHEMERAL_BRANCHES_PATH: preview # subpath where previews of pages will be built
@@ -120,7 +123,19 @@ test-windows:
         - $env:Path += ";C:\GitLab-Runner\builds\${CI_PROJECT_NAMESPACE}\surfer\cargo\bin"
         - rustc -V
         - cargo -V
+        - cargo build --timings
         - cargo test --color=always --locked -- --include-ignored
+    after_script:
+        - Remove-Item -Recurse -Force $CARGO_HOME\registry\index, $CARGO_HOME\registry\src -ErrorAction SilentlyContinue
+        - Get-ChildItem target -Recurse -Directory -Filter incremental -Force |
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        - Get-ChildItem target -Recurse -File |
+            Where-Object { $_.Extension -notin '.rlib','.rmeta','.a','.dll','.lib','.pdb' } |
+            Remove-Item -Force
+    artifacts:
+        when: always
+        paths:
+            - target/cargo-timings/**
     interruptible: true
 
 test-no-default-features:

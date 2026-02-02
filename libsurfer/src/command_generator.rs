@@ -35,8 +35,8 @@ pub fn generate_command_string(state: &UserState) -> String {
             }
         }
 
-        // Add variables and items We iterate through the displayed items tree
-        // to maintain order.
+        // Add variables and items. We iterate through items_tree to maintain
+        // order, and look up item details in displayed_items.
         for node in waves.items_tree.iter() {
             if let Some(item) = waves.displayed_items.get(&node.item_ref) {
                 match item {
@@ -82,7 +82,7 @@ pub fn generate_command_string(state: &UserState) -> String {
                              commands.push(format!("item_rename {}", name));
                          }
                     }
-                    DisplayedItem::Marker(m) => {
+                    DisplayedItem::Marker(_) => {
                         // Handled below.
                     }
                     DisplayedItem::Group(g) => {

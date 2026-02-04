@@ -16,7 +16,7 @@ struct PythonBasicTranslator {}
 // NOTE: No implementation for the PythonBasicTranslator here. Will be done later.
 
 #[derive(Clone)]
-#[pyclass(name = "ValueKind")]
+#[pyclass(name = "ValueKind", from_py_object)]
 pub enum PythonValueKind {
     Normal {},
     Undef {},

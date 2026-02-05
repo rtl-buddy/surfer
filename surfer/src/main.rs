@@ -10,6 +10,7 @@ mod main_impl {
     use eyre::Result;
     use libsurfer::{
         StartupParams, SystemState,
+        EGUI_CONTEXT,
         batch_commands::read_command_file,
         file_watcher::FileWatcher,
         logs,
@@ -189,6 +190,11 @@ mod main_impl {
                 FileWatcher::new(&path, move || {
                     if let Err(e) = sender.send(Message::SuggestReloadWaveform) {
                         error!("Message ReloadWaveform did not send:\n{e}");
+                    }
+                    // Force refresh UI to process messages. Otherwise, it is
+                    // deferred until a UI event occurs (like mouseover)
+                    if let Some(ctx) = EGUI_CONTEXT.read().unwrap().as_ref() {
+                        ctx.request_repaint();
                     }
                 })
                 .inspect_err(|err| error!("Cannot set up the file watcher:\n{err}"))

@@ -28,7 +28,6 @@ use crate::tooltips::handle_transaction_tooltip;
 use crate::transaction_container::{TransactionRef, TransactionStreamRef};
 use crate::translation::{TranslationResultExt, TranslatorList, ValueKindExt, VariableInfoExt};
 use crate::view::{DrawConfig, DrawingContext, ItemDrawingInfo};
-use crate::viewport::Viewport;
 use crate::wave_container::{QueryResult, VariableRefExt};
 use crate::wave_data::WaveData;
 use crate::{
@@ -1615,13 +1614,7 @@ impl SystemState {
                 self.snap_to_edge(Some(top_left.to_pos2()), waves, frame_size.x, viewport_idx);
 
             if let Some(time) = snap_pos {
-                self.draw_line(
-                    &time,
-                    ctx,
-                    frame_size,
-                    &waves.viewports[viewport_idx],
-                    waves,
-                );
+                self.draw_line(&time, ctx, frame_size, viewport_idx, waves);
                 ui.menu_button("Set marker", |ui| {
                     for id in waves.markers.keys().sorted() {
                         ui.button(format!("{id}")).clicked().then(|| {
@@ -1699,10 +1692,10 @@ impl SystemState {
         time: &BigInt,
         ctx: &mut DrawingContext,
         size: Vec2,
-        viewport: &Viewport,
+        viewport_idx: usize,
         waves: &WaveData,
     ) {
-        let x = viewport.pixel_from_time(
+        let x = waves.viewports[viewport_idx].pixel_from_time(
             time,
             size.x,
             &waves.num_timestamps().unwrap_or_else(BigInt::one),

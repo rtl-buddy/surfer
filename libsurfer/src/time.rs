@@ -7,13 +7,12 @@ use enum_iterator::Sequence;
 use epaint::{FontId, Stroke};
 use ftr_parser::types::Timescale;
 use itertools::Itertools;
-use num::{BigInt, BigRational, ToPrimitive, Zero};
+use num::{BigInt, BigRational, One, ToPrimitive, Zero};
 use pure_rust_locales::{Locale, locale_match};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use sys_locale::get_locale;
 
-use crate::config::SurferConfig;
 use crate::viewport::Viewport;
 use crate::wave_data::WaveData;
 use crate::{Message, SystemState, translation::group_n_chars, view::DrawingContext};
@@ -472,15 +471,12 @@ impl WaveData {
     /// Draw the text for each tick location.
     pub fn draw_ticks(
         &self,
-        color: Option<Color32>,
+        color: Color32,
         ticks: &[(String, f32)],
         ctx: &DrawingContext<'_>,
         y_offset: f32,
         align: Align2,
-        config: &SurferConfig,
     ) {
-        let color = color.unwrap_or(config.theme.foreground);
-
         for (tick_text, x) in ticks {
             ctx.painter.text(
                 (ctx.to_screen)(*x, y_offset),
@@ -502,6 +498,40 @@ impl SystemState {
             time_format
         }
     }
+
+    pub fn get_ticks_for_viewport_idx(
+        &self,
+        waves: &WaveData,
+        viewport_idx: usize,
+        frame_width: f32,
+        text_size: f32,
+    ) -> Vec<(String, f32)> {
+        self.get_ticks_for_viewport(
+            waves,
+            &waves.viewports[viewport_idx],
+            frame_width,
+            text_size,
+        )
+    }
+
+    pub fn get_ticks_for_viewport(
+        &self,
+        waves: &WaveData,
+        viewport: &Viewport,
+        frame_width: f32,
+        text_size: f32,
+    ) -> Vec<(String, f32)> {
+        get_ticks_internal(
+            viewport,
+            &waves.inner.metadata().timescale,
+            frame_width,
+            text_size,
+            &self.user.wanted_timeunit,
+            &self.get_time_format(),
+            self.user.config.theme.ticks.density,
+            &waves.num_timestamps().unwrap_or_else(BigInt::one),
+        )
+    }
 }
 
 /// Get suitable tick locations for the current view port.
@@ -509,14 +539,14 @@ impl SystemState {
 /// is inspired by the corresponding code in Matplotlib.
 #[allow(clippy::too_many_arguments)]
 #[must_use]
-pub fn get_ticks(
+fn get_ticks_internal(
     viewport: &Viewport,
     timescale: &TimeScale,
     frame_width: f32,
     text_size: f32,
     wanted_timeunit: &TimeUnit,
     time_format: &TimeFormat,
-    config: &SurferConfig,
+    density: f32,
     num_timestamps: &BigInt,
 ) -> Vec<(String, f32)> {
     let char_width = text_size * (20. / 31.);
@@ -535,7 +565,7 @@ pub fn get_ticks(
         .log10()
         .round() as i16;
     let max_labelwidth = f32::from(rightexp.max(leftexp) + 3) * char_width;
-    let max_labels = ((frame_width * config.theme.ticks.density) / max_labelwidth).floor() + 2.;
+    let max_labels = ((frame_width * density) / max_labelwidth).floor() + 2.;
     let scale = 10.0f64.powf(
         ((viewport.curr_right - viewport.curr_left)
             .absolute(num_timestamps)
@@ -1346,14 +1376,14 @@ mod get_ticks_tests {
         let config = crate::config::SurferConfig::default();
         let num_timestamps = BigInt::from(1_000_000i64);
 
-        let ticks = get_ticks(
+        let ticks = get_ticks_internal(
             &vp,
             &timescale,
             frame_width,
             text_size,
             &wanted,
             &time_format,
-            &config,
+            config.theme.ticks.density,
             &num_timestamps,
         );
 
@@ -1408,14 +1438,14 @@ mod get_ticks_tests {
 
         let num_timestamps = BigInt::from(1_000_000i64);
 
-        let ticks = get_ticks(
+        let ticks = get_ticks_internal(
             &vp,
             &timescale,
             frame_width,
             text_size,
             &wanted,
             &time_format,
-            &config,
+            config.theme.ticks.density,
             &num_timestamps,
         );
 

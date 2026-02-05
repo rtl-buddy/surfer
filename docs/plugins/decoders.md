@@ -15,3 +15,5 @@ A decoder can consist of multiple toml files which will be merged.
 You can also add project-specific decoders by creating subdirectories in `.surfer/decoders`.
 
 The decoders show up as additional formats.
+
+For simpler use cases, you may want to consider a [mapping](mapping) translator.

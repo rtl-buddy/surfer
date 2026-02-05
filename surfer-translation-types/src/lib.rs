@@ -165,6 +165,12 @@ pub fn extend_string(val: &str, num_bits: u32) -> String {
             Some('0' | '1') => "0",
             Some('x') => "x",
             Some('z') => "z",
+            // Not part of standard, but useful for VHDL std_logic, at least for the mappings translator
+            Some('u') => "u",
+            Some('w') => "w",
+            Some('l') => "l",
+            Some('h') => "h",
+            Some('-') => "-",
             // If we got weird characters, this is probably a string, so we don't
             // do the extension
             // We may have to add extensions for std_logic values though if simulators save without extension
@@ -176,7 +182,7 @@ pub fn extend_string(val: &str, num_bits: u32) -> String {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Display, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Display, Hash, Serialize, Deserialize)]
 /// The value of a variable in the waveform as obtained from the waveform source.
 ///
 /// Represented either as an unsigned integer ([`BigUint`]) or as a raw [`String`] with one character per bit.

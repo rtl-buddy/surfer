@@ -18,6 +18,7 @@ mod enum_translator;
 mod event_translator;
 mod fixed_point;
 mod instruction_translators;
+mod mapping_translators;
 pub mod numeric_translators;
 #[cfg(feature = "python")]
 mod python_translators;
@@ -46,7 +47,11 @@ use crate::{message::Message, wave_container::VariableMeta};
 pub type DynTranslator = dyn Translator<VarId, ScopeId, Message>;
 pub type DynBasicTranslator = dyn BasicTranslator<VarId, ScopeId>;
 
+#[cfg(not(target_arch = "wasm32"))]
 static DECODERS_DIR: &str = "decoders";
+
+#[cfg(not(target_arch = "wasm32"))]
+static MAPPINGS_DIR: &str = "mappings";
 
 fn translate_with_basic(
     t: &DynBasicTranslator,
@@ -188,7 +193,7 @@ fn find_user_decoders_at_path(path: &Path) -> Vec<Arc<DynBasicTranslator>> {
     let mut decoders: Vec<Arc<DynBasicTranslator>> = vec![];
     let p = path.join(DECODERS_DIR);
     info!("Looking for user decoders at {}", p.display());
-    let Ok(decoder_dirs) = std::fs::read_dir(path.join(DECODERS_DIR)) else {
+    let Ok(decoder_dirs) = std::fs::read_dir(p) else {
         return decoders;
     };
 
@@ -278,6 +283,69 @@ fn find_user_decoders_at_path(path: &Path) -> Vec<Arc<DynBasicTranslator>> {
     decoders
 }
 
+/// Look inside the config directory and inside "$(cwd)/.surfer" for user-defined mapping translators
+/// To add a new mapping translator named 'x', add a file 'x' to the mapping translators directory
+#[cfg(not(target_arch = "wasm32"))]
+fn find_user_mapping_translators() -> Vec<Arc<DynBasicTranslator>> {
+    let mut translators: Vec<Arc<DynBasicTranslator>> = vec![];
+    if let Some(proj_dirs) = &*crate::config::PROJECT_DIR {
+        let mut config_decoders = find_user_mapping_translators_at_path(proj_dirs.config_dir());
+        translators.append(&mut config_decoders);
+    }
+
+    let mut project_decoders =
+        find_user_mapping_translators_at_path(Path::new(crate::config::LOCAL_DIR));
+    translators.append(&mut project_decoders);
+
+    translators
+}
+
+/// Look for user defined mapping translators in path.
+#[cfg(not(target_arch = "wasm32"))]
+fn find_user_mapping_translators_at_path(path: &Path) -> Vec<Arc<DynBasicTranslator>> {
+    let mut mapping_translators: Vec<Arc<DynBasicTranslator>> = vec![];
+    let p = path.join(MAPPINGS_DIR);
+    tracing::info!("Looking for user mapping translators at {}", p.display());
+    let Ok(mapping_files) = std::fs::read_dir(p) else {
+        return mapping_translators;
+    };
+
+    use crate::translation::mapping_translators::MappingTranslator;
+    for mapping_file in mapping_files.flatten() {
+        tracing::info!(
+            "Found user mapping translator file: {}",
+            mapping_file.path().display()
+        );
+        let Ok(utf8_path) = camino::Utf8PathBuf::try_from(mapping_file.path()) else {
+            warn!(
+                "Cannot load mapping translator. Path is not valid UTF-8: {}",
+                mapping_file.path().display()
+            );
+            continue;
+        };
+        let translator = MappingTranslator::new_from_file(utf8_path);
+        match translator {
+            Err(e) => {
+                warn!(
+                    "Cannot load mapping translator from file {}: {}",
+                    mapping_file.path().display(),
+                    e
+                );
+                continue;
+            }
+            Ok(translator) => {
+                tracing::info!(
+                    "Loaded {:?}-bit(s) mapping translator: {}",
+                    translator.bits(),
+                    translator.name(),
+                );
+                mapping_translators.push(Arc::new(translator));
+            }
+        };
+    }
+    mapping_translators
+}
+
 #[must_use]
 pub fn all_translators() -> TranslatorList {
     // WASM does not need mut, non-wasm does so we'll allow it
@@ -322,6 +390,9 @@ pub fn all_translators() -> TranslatorList {
 
     #[cfg(not(target_arch = "wasm32"))]
     basic_translators.append(&mut find_user_decoders());
+
+    #[cfg(not(target_arch = "wasm32"))]
+    basic_translators.append(&mut find_user_mapping_translators());
 
     TranslatorList::new(
         basic_translators,

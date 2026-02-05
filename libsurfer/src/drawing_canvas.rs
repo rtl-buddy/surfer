@@ -24,7 +24,6 @@ use crate::data_container::DataContainer;
 use crate::displayed_item::{
     AnalogSettings, DisplayedFieldRef, DisplayedItemRef, DisplayedVariable,
 };
-use crate::time::get_ticks;
 use crate::tooltips::handle_transaction_tooltip;
 use crate::transaction_container::{TransactionRef, TransactionStreamRef};
 use crate::translation::{TranslationResultExt, TranslatorList, ValueKindExt, VariableInfoExt};
@@ -495,16 +494,8 @@ impl SystemState {
             clock_edges.append(&mut new_clock_edges);
         }
 
-        let ticks = get_ticks(
-            &waves.viewports[viewport_idx],
-            &waves.inner.metadata().timescale,
-            frame_width,
-            cfg.text_size,
-            &self.user.wanted_timeunit,
-            &self.get_time_format(),
-            self.user.config.theme.ticks.density,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
-        );
+        let ticks =
+            self.get_ticks_for_viewport_idx(waves, viewport_idx, frame_width, cfg.text_size);
 
         Some(CachedDrawData::WaveDrawData(CachedWaveDrawData {
             draw_commands,
@@ -1164,21 +1155,13 @@ impl SystemState {
         let mut out_relation_starts = vec![];
         let mut focused_transaction_start: Option<Pos2> = None;
 
-        let ticks = &get_ticks(
-            &waves.viewports[viewport_idx],
-            &waves.inner.metadata().timescale,
-            frame_width,
-            ctx.cfg.text_size,
-            &self.user.wanted_timeunit,
-            &self.get_time_format(),
-            self.user.config.theme.ticks.density,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
-        );
+        let ticks =
+            self.get_ticks_for_viewport_idx(waves, viewport_idx, frame_width, ctx.cfg.text_size);
 
         if !ticks.is_empty() && self.show_ticks() {
             let stroke = Stroke::from(&self.user.config.theme.ticks.style);
 
-            for (_, x) in ticks {
+            for (_, x) in &ticks {
                 waves.draw_tick_line(*x, ctx, &stroke);
             }
         }
@@ -1311,7 +1294,7 @@ impl SystemState {
                                 item_count,
                             )),
                     );
-                    waves.draw_ticks(text_color, ticks, ctx, y_offset, Align2::CENTER_TOP);
+                    waves.draw_ticks(text_color, &ticks, ctx, y_offset, Align2::CENTER_TOP);
                 }
                 ItemDrawingInfo::Variable(_) => {}
                 ItemDrawingInfo::Divider(_) => {}

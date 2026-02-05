@@ -1190,6 +1190,12 @@ impl SystemState {
             }
         }
 
+        // Draws the surrounding border of the stream
+        let border_stroke = Stroke::new(
+            self.user.config.theme.linewidth,
+            self.user.config.theme.foreground,
+        );
+
         let zero_y = (ctx.to_screen)(0., 0.).y;
         for (item_count, drawing_info) in waves
             .drawing_infos
@@ -1207,11 +1213,6 @@ impl SystemState {
                 .and_then(super::displayed_item::DisplayedItem::color)
                 .and_then(|color| self.user.config.theme.get_color(color));
             let tx_color = color.unwrap_or(self.user.config.theme.transaction_default);
-            // Draws the surrounding border of the stream
-            let border_stroke = Stroke::new(
-                self.user.config.theme.linewidth,
-                self.user.config.theme.foreground,
-            );
 
             match drawing_info {
                 ItemDrawingInfo::Stream(stream) => {

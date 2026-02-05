@@ -392,17 +392,18 @@ fn draw_gesture_help(
     midpoint: Option<Pos2>,
     draw_bg: bool,
 ) {
+    let frame_size = response.rect.size();
     // Compute sizes and coordinates
     let (midx, midy, deltax, deltay) = if let Some(midpoint) = midpoint {
         let halfsize = config.gesture.size * 0.5;
         (midpoint.x, midpoint.y, halfsize, halfsize)
     } else {
-        let halfwidth = response.rect.width() * 0.5;
-        let halfheight = response.rect.height() * 0.5;
+        let halfwidth = frame_size.x * 0.5;
+        let halfheight = frame_size.y * 0.5;
         (halfwidth, halfheight, halfwidth, halfheight)
     };
 
-    let container_rect = Rect::from_min_size(Pos2::ZERO, response.rect.size());
+    let container_rect = Rect::from_min_size(Pos2::ZERO, frame_size);
     let to_screen = &|x, y| {
         RectTransform::from_to(container_rect, response.rect).transform_pos(Pos2::new(x, y))
     };

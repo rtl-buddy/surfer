@@ -21,15 +21,16 @@ impl SystemState {
 
     fn draw_overview(&self, ui: &mut Ui, waves: &WaveData, msgs: &mut Vec<Message>) {
         let (response, mut painter) = ui.allocate_painter(ui.available_size(), Sense::drag());
-        let frame_width = response.rect.width();
-        let frame_height = response.rect.height();
+        let frame_size = response.rect.size();
+        let frame_width = frame_size.x;
+        let frame_height = frame_size.y;
         let half_frame_height = frame_height * 0.5;
         let cfg = DrawConfig::new(
             frame_height,
             self.user.config.layout.waveforms_line_height,
             self.user.config.layout.waveforms_text_size,
         );
-        let container_rect = Rect::from_min_size(Pos2::ZERO, response.rect.size());
+        let container_rect = Rect::from_min_size(Pos2::ZERO, frame_size);
         let to_screen = RectTransform::from_to(container_rect, response.rect);
 
         let mut ctx = DrawingContext {
@@ -65,12 +66,7 @@ impl SystemState {
                 .rect_filled(Rect { min, max }, CornerRadiusF32::ZERO, fill_color);
         }
 
-        waves.draw_cursor(
-            &self.user.config.theme,
-            &mut ctx,
-            response.rect.size(),
-            &viewport_all,
-        );
+        waves.draw_cursor(&self.user.config.theme, &mut ctx, frame_size, &viewport_all);
 
         let mut ticks = get_ticks(
             &viewport_all,
@@ -98,16 +94,11 @@ impl SystemState {
             );
         }
 
-        waves.draw_markers(
-            &self.user.config.theme,
-            &mut ctx,
-            response.rect.size(),
-            &viewport_all,
-        );
+        waves.draw_markers(&self.user.config.theme, &mut ctx, frame_size, &viewport_all);
 
         waves.draw_marker_number_boxes(
             &mut ctx,
-            response.rect.size(),
+            frame_size,
             &self.user.config.theme,
             &viewport_all,
         );

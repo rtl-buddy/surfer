@@ -75,7 +75,7 @@ impl SystemState {
             ctx.cfg.text_size,
             &self.user.wanted_timeunit,
             &self.get_time_format(),
-            &self.user.config,
+            self.user.config.theme.ticks.density,
             &num_timestamps,
         );
 
@@ -85,12 +85,11 @@ impl SystemState {
             ticks.remove(0);
             // Draw ticks
             waves.draw_ticks(
-                None,
+                self.user.config.theme.foreground,
                 &ticks,
                 &ctx,
                 half_frame_height,
                 Align2::CENTER_CENTER,
-                &self.user.config,
             );
         }
 

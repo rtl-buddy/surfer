@@ -502,7 +502,7 @@ impl SystemState {
             cfg.text_size,
             &self.user.wanted_timeunit,
             &self.get_time_format(),
-            &self.user.config,
+            self.user.config.theme.ticks.density,
             &waves.num_timestamps().unwrap_or_else(BigInt::one),
         );
 
@@ -1123,14 +1123,7 @@ impl SystemState {
                                 item_count,
                             )),
                     );
-                    waves.draw_ticks(
-                        Some(text_color),
-                        ticks,
-                        ctx,
-                        y_offset,
-                        Align2::CENTER_TOP,
-                        &self.user.config,
-                    );
+                    waves.draw_ticks(text_color, ticks, ctx, y_offset, Align2::CENTER_TOP);
                 }
                 ItemDrawingInfo::Stream(_) => {}
                 ItemDrawingInfo::Group(_) => {}
@@ -1166,7 +1159,7 @@ impl SystemState {
             ctx.cfg.text_size,
             &self.user.wanted_timeunit,
             &self.get_time_format(),
-            &self.user.config,
+            self.user.config.theme.ticks.density,
             &waves.num_timestamps().unwrap_or_else(BigInt::one),
         );
 
@@ -1306,14 +1299,7 @@ impl SystemState {
                                 item_count,
                             )),
                     );
-                    waves.draw_ticks(
-                        Some(text_color),
-                        ticks,
-                        ctx,
-                        y_offset,
-                        Align2::CENTER_TOP,
-                        &self.user.config,
-                    );
+                    waves.draw_ticks(text_color, ticks, ctx, y_offset, Align2::CENTER_TOP);
                 }
                 ItemDrawingInfo::Variable(_) => {}
                 ItemDrawingInfo::Divider(_) => {}

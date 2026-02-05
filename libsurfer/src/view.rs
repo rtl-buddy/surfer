@@ -4,7 +4,6 @@ use crate::{
     displayed_item::DisplayedVariable,
     fzcmd::expand_command,
     menus::generic_context_menu,
-    time::get_ticks,
     tooltips::variable_tooltip_text,
     wave_container::{ScopeId, VarId, VariableMeta},
 };
@@ -21,7 +20,7 @@ use epaint::{
     text::{FontId, LayoutJob, TextFormat, TextWrapMode},
 };
 use itertools::Itertools;
-use num::{BigInt, BigUint, One, Zero};
+use num::{BigUint, One, Zero};
 use tracing::info;
 
 use surfer_translation_types::{
@@ -1693,16 +1692,8 @@ impl SystemState {
         viewport_idx: usize,
         frame_width: f32,
     ) {
-        let ticks = get_ticks(
-            &waves.viewports[viewport_idx],
-            &waves.inner.metadata().timescale,
-            frame_width,
-            ctx.cfg.text_size,
-            &self.user.wanted_timeunit,
-            &self.get_time_format(),
-            self.user.config.theme.ticks.density,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
-        );
+        let ticks =
+            self.get_ticks_for_viewport_idx(waves, viewport_idx, frame_width, ctx.cfg.text_size);
 
         waves.draw_ticks(
             self.user.config.theme.foreground,

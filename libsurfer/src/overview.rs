@@ -1,5 +1,4 @@
 use crate::message::Message;
-use crate::time::get_ticks;
 use crate::view::{DrawConfig, DrawingContext};
 use crate::{SystemState, wave_data::WaveData};
 use egui::{Context, Frame, PointerButton, Sense, TopBottomPanel, Ui};
@@ -68,16 +67,8 @@ impl SystemState {
 
         waves.draw_cursor(&self.user.config.theme, &mut ctx, frame_size, &viewport_all);
 
-        let mut ticks = get_ticks(
-            &viewport_all,
-            &waves.inner.metadata().timescale,
-            frame_width,
-            ctx.cfg.text_size,
-            &self.user.wanted_timeunit,
-            &self.get_time_format(),
-            self.user.config.theme.ticks.density,
-            &num_timestamps,
-        );
+        let mut ticks =
+            self.get_ticks_for_viewport(waves, &viewport_all, frame_width, ctx.cfg.text_size);
 
         if ticks.len() >= 2 {
             // Remove first and last tick

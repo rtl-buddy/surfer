@@ -7,7 +7,7 @@ use enum_iterator::Sequence;
 use epaint::{FontId, Stroke};
 use ftr_parser::types::Timescale;
 use itertools::Itertools;
-use num::{BigInt, BigRational, ToPrimitive, Zero};
+use num::{BigInt, BigRational, One, ToPrimitive, Zero};
 use pure_rust_locales::{Locale, locale_match};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
@@ -498,6 +498,40 @@ impl SystemState {
             time_format
         }
     }
+
+    pub fn get_ticks_for_viewport_idx(
+        &self,
+        waves: &WaveData,
+        viewport_idx: usize,
+        frame_width: f32,
+        text_size: f32,
+    ) -> Vec<(String, f32)> {
+        self.get_ticks_for_viewport(
+            waves,
+            &waves.viewports[viewport_idx],
+            frame_width,
+            text_size,
+        )
+    }
+
+    pub fn get_ticks_for_viewport(
+        &self,
+        waves: &WaveData,
+        viewport: &Viewport,
+        frame_width: f32,
+        text_size: f32,
+    ) -> Vec<(String, f32)> {
+        get_ticks_internal(
+            viewport,
+            &waves.inner.metadata().timescale,
+            frame_width,
+            text_size,
+            &self.user.wanted_timeunit,
+            &self.get_time_format(),
+            self.user.config.theme.ticks.density,
+            &waves.num_timestamps().unwrap_or_else(BigInt::one),
+        )
+    }
 }
 
 /// Get suitable tick locations for the current view port.
@@ -505,7 +539,7 @@ impl SystemState {
 /// is inspired by the corresponding code in Matplotlib.
 #[allow(clippy::too_many_arguments)]
 #[must_use]
-pub fn get_ticks(
+fn get_ticks_internal(
     viewport: &Viewport,
     timescale: &TimeScale,
     frame_width: f32,
@@ -1342,7 +1376,7 @@ mod get_ticks_tests {
         let config = crate::config::SurferConfig::default();
         let num_timestamps = BigInt::from(1_000_000i64);
 
-        let ticks = get_ticks(
+        let ticks = get_ticks_internal(
             &vp,
             &timescale,
             frame_width,
@@ -1404,7 +1438,7 @@ mod get_ticks_tests {
 
         let num_timestamps = BigInt::from(1_000_000i64);
 
-        let ticks = get_ticks(
+        let ticks = get_ticks_internal(
             &vp,
             &timescale,
             frame_width,

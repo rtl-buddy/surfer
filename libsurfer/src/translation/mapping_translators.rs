@@ -444,9 +444,9 @@ fn parse_key_value(token: &str) -> Result<(VariableValue, u32), MappingParseErro
         return Ok((VariableValue::BigUint(num), bits));
     }
 
-    return Err(MappingParseError::InvalidStringCharacters {
+    Err(MappingParseError::InvalidStringCharacters {
         value: token.to_string(),
-    });
+    })
 }
 
 /// Parse the first item into a [`VariableValue`], a [`ValueKind`], and its bit width.

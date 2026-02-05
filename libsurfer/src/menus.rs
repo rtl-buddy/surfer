@@ -55,10 +55,6 @@ impl ButtonBuilder {
         self
     }
 
-    pub fn add_leave_menu(self, msgs: &mut Vec<Message>, ui: &mut Ui) {
-        self.add_inner(msgs, ui);
-    }
-
     pub fn add_closing_menu(self, msgs: &mut Vec<Message>, ui: &mut Ui) {
         self.add_inner(msgs, ui);
     }
@@ -199,7 +195,7 @@ impl SystemState {
                     .format_shortcut(ShortcutAction::UiZoomIn),
             )
             .enabled(waves_loaded)
-            .add_leave_menu(msgs, ui);
+            .add_closing_menu(msgs, ui);
 
             b(
                 "Zoom out",
@@ -216,7 +212,7 @@ impl SystemState {
                     .format_shortcut(ShortcutAction::UiZoomOut),
             )
             .enabled(waves_loaded)
-            .add_leave_menu(msgs, ui);
+            .add_closing_menu(msgs, ui);
 
             b("Zoom to fit", Message::ZoomToFit { viewport_idx: 0 })
                 .enabled(waves_loaded)

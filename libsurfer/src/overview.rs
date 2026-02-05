@@ -76,11 +76,11 @@ impl SystemState {
             &viewport_all,
             &waves.inner.metadata().timescale,
             frame_width,
-            cfg.text_size,
+            ctx.cfg.text_size,
             &self.user.wanted_timeunit,
             &self.get_time_format(),
             &self.user.config,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
+            &num_timestamps,
         );
 
         if ticks.len() >= 2 {

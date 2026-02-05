@@ -1692,13 +1692,12 @@ impl SystemState {
         ctx: &DrawingContext,
         viewport_idx: usize,
         frame_width: f32,
-        cfg: &DrawConfig,
     ) {
         let ticks = get_ticks(
             &waves.viewports[viewport_idx],
             &waves.inner.metadata().timescale,
             frame_width,
-            cfg.text_size,
+            ctx.cfg.text_size,
             &self.user.wanted_timeunit,
             &self.get_time_format(),
             &self.user.config,

@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use sys_locale::get_locale;
 
-use crate::config::SurferConfig;
 use crate::viewport::Viewport;
 use crate::wave_data::WaveData;
 use crate::{Message, SystemState, translation::group_n_chars, view::DrawingContext};
@@ -472,15 +471,12 @@ impl WaveData {
     /// Draw the text for each tick location.
     pub fn draw_ticks(
         &self,
-        color: Option<Color32>,
+        color: Color32,
         ticks: &[(String, f32)],
         ctx: &DrawingContext<'_>,
         y_offset: f32,
         align: Align2,
-        config: &SurferConfig,
     ) {
-        let color = color.unwrap_or(config.theme.foreground);
-
         for (tick_text, x) in ticks {
             ctx.painter.text(
                 (ctx.to_screen)(*x, y_offset),
@@ -516,7 +512,7 @@ pub fn get_ticks(
     text_size: f32,
     wanted_timeunit: &TimeUnit,
     time_format: &TimeFormat,
-    config: &SurferConfig,
+    density: f32,
     num_timestamps: &BigInt,
 ) -> Vec<(String, f32)> {
     let char_width = text_size * (20. / 31.);
@@ -535,7 +531,7 @@ pub fn get_ticks(
         .log10()
         .round() as i16;
     let max_labelwidth = f32::from(rightexp.max(leftexp) + 3) * char_width;
-    let max_labels = ((frame_width * config.theme.ticks.density) / max_labelwidth).floor() + 2.;
+    let max_labels = ((frame_width * density) / max_labelwidth).floor() + 2.;
     let scale = 10.0f64.powf(
         ((viewport.curr_right - viewport.curr_left)
             .absolute(num_timestamps)
@@ -1353,7 +1349,7 @@ mod get_ticks_tests {
             text_size,
             &wanted,
             &time_format,
-            &config,
+            config.theme.ticks.density,
             &num_timestamps,
         );
 
@@ -1415,7 +1411,7 @@ mod get_ticks_tests {
             text_size,
             &wanted,
             &time_format,
-            &config,
+            config.theme.ticks.density,
             &num_timestamps,
         );
 

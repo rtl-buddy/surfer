@@ -1694,26 +1694,24 @@ impl SystemState {
         ctx: &DrawingContext,
         viewport_idx: usize,
         frame_width: f32,
-        cfg: &DrawConfig,
     ) {
         let ticks = get_ticks(
             &waves.viewports[viewport_idx],
             &waves.inner.metadata().timescale,
             frame_width,
-            cfg.text_size,
+            ctx.cfg.text_size,
             &self.user.wanted_timeunit,
             &self.get_time_format(),
-            &self.user.config,
+            self.user.config.theme.ticks.density,
             &waves.num_timestamps().unwrap_or_else(BigInt::one),
         );
 
         waves.draw_ticks(
-            Some(self.user.config.theme.foreground),
+            self.user.config.theme.foreground,
             &ticks,
             ctx,
             0.0,
             emath::Align2::CENTER_TOP,
-            &self.user.config,
         );
     }
 }

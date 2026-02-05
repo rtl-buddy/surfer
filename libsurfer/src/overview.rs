@@ -21,15 +21,16 @@ impl SystemState {
 
     fn draw_overview(&self, ui: &mut Ui, waves: &WaveData, msgs: &mut Vec<Message>) {
         let (response, mut painter) = ui.allocate_painter(ui.available_size(), Sense::drag());
-        let frame_width = response.rect.width();
-        let frame_height = response.rect.height();
+        let frame_size = response.rect.size();
+        let frame_width = frame_size.x;
+        let frame_height = frame_size.y;
         let half_frame_height = frame_height * 0.5;
         let cfg = DrawConfig::new(
             frame_height,
             self.user.config.layout.waveforms_line_height,
             self.user.config.layout.waveforms_text_size,
         );
-        let container_rect = Rect::from_min_size(Pos2::ZERO, response.rect.size());
+        let container_rect = Rect::from_min_size(Pos2::ZERO, frame_size);
         let to_screen = RectTransform::from_to(container_rect, response.rect);
 
         let mut ctx = DrawingContext {
@@ -68,22 +69,17 @@ impl SystemState {
                 .rect_filled(Rect { min, max }, CornerRadiusF32::ZERO, fill_color);
         }
 
-        waves.draw_cursor(
-            &self.user.config.theme,
-            &mut ctx,
-            response.rect.size(),
-            &viewport_all,
-        );
+        waves.draw_cursor(&self.user.config.theme, &mut ctx, frame_size, &viewport_all);
 
         let mut ticks = get_ticks(
             &viewport_all,
             &waves.inner.metadata().timescale,
             frame_width,
-            cfg.text_size,
+            ctx.cfg.text_size,
             &self.user.wanted_timeunit,
             &self.get_time_format(),
-            &self.user.config,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
+            self.user.config.theme.ticks.density,
+            &num_timestamps,
         );
 
         if ticks.len() >= 2 {
@@ -92,25 +88,19 @@ impl SystemState {
             ticks.remove(0);
             // Draw ticks
             waves.draw_ticks(
-                None,
+                self.user.config.theme.foreground,
                 &ticks,
                 &ctx,
                 half_frame_height,
                 Align2::CENTER_CENTER,
-                &self.user.config,
             );
         }
 
-        waves.draw_markers(
-            &self.user.config.theme,
-            &mut ctx,
-            response.rect.size(),
-            &viewport_all,
-        );
+        waves.draw_markers(&self.user.config.theme, &mut ctx, frame_size, &viewport_all);
 
         waves.draw_marker_number_boxes(
             &mut ctx,
-            response.rect.size(),
+            frame_size,
             &self.user.config.theme,
             &viewport_all,
         );

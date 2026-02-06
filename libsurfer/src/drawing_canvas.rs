@@ -6,7 +6,7 @@ use eyre::WrapErr;
 use ftr_parser::types::{Transaction, TxGenerator};
 use itertools::Itertools;
 use num::bigint::{ToBigInt, ToBigUint};
-use num::{BigInt, BigUint, One, ToPrimitive, Zero};
+use num::{BigInt, BigUint, ToPrimitive, Zero};
 use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -233,7 +233,7 @@ fn variable_digital_draw_commands(
     let mut clock_edges = vec![];
     let mut local_msgs = vec![];
     let displayed_field_ref: DisplayedFieldRef = display_id.into();
-    let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+    let num_timestamps = waves.safe_num_timestamps();
 
     let mut local_commands: HashMap<Vec<String>, DigitalDrawingCommands> = HashMap::new();
 
@@ -424,7 +424,7 @@ impl SystemState {
     ) -> Option<CachedDrawData> {
         let mut draw_commands = HashMap::new();
 
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
         let max_time = num_timestamps.to_f64().unwrap_or(f64::MAX);
         let mut clock_edges = vec![];
         // Compute which timestamp to draw in each pixel. We'll draw from -extra_draw_width to
@@ -520,7 +520,7 @@ impl SystemState {
         let mut new_focused_tx: Option<&Transaction> = None;
 
         let viewport = waves.viewports[viewport_idx];
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
 
         let displayed_streams = waves
             .items_tree
@@ -739,7 +739,7 @@ impl SystemState {
         let to_screen = RectTransform::from_to(container_rect, response.rect);
         let pointer_pos_global = ui.input(|i| i.pointer.interact_pos());
         let pointer_pos_canvas = pointer_pos_global.map(|p| self.transform_pos(to_screen, p, ui));
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
 
         if ui.ui_contains_pointer() {
             let pointer_pos = pointer_pos_global.unwrap();
@@ -1652,7 +1652,7 @@ impl SystemState {
     ) -> Option<BigInt> {
         let pos = pointer_pos_canvas?;
         let viewport = &waves.viewports[viewport_idx];
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
         let timestamp = viewport.as_time_bigint(pos.x, frame_width, &num_timestamps);
         if let Some(utimestamp) = timestamp.to_biguint()
             && let Some(vidx) = waves.get_item_at_y(pos.y)
@@ -1698,7 +1698,7 @@ impl SystemState {
         let x = waves.viewports[viewport_idx].pixel_from_time(
             time,
             size.x,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
+            &waves.safe_num_timestamps(),
         );
 
         ctx.painter.line_segment(

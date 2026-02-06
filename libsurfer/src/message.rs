@@ -399,6 +399,8 @@ pub enum Message {
     Batch(Vec<Message>),
     AddViewport,
     RemoveViewport,
+    /// Add a new debug tile to the tile tree
+    AddTile,
     /// Select Theme
     SelectTheme(Option<String>),
     /// Enable animations

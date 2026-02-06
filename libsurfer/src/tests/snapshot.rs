@@ -1645,6 +1645,193 @@ snapshot_ui_with_file_and_msgs! {remove_viewport_works, "examples/counter.vcd", 
     Message::AddTimeLine(None), Message::RemoveViewport
 ]}
 
+snapshot_ui_with_file_and_msgs! {tiles_vertical_horizontal_layout, "examples/counter.vcd", [
+    Message::SetDefaultTimeline(false),
+    Message::SetActiveScope(Some(ScopeType::WaveScope(ScopeRef::from_strs(&["tb"])))),
+    Message::AddVariables(vec![VariableRef::from_hierarchy_string("tb.clk")]),
+    Message::AddTile,
+    Message::AddTile,
+    Message::AddTile,
+]}
+
+// Test that loading a new waveform (not reload) resets the tile tree to single waveform
+snapshot_ui!(tiles_reset_on_new_waveform, || {
+    let mut state = SystemState::new_default_config()
+        .unwrap()
+        .with_params(StartupParams {
+            waves: Some(WaveSource::File(
+                get_project_root()
+                    .unwrap()
+                    .join("examples/counter.vcd")
+                    .try_into()
+                    .unwrap(),
+            )),
+            ..Default::default()
+        });
+
+    wait_for_waves_fully_loaded(&mut state, 10);
+
+    // Add tiles to create a multi-tile layout
+    state.update(Message::AddTile);
+    state.update(Message::AddTile);
+    state.update(Message::AddTile);
+
+    // Verify we have multiple tiles
+    assert!(
+        !state.user.tile_tree.is_single_waveform(),
+        "Expected multiple tiles"
+    );
+
+    // Load a different waveform with Clear option (new load, not reload)
+    state.update(Message::LoadFile(
+        get_project_root()
+            .unwrap()
+            .join("examples/with_8_bit.vcd")
+            .try_into()
+            .unwrap(),
+        LoadOptions::Clear,
+    ));
+
+    // Wait for the new waveform body to be loaded
+    handle_messages_until(
+        &mut state,
+        |msg| matches!(&msg, Message::WaveBodyLoaded(..)),
+        10,
+    );
+
+    // Verify tile tree was reset to single waveform
+    assert!(
+        state.user.tile_tree.is_single_waveform(),
+        "Expected tile tree to be reset to single waveform after loading new file"
+    );
+
+    // Add a variable to show something in the waveform
+    state.update(Message::SetActiveScope(Some(ScopeType::WaveScope(
+        ScopeRef::from_strs(&["logic"]),
+    ))));
+    state.update(Message::AddVariables(vec![
+        VariableRef::from_hierarchy_string("logic.data"),
+    ]));
+
+    handle_messages_until(
+        &mut state,
+        |msg| matches!(&msg, Message::SignalsLoaded(..)),
+        10,
+    );
+
+    state.update(Message::SetMenuVisible(false));
+    state.update(Message::SetSidePanelVisible(false));
+    state.update(Message::SetToolbarVisible(false));
+    state.update(Message::SetOverviewVisible(false));
+    state.update(Message::CloseOpenSiblingStateFileDialog {
+        load_state: false,
+        do_not_show_again: true,
+    });
+    state.update(Message::ZoomToFit { viewport_idx: 0 });
+
+    state
+});
+
+// Test that tile state can be saved and restored from state file
+snapshot_ui!(tiles_restored_from_state_file, || {
+    let save_file = env::temp_dir().join(format!("tiles_state.{STATE_FILE_EXTENSION}"));
+
+    // First: create state with tiles and save it
+    let mut state = SystemState::new_default_config()
+        .unwrap()
+        .with_params(StartupParams {
+            waves: Some(WaveSource::File(
+                get_project_root()
+                    .unwrap()
+                    .join("examples/counter.vcd")
+                    .try_into()
+                    .unwrap(),
+            )),
+            ..Default::default()
+        });
+
+    wait_for_waves_fully_loaded(&mut state, 10);
+
+    // Add tiles to create a multi-tile layout
+    state.update(Message::AddTile);
+    state.update(Message::AddTile);
+    state.update(Message::AddTile);
+
+    // Add a variable so there's something visible
+    state.update(Message::SetActiveScope(Some(ScopeType::WaveScope(
+        ScopeRef::from_strs(&["tb"]),
+    ))));
+    state.update(Message::AddVariables(vec![
+        VariableRef::from_hierarchy_string("tb.clk"),
+    ]));
+
+    handle_messages_until(
+        &mut state,
+        |msg| matches!(&msg, Message::SignalsLoaded(..)),
+        10,
+    );
+
+    // Verify we have multiple tiles before saving
+    assert!(
+        !state.user.tile_tree.is_single_waveform(),
+        "Expected multiple tiles before saving"
+    );
+
+    // Save state to file
+    state.update(Message::SaveStateFile(Some(save_file.clone())));
+
+    handle_messages_until(
+        &mut state,
+        |msg| matches!(&msg, Message::AsyncDone(AsyncJob::SaveState)),
+        10,
+    );
+
+    // Second: create fresh state and restore from file
+    let mut state = SystemState::new_default_config()
+        .unwrap()
+        .with_params(StartupParams {
+            waves: Some(WaveSource::File(
+                get_project_root()
+                    .unwrap()
+                    .join("examples/counter.vcd")
+                    .try_into()
+                    .unwrap(),
+            )),
+            ..Default::default()
+        });
+
+    wait_for_waves_fully_loaded(&mut state, 10);
+
+    // Load state file (this should restore tile layout)
+    state.update(Message::LoadStateFile(Some(save_file.clone())));
+
+    handle_messages_until(
+        &mut state,
+        |msg| matches!(&msg, Message::SignalsLoaded(..)),
+        10,
+    );
+
+    // Verify tiles were restored
+    assert!(
+        !state.user.tile_tree.is_single_waveform(),
+        "Expected multiple tiles after restoring from state file"
+    );
+
+    std::fs::remove_file(save_file).unwrap();
+
+    state.update(Message::SetMenuVisible(false));
+    state.update(Message::SetSidePanelVisible(false));
+    state.update(Message::SetToolbarVisible(false));
+    state.update(Message::SetOverviewVisible(false));
+    state.update(Message::CloseOpenSiblingStateFileDialog {
+        load_state: false,
+        do_not_show_again: true,
+    });
+    state.update(Message::ZoomToFit { viewport_idx: 0 });
+
+    state
+});
+
 snapshot_ui_with_file_and_msgs! {hierarchy_tree, "examples/counter.vcd", [
     Message::SetSidePanelVisible(true),
     Message::SetHierarchyStyle(HierarchyStyle::Tree),

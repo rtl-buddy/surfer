@@ -312,6 +312,7 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
             "show_marker_window",
             "viewport_add",
             "viewport_remove",
+            "tile_add",
             "transition_next",
             "transition_previous",
             "transaction_next",
@@ -348,6 +349,7 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
             "show_logs",
             #[cfg(feature = "performance_plot")]
             "show_performance",
+            "tile_add",
             #[cfg(not(target_arch = "wasm32"))]
             wcp_start_or_stop,
             #[cfg(not(target_arch = "wasm32"))]
@@ -870,6 +872,7 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
                 ),
                 "viewport_add" => Some(Command::Terminal(Message::AddViewport)),
                 "viewport_remove" => Some(Command::Terminal(Message::RemoveViewport)),
+                "tile_add" => Some(Command::Terminal(Message::AddTile)),
                 "pause_simulation" => Some(Command::Terminal(Message::PauseSimulation)),
                 "unpause_simulation" => Some(Command::Terminal(Message::UnpauseSimulation)),
                 "undo" => Some(Command::Terminal(Message::Undo(1))),

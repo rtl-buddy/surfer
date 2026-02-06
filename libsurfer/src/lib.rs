@@ -41,6 +41,7 @@ pub mod statusbar;
 pub mod system_state;
 #[cfg(test)]
 pub mod tests;
+pub mod tiles;
 pub mod time;
 pub mod toolbar;
 pub mod tooltips;
@@ -62,6 +63,7 @@ pub mod wasm_panic;
 pub mod wave_container;
 pub mod wave_data;
 pub mod wave_source;
+mod waveform_tile;
 pub mod wcp;
 pub mod wellen;
 
@@ -2261,6 +2263,10 @@ impl SystemState {
                     waves.viewports.pop();
                     self.draw_data.borrow_mut().pop();
                 }
+            }
+            Message::AddTile => {
+                self.user.tile_tree.add_debug_tile();
+                self.invalidate_draw_commands();
             }
             Message::SelectTheme(theme_name) => {
                 let theme = SurferTheme::new(theme_name)

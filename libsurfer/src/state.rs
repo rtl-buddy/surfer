@@ -14,6 +14,7 @@ use crate::{
     hierarchy::{HierarchyStyle, ParameterDisplayLocation},
     message::Message,
     system_state::SystemState,
+    tiles::SurferTileTree,
     time::{TimeStringFormatting, TimeUnit},
     transaction_container::TransactionContainer,
     variable_filter::VariableFilter,
@@ -124,6 +125,8 @@ pub struct UserState {
     pub(crate) surver_url: Option<String>,
     #[serde(default)]
     pub(crate) transition_value: Option<TransitionValue>,
+    #[serde(default)]
+    pub(crate) tile_tree: SurferTileTree,
 
     // Path of last saved-to state file
     // Do not serialize as this causes a few issues and doesn't help:
@@ -214,6 +217,7 @@ impl Default for UserState {
             surver_file_infos: None,
             surver_url: None,
             transition_value: None,
+            tile_tree: SurferTileTree::default(),
         }
     }
 }
@@ -365,6 +369,7 @@ impl SystemState {
         if !is_reload && let Some(waves) = &mut self.user.waves {
             // Set time unit
             self.user.wanted_timeunit = waves.inner.metadata().timescale.unit;
+            self.user.tile_tree = SurferTileTree::default();
             // Possibly open state file load dialog
             if waves.source.sibling_state_file().is_some() {
                 self.update(Message::SuggestOpenSiblingStateFile);

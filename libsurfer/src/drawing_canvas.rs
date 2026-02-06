@@ -688,11 +688,17 @@ impl SystemState {
         }))
     }
 
-    // Transform from screen coordinates taking timeline into account
-    fn transform_pos(&self, to_screen: RectTransform, p: Pos2, ui: &Ui) -> Pos2 {
+    // Transform from screen coordinates taking timeline into account if `consider_timeline` is true.
+    fn transform_pos(
+        &self,
+        to_screen: RectTransform,
+        p: Pos2,
+        ui: &Ui,
+        consider_timeline: bool,
+    ) -> Pos2 {
         to_screen
             .inverse()
-            .transform_pos(if self.show_default_timeline() {
+            .transform_pos(if consider_timeline && self.show_default_timeline() {
                 Pos2 {
                     x: p.x,
                     y: p.y - ui.text_style_height(&egui::TextStyle::Body),
@@ -745,7 +751,10 @@ impl SystemState {
         let to_screen = RectTransform::from_to(container_rect, response.rect);
         let frame_width = response.rect.width();
         let pointer_pos_global = ui.input(|i| i.pointer.interact_pos());
-        let pointer_pos_canvas = pointer_pos_global.map(|p| self.transform_pos(to_screen, p, ui));
+        let pointer_pos_canvas =
+            pointer_pos_global.map(|p| self.transform_pos(to_screen, p, ui, true));
+        let pointer_pos_mouse_gesture =
+            pointer_pos_global.map(|p| self.transform_pos(to_screen, p, ui, false));
         let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
 
         if ui.ui_contains_pointer() {
@@ -813,7 +822,7 @@ impl SystemState {
         {
             msgs.push(Message::SetMouseGestureDragStart(
                 ui.input(|i| i.pointer.press_origin())
-                    .map(|p| self.transform_pos(to_screen, p, ui)),
+                    .map(|p| self.transform_pos(to_screen, p, ui, false)),
             ));
         }
 
@@ -821,7 +830,7 @@ impl SystemState {
         if response.drag_started_by(PointerButton::Primary) && self.do_measure(&modifiers) {
             msgs.push(Message::SetMeasureDragStart(
                 ui.input(|i| i.pointer.press_origin())
-                    .map(|p| self.transform_pos(to_screen, p, ui)),
+                    .map(|p| self.transform_pos(to_screen, p, ui, false)),
             ));
         }
 
@@ -927,7 +936,7 @@ impl SystemState {
         self.draw_mouse_gesture_widget(
             egui_ctx,
             waves,
-            pointer_pos_canvas,
+            pointer_pos_mouse_gesture,
             &response,
             msgs,
             &mut ctx,
@@ -937,7 +946,7 @@ impl SystemState {
         self.draw_measure_widget(
             egui_ctx,
             waves,
-            pointer_pos_canvas,
+            pointer_pos_mouse_gesture,
             &response,
             msgs,
             &mut ctx,

@@ -7,7 +7,7 @@ use enum_iterator::Sequence;
 use epaint::{FontId, Stroke};
 use ftr_parser::types::Timescale;
 use itertools::Itertools;
-use num::{BigInt, BigRational, One, ToPrimitive, Zero};
+use num::{BigInt, BigRational, ToPrimitive, Zero};
 use pure_rust_locales::{Locale, locale_match};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
@@ -529,7 +529,7 @@ impl SystemState {
             &self.user.wanted_timeunit,
             &self.get_time_format(),
             self.user.config.theme.ticks.density,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
+            &waves.safe_num_timestamps(),
         )
     }
 }

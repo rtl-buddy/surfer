@@ -771,7 +771,7 @@ impl WaveData {
 
     pub fn go_to_cursor_if_not_in_view(&mut self) -> bool {
         if let Some(cursor) = &self.cursor {
-            let num_timestamps = self.num_timestamps().unwrap_or_else(BigInt::one);
+            let num_timestamps = self.safe_num_timestamps();
             self.viewports[0].go_to_cursor_if_not_in_view(cursor, &num_timestamps)
         } else {
             false
@@ -783,7 +783,7 @@ impl WaveData {
         viewport.pixel_from_time(
             self.numbered_marker_time(idx),
             view_width,
-            &self.num_timestamps().unwrap_or_else(BigInt::one),
+            &self.safe_num_timestamps(),
         )
     }
 
@@ -961,6 +961,13 @@ impl WaveData {
             .max_timestamp()
             .and_then(|r| if r.is_zero() { None } else { Some(r) })
             .and_then(|r| r.to_bigint())
+    }
+
+    /// Returns the number of timestamps in the current waves. This is like `num_timestamps` but
+    /// will always return at least 1.
+    #[must_use]
+    pub fn safe_num_timestamps(&self) -> BigInt {
+        self.num_timestamps().unwrap_or_else(BigInt::one)
     }
 
     #[must_use]

@@ -4,7 +4,6 @@ use crate::{SystemState, wave_data::WaveData};
 use egui::{Context, Frame, PointerButton, Sense, TopBottomPanel, Ui};
 use emath::{Align2, Pos2, Rect, RectTransform};
 use epaint::CornerRadiusF32;
-use num::{BigInt, One};
 
 impl SystemState {
     pub fn add_overview_panel(&self, ctx: &Context, waves: &WaveData, msgs: &mut Vec<Message>) {
@@ -39,7 +38,7 @@ impl SystemState {
             theme: &self.user.config.theme,
         };
 
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
         let viewport_all = waves.viewport_all();
         let fill_color = self
             .user

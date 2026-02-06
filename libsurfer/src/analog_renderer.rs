@@ -12,7 +12,7 @@ use crate::viewport::Viewport;
 use crate::wave_data::WaveData;
 use egui::{Color32, Pos2, Stroke, emath};
 use epaint::PathShape;
-use num::{BigInt, One, ToPrimitive};
+use num::{BigInt, ToPrimitive};
 use std::collections::HashMap;
 
 pub enum AnalogDrawingCommand {
@@ -46,7 +46,7 @@ pub(crate) fn variable_analog_draw_commands(
     let displayed_field_ref: DisplayedFieldRef = display_id.into();
     let translator = waves.variable_translator(&displayed_field_ref, translators);
     let viewport = &waves.viewports[viewport_idx];
-    let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+    let num_timestamps = waves.safe_num_timestamps();
 
     let signal_id = wave_container
         .signal_id(&displayed_variable.variable_ref)

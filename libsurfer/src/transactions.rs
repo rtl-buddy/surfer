@@ -12,6 +12,9 @@ use crate::transaction_container::{StreamScopeRef, TransactionContainer};
 use crate::wave_data::ScopeType;
 use crate::wave_data::WaveData;
 
+// Transactions file extension
+pub const TRANSACTIONS_FILE_EXTENSION: &str = "ftr";
+
 // Constants for transaction table drawing and UI labels
 const ROW_HEIGHT: f32 = 15.;
 const SECTION_GAP: f32 = 5.;

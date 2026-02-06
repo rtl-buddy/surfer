@@ -344,6 +344,10 @@ impl SystemState {
                         });
                         self.send_response(WcpResponse::ack);
                     }
+                    WcpCommand::set_cursor { timestamp } => {
+                        self.update(Message::CursorSet(timestamp.to_owned()));
+                        self.send_response(WcpResponse::ack);
+                    }
                     WcpCommand::shutdown => {
                         warn!("WCP Shutdown message should not reach this place");
                     }

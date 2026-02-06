@@ -9,6 +9,7 @@ use crate::async_util::{perform_async_work, perform_work};
 use crate::cxxrtl_container::CxxrtlContainer;
 use crate::file_dialog::OpenMode;
 use crate::remote::{get_hierarchy_from_server, get_server_status, server_reload};
+use crate::transactions::TRANSACTIONS_FILE_EXTENSION;
 use crate::util::get_multi_extension;
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::Report;
@@ -227,7 +228,9 @@ impl SystemState {
                     self.load_state_file(Some(filename.into_std_path_buf()));
                     Ok(())
                 }
-                "ftr" => self.load_transactions_from_file(filename, load_options),
+                TRANSACTIONS_FILE_EXTENSION => {
+                    self.load_transactions_from_file(filename, load_options)
+                }
                 _ => self.load_wave_from_file(filename, load_options),
             },
             _ => self.load_wave_from_file(filename, load_options),

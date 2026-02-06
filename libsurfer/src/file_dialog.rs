@@ -11,6 +11,7 @@ use tracing::error;
 use crate::SystemState;
 use crate::async_util::perform_async_work;
 use crate::message::Message;
+use crate::transactions::TRANSACTIONS_FILE_EXTENSION;
 
 #[derive(Debug, Deserialize)]
 pub enum OpenMode {
@@ -136,7 +137,7 @@ impl SystemState {
                     "vcd".to_string(),
                     "fst".to_string(),
                     "ghw".to_string(),
-                    "ftr".to_string(),
+                    TRANSACTIONS_FILE_EXTENSION.to_string(),
                 ],
             ),
             message,

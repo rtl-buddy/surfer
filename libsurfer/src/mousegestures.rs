@@ -3,7 +3,6 @@ use derive_more::Display;
 use egui::{Context, Painter, PointerButton, Response, RichText, Sense, Window};
 use emath::{Align2, Pos2, Rect, RectTransform, Vec2};
 use epaint::{FontId, Stroke};
-use num::{BigInt, One};
 use serde::Deserialize;
 
 use crate::config::{SurferConfig, SurferTheme};
@@ -106,7 +105,7 @@ impl SystemState {
         waves: &WaveData,
         frame_width: f32,
     ) {
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
         let Some(end_location) = pointer_pos_canvas else {
             return;
         };
@@ -292,7 +291,7 @@ impl SystemState {
         } else {
             (current_location.x, start_location.x)
         };
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
         let start_time = waves.viewports[viewport_idx].as_time_bigint(minx, width, &num_timestamps);
         let end_time = waves.viewports[viewport_idx].as_time_bigint(maxx, width, &num_timestamps);
         let diff_time = &end_time - &start_time;
@@ -392,17 +391,18 @@ fn draw_gesture_help(
     midpoint: Option<Pos2>,
     draw_bg: bool,
 ) {
+    let frame_size = response.rect.size();
     // Compute sizes and coordinates
     let (midx, midy, deltax, deltay) = if let Some(midpoint) = midpoint {
         let halfsize = config.gesture.size * 0.5;
         (midpoint.x, midpoint.y, halfsize, halfsize)
     } else {
-        let halfwidth = response.rect.width() * 0.5;
-        let halfheight = response.rect.height() * 0.5;
+        let halfwidth = frame_size.x * 0.5;
+        let halfheight = frame_size.y * 0.5;
         (halfwidth, halfheight, halfwidth, halfheight)
     };
 
-    let container_rect = Rect::from_min_size(Pos2::ZERO, response.rect.size());
+    let container_rect = Rect::from_min_size(Pos2::ZERO, frame_size);
     let to_screen = &|x, y| {
         RectTransform::from_to(container_rect, response.rect)
             .transform_pos(Pos2::new(x, y) + Vec2::new(0.5, 0.5))

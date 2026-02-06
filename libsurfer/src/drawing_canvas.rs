@@ -6,7 +6,7 @@ use eyre::WrapErr;
 use ftr_parser::types::{Transaction, TxGenerator};
 use itertools::Itertools;
 use num::bigint::{ToBigInt, ToBigUint};
-use num::{BigInt, BigUint, One, ToPrimitive, Zero};
+use num::{BigInt, BigUint, ToPrimitive, Zero};
 use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -24,12 +24,10 @@ use crate::data_container::DataContainer;
 use crate::displayed_item::{
     AnalogSettings, DisplayedFieldRef, DisplayedItemRef, DisplayedVariable,
 };
-use crate::time::get_ticks;
 use crate::tooltips::handle_transaction_tooltip;
 use crate::transaction_container::{TransactionRef, TransactionStreamRef};
 use crate::translation::{TranslationResultExt, TranslatorList, ValueKindExt, VariableInfoExt};
 use crate::view::{DrawConfig, DrawingContext, ItemDrawingInfo};
-use crate::viewport::Viewport;
 use crate::wave_container::{QueryResult, VariableRefExt};
 use crate::wave_data::WaveData;
 use crate::{
@@ -235,7 +233,7 @@ fn variable_digital_draw_commands(
     let mut clock_edges = vec![];
     let mut local_msgs = vec![];
     let displayed_field_ref: DisplayedFieldRef = display_id.into();
-    let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+    let num_timestamps = waves.safe_num_timestamps();
 
     let mut local_commands: HashMap<Vec<String>, DigitalDrawingCommands> = HashMap::new();
 
@@ -426,7 +424,7 @@ impl SystemState {
     ) -> Option<CachedDrawData> {
         let mut draw_commands = HashMap::new();
 
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
         let max_time = num_timestamps.to_f64().unwrap_or(f64::MAX);
         let mut clock_edges = vec![];
         // Compute which timestamp to draw in each pixel. We'll draw from -extra_draw_width to
@@ -495,16 +493,8 @@ impl SystemState {
             clock_edges.append(&mut new_clock_edges);
         }
 
-        let ticks = get_ticks(
-            &waves.viewports[viewport_idx],
-            &waves.inner.metadata().timescale,
-            frame_width,
-            cfg.text_size,
-            &self.user.wanted_timeunit,
-            &self.get_time_format(),
-            &self.user.config,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
-        );
+        let ticks =
+            self.get_ticks_for_viewport_idx(waves, viewport_idx, frame_width, cfg.text_size);
 
         Some(CachedDrawData::WaveDrawData(CachedWaveDrawData {
             draw_commands,
@@ -530,7 +520,7 @@ impl SystemState {
         let mut new_focused_tx: Option<&Transaction> = None;
 
         let viewport = waves.viewports[viewport_idx];
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
 
         let displayed_streams = waves
             .items_tree
@@ -716,18 +706,22 @@ impl SystemState {
         let (response, mut painter) =
             ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
 
-        if response.rect.size().x < 1. || response.rect.size().y < 1. {
+        let frame_size = response.rect.size();
+        let frame_height = frame_size.y;
+        let frame_width = frame_size.x;
+
+        if frame_width < 1. || frame_height < 1. {
             return;
         }
 
         let cfg = match waves.inner {
             DataContainer::Waves(_) => DrawConfig::new(
-                response.rect.size().y,
+                frame_height,
                 self.user.config.layout.waveforms_line_height,
                 self.user.config.layout.waveforms_text_size,
             ),
             DataContainer::Transactions(_) => DrawConfig::new(
-                response.rect.size().y,
+                frame_height,
                 self.user.config.layout.transactions_line_height,
                 self.user.config.layout.waveforms_text_size,
             ),
@@ -737,16 +731,15 @@ impl SystemState {
         if self.draw_data.borrow()[viewport_idx].is_none()
             || Some(response.rect) != *self.last_canvas_rect.borrow()
         {
-            self.generate_draw_commands(&cfg, response.rect.width(), msgs, viewport_idx);
+            self.generate_draw_commands(&cfg, frame_width, msgs, viewport_idx);
             *self.last_canvas_rect.borrow_mut() = Some(response.rect);
         }
 
-        let container_rect = Rect::from_min_size(Pos2::ZERO, response.rect.size());
+        let container_rect = Rect::from_min_size(Pos2::ZERO, frame_size);
         let to_screen = RectTransform::from_to(container_rect, response.rect);
-        let frame_width = response.rect.width();
         let pointer_pos_global = ui.input(|i| i.pointer.interact_pos());
         let pointer_pos_canvas = pointer_pos_global.map(|p| self.transform_pos(to_screen, p, ui));
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
 
         if ui.ui_contains_pointer() {
             let pointer_pos = pointer_pos_global.unwrap();
@@ -870,7 +863,6 @@ impl SystemState {
                     draw_data,
                     viewport_idx,
                     frame_width,
-                    &cfg,
                     ui,
                     msgs,
                     &mut ctx,
@@ -883,7 +875,7 @@ impl SystemState {
 
         waves.draw_graphics(
             &mut ctx,
-            response.rect.size(),
+            frame_size,
             &waves.viewports[viewport_idx],
             &self.user.config.theme,
         );
@@ -891,21 +883,21 @@ impl SystemState {
         waves.draw_cursor(
             &self.user.config.theme,
             &mut ctx,
-            response.rect.size(),
+            frame_size,
             &waves.viewports[viewport_idx],
         );
 
         waves.draw_markers(
             &self.user.config.theme,
             &mut ctx,
-            response.rect.size(),
+            frame_size,
             &waves.viewports[viewport_idx],
         );
 
         self.draw_marker_boxes(
             waves,
             &mut ctx,
-            response.rect.size().x,
+            frame_width,
             gap,
             &waves.viewports[viewport_idx],
             y_zero,
@@ -921,7 +913,7 @@ impl SystemState {
             };
             ctx.painter
                 .rect_filled(rect, 0.0, self.user.config.theme.canvas_colors.background);
-            self.draw_default_timeline(waves, &ctx, viewport_idx, frame_width, &cfg);
+            self.draw_default_timeline(waves, &ctx, viewport_idx, frame_width);
         }
 
         self.draw_mouse_gesture_widget(
@@ -1121,14 +1113,7 @@ impl SystemState {
                                 item_count,
                             )),
                     );
-                    waves.draw_ticks(
-                        Some(text_color),
-                        ticks,
-                        ctx,
-                        y_offset,
-                        Align2::CENTER_TOP,
-                        &self.user.config,
-                    );
+                    waves.draw_ticks(text_color, ticks, ctx, y_offset, Align2::CENTER_TOP);
                 }
                 ItemDrawingInfo::Stream(_) => {}
                 ItemDrawingInfo::Group(_) => {}
@@ -1144,7 +1129,6 @@ impl SystemState {
         draw_data: &CachedTransactionDrawData,
         viewport_idx: usize,
         frame_width: f32,
-        cfg: &DrawConfig,
         ui: &mut Ui,
         msgs: &mut Vec<Message>,
         ctx: &mut DrawingContext,
@@ -1158,24 +1142,22 @@ impl SystemState {
         let mut out_relation_starts = vec![];
         let mut focused_transaction_start: Option<Pos2> = None;
 
-        let ticks = &get_ticks(
-            &waves.viewports[viewport_idx],
-            &waves.inner.metadata().timescale,
-            frame_width,
-            cfg.text_size,
-            &self.user.wanted_timeunit,
-            &self.get_time_format(),
-            &self.user.config,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
-        );
+        let ticks =
+            self.get_ticks_for_viewport_idx(waves, viewport_idx, frame_width, ctx.cfg.text_size);
 
         if !ticks.is_empty() && self.show_ticks() {
             let stroke = Stroke::from(&self.user.config.theme.ticks.style);
 
-            for (_, x) in ticks {
+            for (_, x) in &ticks {
                 waves.draw_tick_line(*x, ctx, &stroke);
             }
         }
+
+        // Draws the surrounding border of the stream
+        let border_stroke = Stroke::new(
+            self.user.config.theme.linewidth,
+            self.user.config.theme.foreground,
+        );
 
         let zero_y = (ctx.to_screen)(0., 0.).y;
         for (item_count, drawing_info) in waves
@@ -1194,11 +1176,6 @@ impl SystemState {
                 .and_then(super::displayed_item::DisplayedItem::color)
                 .and_then(|color| self.user.config.theme.get_color(color));
             let tx_color = color.unwrap_or(self.user.config.theme.transaction_default);
-            // Draws the surrounding border of the stream
-            let border_stroke = Stroke::new(
-                self.user.config.theme.linewidth,
-                self.user.config.theme.foreground,
-            );
 
             match drawing_info {
                 ItemDrawingInfo::Stream(stream) => {
@@ -1304,14 +1281,7 @@ impl SystemState {
                                 item_count,
                             )),
                     );
-                    waves.draw_ticks(
-                        Some(text_color),
-                        ticks,
-                        ctx,
-                        y_offset,
-                        Align2::CENTER_TOP,
-                        &self.user.config,
-                    );
+                    waves.draw_ticks(text_color, &ticks, ctx, y_offset, Align2::CENTER_TOP);
                 }
                 ItemDrawingInfo::Variable(_) => {}
                 ItemDrawingInfo::Divider(_) => {}
@@ -1619,7 +1589,7 @@ impl SystemState {
         msgs: &mut Vec<Message>,
         viewport_idx: usize,
     ) {
-        let size = response.rect.size();
+        let frame_size = response.rect.size();
         response.context_menu(|ui| {
             let offset = f32::from(ui.spacing().menu_margin.left);
             let top_left = to_screen.inverse().transform_rect(ui.min_rect()).left_top()
@@ -1628,10 +1598,11 @@ impl SystemState {
                     y: offset,
                 };
 
-            let snap_pos = self.snap_to_edge(Some(top_left.to_pos2()), waves, size.x, viewport_idx);
+            let snap_pos =
+                self.snap_to_edge(Some(top_left.to_pos2()), waves, frame_size.x, viewport_idx);
 
             if let Some(time) = snap_pos {
-                self.draw_line(&time, ctx, size, &waves.viewports[viewport_idx], waves);
+                self.draw_line(&time, ctx, frame_size, viewport_idx, waves);
                 ui.menu_button("Set marker", |ui| {
                     for id in waves.markers.keys().sorted() {
                         ui.button(format!("{id}")).clicked().then(|| {
@@ -1669,7 +1640,7 @@ impl SystemState {
     ) -> Option<BigInt> {
         let pos = pointer_pos_canvas?;
         let viewport = &waves.viewports[viewport_idx];
-        let num_timestamps = waves.num_timestamps().unwrap_or_else(BigInt::one);
+        let num_timestamps = waves.safe_num_timestamps();
         let timestamp = viewport.as_time_bigint(pos.x, frame_width, &num_timestamps);
         if let Some(utimestamp) = timestamp.to_biguint()
             && let Some(vidx) = waves.get_item_at_y(pos.y)
@@ -1709,13 +1680,13 @@ impl SystemState {
         time: &BigInt,
         ctx: &mut DrawingContext,
         size: Vec2,
-        viewport: &Viewport,
+        viewport_idx: usize,
         waves: &WaveData,
     ) {
-        let x = viewport.pixel_from_time(
+        let x = waves.viewports[viewport_idx].pixel_from_time(
             time,
             size.x,
-            &waves.num_timestamps().unwrap_or_else(BigInt::one),
+            &waves.safe_num_timestamps(),
         );
 
         ctx.painter.line_segment(

@@ -543,6 +543,10 @@ vscode-prepare-publish:
     - mkdir trunk-install
     - mv trunk trunk-install
     - rustup target add wasm32-unknown-unknown
+    # Gitlab CI only fetches with a depth of 20. Our version numbering uses the number of commits
+    # as the trailing part of the version to get a semver compatible dynamic version. git rev-list
+    # only lits cloned commits, so without --unshallow here, things will fail
+    - git fetch --unshallow
     - PATH=$PATH:$(pwd)/trunk-install ./build_extension.sh
     - npm install -g @vscode/vsce
     - cd extension

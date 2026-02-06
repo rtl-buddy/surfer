@@ -450,7 +450,7 @@ impl SystemState {
 
                 SidePanel::left("variable values")
                     .frame(
-                        egui::Frame::default()
+                        Frame::default()
                             .inner_margin(0)
                             .outer_margin(0)
                             .fill(self.user.config.theme.secondary_ui_color.background),

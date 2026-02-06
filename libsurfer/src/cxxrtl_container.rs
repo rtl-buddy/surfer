@@ -157,7 +157,7 @@ impl CxxrtlData {
 macro_rules! expect_response {
     ($expected:pat, $response:expr) => {
         let $expected = $response else {
-            tracing::error!(
+            error!(
                 "Got unexpected response. Got {:?} expected {}",
                 $response,
                 stringify!(expected)

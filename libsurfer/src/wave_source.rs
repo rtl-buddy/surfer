@@ -124,7 +124,7 @@ pub fn url_to_wavesource(url: &str) -> Option<WaveSource> {
         }
         #[cfg(target_arch = "wasm32")]
         {
-            tracing::warn!("Loading waves from cxxrtl via tcp is unsupported in WASM builds.");
+            warn!("Loading waves from cxxrtl via tcp is unsupported in WASM builds.");
             None
         }
     } else {

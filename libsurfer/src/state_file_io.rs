@@ -24,7 +24,7 @@ impl SystemState {
         {
             Ok(s) => vec![Message::LoadState(s, path)],
             Err(e) => {
-                tracing::error!("Failed to load state: {e:#?}");
+                error!("Failed to load state: {e:#?}");
                 vec![]
             }
         };
@@ -45,7 +45,7 @@ impl SystemState {
                 p
             } else {
                 let err = eyre::eyre!("File path '{}' contains invalid UTF-8", path.display());
-                tracing::error!("{err:#?}");
+                error!("{err:#?}");
                 return vec![Message::Error(err)];
             };
 
@@ -55,12 +55,12 @@ impl SystemState {
                 {
                     Ok(s) => vec![Message::LoadState(s, Some(path))],
                     Err(e) => {
-                        tracing::error!("Failed to load state: {e:#?}");
+                        error!("Failed to load state: {e:#?}");
                         vec![Message::Error(e)]
                     }
                 },
                 Err(e) => {
-                    tracing::error!("Failed to load state file: {path:#?} {e:#?}");
+                    error!("Failed to load state file: {path:#?} {e:#?}");
                     vec![Message::Error(eyre::eyre!(
                         "Failed to read state file '{}': {e}",
                         path.display()
@@ -97,7 +97,7 @@ impl SystemState {
             destination
                 .write(encoded.as_bytes())
                 .await
-                .map_err(|e| tracing::error!("Failed to write state to {destination:#?} {e:#?}"))
+                .map_err(|e| error!("Failed to write state to {destination:#?} {e:#?}"))
                 .ok();
             vec![
                 Message::SetStateFile(destination.path().into()),
@@ -137,7 +137,7 @@ impl SystemState {
             destination
                 .write(encoded.as_bytes())
                 .await
-                .map_err(|e| tracing::error!("Failed to write state to {destination:#?} {e:#?}"))
+                .map_err(|e| error!("Failed to write state to {destination:#?} {e:#?}"))
                 .ok();
             vec![Message::AsyncDone(AsyncJob::SaveState)]
         };
@@ -156,7 +156,7 @@ impl SystemState {
 
         opt.to_string_pretty(&self.user, ron::ser::PrettyConfig::default())
             .context("Failed to encode state")
-            .map_err(|e| tracing::error!("Failed to encode state. {e:#?}"))
+            .map_err(|e| error!("Failed to encode state. {e:#?}"))
             .ok()
     }
 
@@ -169,7 +169,7 @@ impl SystemState {
                 }
             }
             Err(e) => {
-                tracing::error!("Failed to load state: {e:#?}");
+                error!("Failed to load state: {e:#?}");
             }
         }
     }

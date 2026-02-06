@@ -261,7 +261,7 @@ fn find_user_decoders_at_path(path: &Path) -> Vec<Arc<DynBasicTranslator>> {
                             decoder,
                             num_bits: width.unsigned_abs() as u32,
                         };
-                        tracing::info!(
+                        info!(
                             "Loaded {}-bit instruction decoder: {} ",
                             width.unsigned_abs(),
                             translator.name(),

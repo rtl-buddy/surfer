@@ -34,7 +34,7 @@ impl SystemState {
                                                 ));
                                             } else {
                                                 ui.colored_label(
-                                                    egui::Color32::RED,
+                                                    ecolor::Color32::RED,
                                                     "File cannot be loaded. See logs for details.",
                                                 );
                                             }

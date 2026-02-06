@@ -3,7 +3,7 @@ use crate::time::get_ticks;
 use crate::view::{DrawConfig, DrawingContext};
 use crate::{SystemState, wave_data::WaveData};
 use egui::{Context, Frame, PointerButton, Sense, TopBottomPanel, Ui};
-use emath::{Align2, Pos2, Rect, RectTransform, Vec2};
+use emath::{Align2, Pos2, Rect, RectTransform};
 use epaint::CornerRadiusF32;
 use num::{BigInt, One};
 
@@ -35,10 +35,7 @@ impl SystemState {
         let mut ctx = DrawingContext {
             painter: &mut painter,
             cfg: &cfg,
-            // This 0.5 is very odd, but it fixes the lines we draw being smushed out across two
-            // pixels, resulting in dimmer colors https://github.com/emilk/egui/issues/1322
-            // 1 comes from subtracting .5 in cursor draw as y-adjusement is not required for known vertical lines.
-            to_screen: &|x, y| to_screen.transform_pos(Pos2::new(x, y) + Vec2::new(0.5, 1.)),
+            to_screen: &|x, y| to_screen.transform_pos(Pos2::new(x, y)),
             theme: &self.user.config.theme,
         };
 

@@ -1399,9 +1399,7 @@ impl SystemState {
         let ctx = DrawingContext {
             painter: &mut painter,
             cfg: &cfg,
-            // This 0.5 is very odd, but it fixes the lines we draw being smushed out across two
-            // pixels, resulting in dimmer colors https://github.com/emilk/egui/issues/1322
-            to_screen: &|x, y| to_screen.transform_pos(Pos2::new(x, y) + Vec2::new(0.5, 0.5)),
+            to_screen: &|x, y| to_screen.transform_pos(Pos2::new(x, y)),
             theme: &self.user.config.theme,
         };
 

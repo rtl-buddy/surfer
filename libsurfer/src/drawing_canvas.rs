@@ -828,19 +828,7 @@ impl SystemState {
         let mut ctx = DrawingContext {
             painter: &mut painter,
             cfg: &cfg,
-            to_screen: &|x, y| {
-                // As of 0.29 Egui draws things in the middle of pixels which means that if our
-                // line width is odd, we'll get very fuzzy lines. To compensate for this, we'll
-                // offset the coordinates by 0.5 if we have an odd line width.
-                // Relevant issues: https://github.com/emilk/egui/issues/1322
-                //                  https://github.com/emilk/egui/pull/4943
-                let offset = if (self.user.config.theme.linewidth as i32) % 2 == 1 {
-                    Vec2::new(0.5, 0.5)
-                } else {
-                    Vec2::ZERO
-                };
-                to_screen.transform_pos(Pos2::new(x, y) + offset)
-            },
+            to_screen: &|x, y| to_screen.transform_pos(Pos2::new(x, y)),
             theme: &self.user.config.theme,
         };
 
@@ -1731,10 +1719,7 @@ impl SystemState {
         );
 
         ctx.painter.line_segment(
-            [
-                (ctx.to_screen)(x + 0.5, -0.5),
-                (ctx.to_screen)(x + 0.5, size.y),
-            ],
+            [(ctx.to_screen)(x, 0.), (ctx.to_screen)(x, size.y)],
             self.user.config.theme.cursor.clone(),
         );
     }

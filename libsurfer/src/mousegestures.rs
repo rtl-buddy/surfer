@@ -404,8 +404,7 @@ fn draw_gesture_help(
 
     let container_rect = Rect::from_min_size(Pos2::ZERO, response.rect.size());
     let to_screen = &|x, y| {
-        RectTransform::from_to(container_rect, response.rect)
-            .transform_pos(Pos2::new(x, y) + Vec2::new(0.5, 0.5))
+        RectTransform::from_to(container_rect, response.rect).transform_pos(Pos2::new(x, y))
     };
     let stroke = Stroke::from(&config.theme.gesture);
     let tan225deltax = TAN_22_5_DEGREES * deltax;

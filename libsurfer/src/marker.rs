@@ -409,13 +409,8 @@ fn get_marker_background_color(item: &DisplayedItem, theme: &SurferTheme) -> Col
 
 /// Draw a vertical line at the given x position with the specified stroke
 fn draw_vertical_line(x: f32, ctx: &mut DrawingContext, size: Vec2, stroke: Stroke) {
-    ctx.painter.line_segment(
-        [
-            (ctx.to_screen)(x + 0.5, -0.5),
-            (ctx.to_screen)(x + 0.5, size.y),
-        ],
-        stroke,
-    );
+    ctx.painter
+        .line_segment([(ctx.to_screen)(x, 0.), (ctx.to_screen)(x, size.y)], stroke);
 }
 
 /// Generate the message for a marker click based on its index

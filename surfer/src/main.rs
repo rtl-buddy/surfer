@@ -307,10 +307,9 @@ mod main_impl {
 
 #[cfg(target_arch = "wasm32")]
 mod main_impl {
-    use eframe::wasm_bindgen::JsCast;
-    use eframe::web_sys;
     use libsurfer::logs;
     use libsurfer::wasm_api::WebHandle;
+    use wasm_bindgen::JsCast;
 
     // Calling main is not the intended way to start surfer, instead, it should be
     // started by `wasm_api::WebHandle`

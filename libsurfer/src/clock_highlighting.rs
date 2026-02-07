@@ -3,7 +3,7 @@ use derive_more::{Display, FromStr};
 use egui::Ui;
 use emath::{Pos2, Rect};
 use enum_iterator::Sequence;
-use epaint::Stroke;
+use epaint::{CornerRadius, Stroke};
 use serde::{Deserialize, Serialize};
 
 use crate::{config::SurferConfig, message::Message, view::DrawingContext};
@@ -57,7 +57,7 @@ pub fn draw_clock_edge_marks(
                                 y: ctx.cfg.canvas_height + y_start,
                             },
                         },
-                        0.0,
+                        CornerRadius::ZERO,
                         fill_color,
                     );
                 }

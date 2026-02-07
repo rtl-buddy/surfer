@@ -6,6 +6,7 @@ use tracing::{error, info, trace};
 use crate::{
     SystemState,
     async_util::perform_async_work,
+    channels::checked_send,
     command_parser::get_parser,
     fzcmd::parse_command,
     message::Message,
@@ -39,9 +40,7 @@ impl SystemState {
             if should_exit {
                 info!("Exiting due to batch command");
                 let sender = self.channels.msg_sender.clone();
-                if let Err(e) = sender.send(Message::Exit) {
-                    error!("Failed to send exit message: {e}");
-                }
+                checked_send(&sender, Message::Exit);
             }
         }
     }
@@ -151,9 +150,7 @@ impl SystemState {
             let response: reqwest::Response = match maybe_response {
                 Ok(r) => r,
                 Err(e) => {
-                    if let Err(e) = sender.send(Message::Error(e)) {
-                        error!("Failed to send error message: {e}");
-                    }
+                    checked_send(&sender, Message::Error(e));
                     return;
                 }
             };
@@ -168,9 +165,7 @@ impl SystemState {
                 Ok(b) => Message::CommandFileDownloaded(url, b),
                 Err(e) => Message::Error(e),
             };
-            if let Err(e) = sender.send(msg) {
-                error!("Failed to send message: {e}");
-            }
+            checked_send(&sender, msg);
         });
 
         self.progress_tracker = Some(LoadProgress::new(LoadProgressStatus::Downloading(url_)));

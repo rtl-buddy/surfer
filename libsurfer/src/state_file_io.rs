@@ -8,6 +8,7 @@ use tracing::error;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::async_util::perform_async_work;
+use crate::channels::{checked_send, checked_send_many};
 
 use crate::{
     SystemState, async_util::AsyncJob, message::Message, wave_source::STATE_FILE_EXTENSION,
@@ -24,7 +25,7 @@ impl SystemState {
         {
             Ok(s) => vec![Message::LoadState(s, path)],
             Err(e) => {
-                tracing::error!("Failed to load state: {e:#?}");
+                error!("Failed to load state: {e:#?}");
                 vec![]
             }
         };
@@ -45,7 +46,7 @@ impl SystemState {
                 p
             } else {
                 let err = eyre::eyre!("File path '{}' contains invalid UTF-8", path.display());
-                tracing::error!("{err:#?}");
+                error!("{err:#?}");
                 return vec![Message::Error(err)];
             };
 
@@ -55,12 +56,12 @@ impl SystemState {
                 {
                     Ok(s) => vec![Message::LoadState(s, Some(path))],
                     Err(e) => {
-                        tracing::error!("Failed to load state: {e:#?}");
+                        error!("Failed to load state: {e:#?}");
                         vec![Message::Error(e)]
                     }
                 },
                 Err(e) => {
-                    tracing::error!("Failed to load state file: {path:#?} {e:#?}");
+                    error!("Failed to load state file: {path:#?} {e:#?}");
                     vec![Message::Error(eyre::eyre!(
                         "Failed to read state file '{}': {e}",
                         path.display()
@@ -70,11 +71,7 @@ impl SystemState {
         };
         if let Some(path) = path {
             let sender = self.channels.msg_sender.clone();
-            for message in messages(path) {
-                if let Err(e) = sender.send(message) {
-                    error!("Failed to send message: {e}");
-                }
-            }
+            checked_send_many(&sender, messages(path));
         } else {
             self.file_dialog_open(
                 "Load state",
@@ -97,7 +94,7 @@ impl SystemState {
             destination
                 .write(encoded.as_bytes())
                 .await
-                .map_err(|e| tracing::error!("Failed to write state to {destination:#?} {e:#?}"))
+                .map_err(|e| error!("Failed to write state to {destination:#?} {e:#?}"))
                 .ok();
             vec![
                 Message::SetStateFile(destination.path().into()),
@@ -107,11 +104,7 @@ impl SystemState {
         if let Some(path) = path {
             let sender = self.channels.msg_sender.clone();
             perform_async_work(async move {
-                for message in messages(path.into()).await {
-                    if let Err(e) = sender.send(message) {
-                        error!("Failed to send message: {e}");
-                    }
-                }
+                checked_send_many(&sender, messages(path.into()).await);
             });
         } else {
             self.file_dialog_save(
@@ -137,7 +130,7 @@ impl SystemState {
             destination
                 .write(encoded.as_bytes())
                 .await
-                .map_err(|e| tracing::error!("Failed to write state to {destination:#?} {e:#?}"))
+                .map_err(|e| error!("Failed to write state to {destination:#?} {e:#?}"))
                 .ok();
             vec![Message::AsyncDone(AsyncJob::SaveState)]
         };
@@ -156,7 +149,7 @@ impl SystemState {
 
         opt.to_string_pretty(&self.user, ron::ser::PrettyConfig::default())
             .context("Failed to encode state")
-            .map_err(|e| tracing::error!("Failed to encode state. {e:#?}"))
+            .map_err(|e| error!("Failed to encode state. {e:#?}"))
             .ok()
     }
 
@@ -164,12 +157,10 @@ impl SystemState {
         match ron::de::from_bytes(&bytes).context("Failed loading state from bytes") {
             Ok(s) => {
                 let sender = self.channels.msg_sender.clone();
-                if let Err(e) = sender.send(Message::LoadState(s, None)) {
-                    error!("Failed to send message: {e}");
-                }
+                checked_send(&sender, Message::LoadState(s, None));
             }
             Err(e) => {
-                tracing::error!("Failed to load state: {e:#?}");
+                error!("Failed to load state: {e:#?}");
             }
         }
     }

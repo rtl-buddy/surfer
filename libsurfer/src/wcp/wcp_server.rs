@@ -1,5 +1,5 @@
 use bytes::{Buf, BytesMut};
-use eframe::egui::Context;
+use egui::Context;
 use eyre::Result;
 use serde::Serialize;
 use serde_json::Error as serde_Error;

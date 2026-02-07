@@ -5,8 +5,9 @@ use tokio::sync::{
         error::{SendError, TryRecvError},
     },
 };
+use tracing::error;
 
-use crate::{EGUI_CONTEXT, OUTSTANDING_TRANSACTIONS};
+use crate::{EGUI_CONTEXT, OUTSTANDING_TRANSACTIONS, message::Message};
 
 const CHANNEL_SIZE: usize = 100;
 
@@ -84,5 +85,19 @@ impl<T> GlobalChannelTx<T> {
             tx,
             rx: RwLock::new(rx),
         }
+    }
+}
+
+#[inline]
+pub fn checked_send(sender: &std::sync::mpsc::Sender<Message>, msg: Message) {
+    if let Err(e) = sender.send(msg) {
+        error!("Failed to send message: {e}");
+    }
+}
+
+#[inline]
+pub fn checked_send_many(sender: &std::sync::mpsc::Sender<Message>, msgs: Vec<Message>) {
+    for msg in msgs {
+        checked_send(sender, msg);
     }
 }

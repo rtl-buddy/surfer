@@ -28,7 +28,6 @@ eframe.workspace = true
 egui.workspace = true
 emath.workspace = true
 eyre.workspace = true
-image.workspace = true
 libsurfer = { path = "../libsurfer", default-features = false }
 ron.workspace = true
 simple-eyre.workspace = true
@@ -37,4 +36,5 @@ tokio = { workspace = true, features = ["rt", "time", "macros"] }
 tracing.workspace = true
 
 [build-dependencies]
+image.workspace = true
 vergen-gitcl = { workspace = true, features = ["build"] }

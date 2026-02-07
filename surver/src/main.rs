@@ -1,9 +1,10 @@
 //! Code for the `surver` executable.
 use clap::Parser;
-use eyre::Result;
+use eyre::{Context, Result, bail};
 use std::{
     fs::File,
     io::{BufRead, BufReader, stdout},
+    path::Path,
 };
 use tokio::runtime::Builder;
 use tracing::subscriber::set_global_default;
@@ -50,32 +51,50 @@ pub fn start_logging() -> Result<()> {
     Ok(())
 }
 
+/// Load list of file names from a file (one per line)
+fn load_file_list(filename: &str) -> Result<Vec<String>> {
+    let file =
+        File::open(filename).with_context(|| format!("Failed to open file list: {}", filename))?;
+    let buf = BufReader::new(file);
+    buf.lines()
+        .map(|l| l.with_context(|| format!("Failed to read line from: {}", filename)))
+        .filter(|result| result.as_ref().map(|s| !s.is_empty()).unwrap_or(true))
+        .collect()
+}
+
+/// Validate that all files exist and are readable
+fn validate_files(filenames: &[String]) -> Result<()> {
+    for filename in filenames {
+        let path = Path::new(filename);
+        if !path.exists() {
+            bail!("Wave file does not exist: {}", filename);
+        }
+        if !path.is_file() {
+            bail!("Path is not a file: {}", filename);
+        }
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     start_logging()?;
 
     let runtime = Builder::new_current_thread()
         .worker_threads(1)
         .enable_all()
-        .build()
-        .unwrap();
+        .build()?;
 
     // parse arguments
     let args = Args::parse();
 
-    // Handle file lists
-    let mut file_names = args.file_group.wave_files.clone();
-
-    // Append file names from file
+    // Collect file names from direct arguments and file list
+    let mut file_names = args.file_group.wave_files;
     if let Some(filename) = args.file_group.file {
-        let file = File::open(filename).expect("no such file");
-        let buf = BufReader::new(file);
-        let mut files = buf
-            .lines()
-            .map(|l| l.expect("Could not parse line"))
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<String>>();
-        file_names.append(&mut files);
+        file_names.append(&mut load_file_list(&filename)?);
     }
+
+    // Validate that all files exist before starting server
+    validate_files(&file_names)?;
 
     // Use CLI override if provided, otherwise use hardcoded defaults
     let bind_addr = args

@@ -25,7 +25,7 @@ use wellen::{
 use crate::{
     BINCODE_OPTIONS, HTTP_SERVER_KEY, HTTP_SERVER_VALUE_SURFER, SURFER_VERSION, SurverFileInfo,
     SurverStatus, WELLEN_SURFER_DEFAULT_OPTIONS, WELLEN_VERSION, X_SURFER_VERSION,
-    X_WELLEN_VERSION,
+    X_WELLEN_VERSION, modification_time_string,
 };
 
 struct ReadOnly {
@@ -46,7 +46,7 @@ struct FileInfo {
     reloading: bool,
     last_reload_ok: bool,
     last_reload_time: Option<Instant>,
-    last_file_mtime: Option<SystemTime>,
+    last_modification_time: Option<SystemTime>,
 }
 
 #[derive(Default)]
@@ -55,24 +55,11 @@ struct SurverState {
 }
 
 impl FileInfo {
-    pub fn modification_time_string(&self) -> String {
-        if let Some(mtime) = self.last_file_mtime {
-            let dur = mtime
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default();
-            return chrono::DateTime::<chrono::Utc>::from_timestamp(
-                dur.as_secs() as i64,
-                dur.subsec_nanos(),
-            )
-            .map_or_else(
-                || "Incorrect timestamp".to_string(),
-                |dt| dt.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
-            );
-        }
-        "unknown".to_string()
+    fn modification_time_string(&self) -> String {
+        modification_time_string(self.last_modification_time)
     }
 
-    pub fn reload_time_string(&self) -> String {
+    fn reload_time_string(&self) -> String {
         if let Some(time) = self.last_reload_time {
             return format!("{:?} ago", time.elapsed());
         }
@@ -105,6 +92,19 @@ impl FileInfo {
     }
 }
 
+impl From<&FileInfo> for SurverFileInfo {
+    fn from(file_info: &FileInfo) -> Self {
+        Self {
+            bytes: file_info.body_len + file_info.header_len,
+            bytes_loaded: file_info.body_progress.load(Ordering::SeqCst) + file_info.header_len,
+            filename: file_info.filename.clone(),
+            format: file_info.file_format,
+            reloading: file_info.reloading,
+            last_load_ok: file_info.last_reload_ok,
+            last_modification_time: file_info.last_modification_time,
+        }
+    }
+}
 enum LoaderMessage {
     SignalRequest(SignalRequest),
     Reload,
@@ -186,18 +186,11 @@ async fn get_timetable(state: &Arc<RwLock<SurverState>>, file_index: usize) -> R
 
 fn get_status(state: &Arc<RwLock<SurverState>>) -> Result<Vec<u8>> {
     let state_guard = state.read().expect("State lock poisoned in get_status");
-    let mut file_infos = Vec::new();
-    for file_info in &state_guard.file_infos {
-        file_infos.push(SurverFileInfo {
-            bytes: file_info.body_len + file_info.header_len,
-            bytes_loaded: file_info.body_progress.load(Ordering::SeqCst) + file_info.header_len,
-            filename: file_info.filename.clone(),
-            format: file_info.file_format,
-            reloading: file_info.reloading,
-            last_load_ok: file_info.last_reload_ok,
-            last_load_time: file_info.last_reload_time.map(|t| t.elapsed().as_secs()),
-        });
-    }
+    let file_infos = state_guard
+        .file_infos
+        .iter()
+        .map(SurverFileInfo::from)
+        .collect::<Vec<_>>();
     drop(state_guard);
     let status = SurverStatus {
         wellen_version: WELLEN_VERSION.to_string(),
@@ -213,13 +206,18 @@ async fn get_signals(
     txs: &[Sender<LoaderMessage>],
     id_strings: &[&str],
 ) -> Result<Vec<u8>> {
-    let mut ids = Vec::with_capacity(id_strings.len());
-    for id in id_strings {
-        let index = id.parse::<u64>()? as usize;
-        let signal_ref = SignalRef::from_index(index)
-            .ok_or_else(|| anyhow!("Invalid signal index: {}", index))?;
-        ids.push(signal_ref);
-    }
+    let ids = id_strings
+        .iter()
+        .map(|id_str| {
+            id_str
+                .parse::<u64>()
+                .map_err(|e| anyhow!("Failed to parse signal id `{id_str}`: {e:#}"))
+                .and_then(|index| {
+                    SignalRef::from_index(index as usize)
+                        .ok_or_else(|| anyhow!("Invalid signal index: {}", index))
+                })
+        })
+        .collect::<Result<Vec<SignalRef>>>()?;
 
     if ids.is_empty() {
         return Ok(vec![]);
@@ -284,6 +282,22 @@ impl DefaultHeader for hyper::http::response::Builder {
     }
 }
 
+fn build_response(
+    status: StatusCode,
+    content_type: &str,
+    body: Vec<u8>,
+) -> Result<Response<Full<Bytes>>> {
+    Ok(Response::builder()
+        .status(status)
+        .header(CONTENT_TYPE, content_type)
+        .default_header()
+        .body(Full::from(body))?)
+}
+
+fn not_found_response(message: &[u8]) -> Result<Response<Full<Bytes>>> {
+    build_response(StatusCode::NOT_FOUND, OCTET_MIME, message.to_vec())
+}
+
 async fn handle_cmd(
     state: &Arc<RwLock<SurverState>>,
     txs: &[Sender<LoaderMessage>],
@@ -294,83 +308,56 @@ async fn handle_cmd(
     let response = match (file_index, cmd, args) {
         (_, "get_status", []) => {
             let body = get_status(state)?;
-            Response::builder()
-                .status(StatusCode::OK)
-                .header(CONTENT_TYPE, JSON_MIME)
-                .default_header()
-                .body(Full::from(body))
+            build_response(StatusCode::OK, JSON_MIME, body)
         }
         (Some(file_index), "get_hierarchy", []) => {
             let body = get_hierarchy(state, file_index)?;
-            Response::builder()
-                .status(StatusCode::OK)
-                .header(CONTENT_TYPE, OCTET_MIME)
-                .default_header()
-                .body(Full::from(body))
+            build_response(StatusCode::OK, OCTET_MIME, body)
         }
         (Some(file_index), "get_time_table", []) => {
             let body = get_timetable(state, file_index).await?;
-            Response::builder()
-                .status(StatusCode::OK)
-                .header(CONTENT_TYPE, OCTET_MIME)
-                .default_header()
-                .body(Full::from(body))
+            build_response(StatusCode::OK, OCTET_MIME, body)
         }
         (Some(file_index), "get_signals", id_strings) => {
             let body = get_signals(state, file_index, txs, id_strings).await?;
-            Response::builder()
-                .status(StatusCode::OK)
-                .header(CONTENT_TYPE, OCTET_MIME)
-                .default_header()
-                .body(Full::from(body))
+            build_response(StatusCode::OK, OCTET_MIME, body)
         }
         (Some(file_index), "reload", []) => {
             let mut state_guard = state.write().expect("State lock poisoned in reload");
+            let file_info = &mut state_guard.file_infos[file_index];
             // Check file existence, size, and mtime
-            let Ok(meta) = fs::metadata(state_guard.file_infos[file_index].filename.clone()) else {
+            let Ok(meta) = fs::metadata(file_info.filename.clone()) else {
                 drop(state_guard);
-                return Ok(Response::builder()
-                    .status(StatusCode::NOT_FOUND)
-                    .header(CONTENT_TYPE, JSON_MIME)
-                    .default_header()
-                    .body(Full::from(b"error: file not found".to_vec()))?);
+                return not_found_response(b"error: file not found");
             };
             let mtime = meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
             // Should probably look at file lengths as well for extra safety, but they are not updated correctly at the moment
-            let unchanged = state_guard.file_infos[file_index].last_file_mtime == Some(mtime)
-                && state_guard.file_infos[file_index].last_reload_ok;
+            let unchanged =
+                file_info.last_modification_time == Some(mtime) && file_info.last_reload_ok;
             if unchanged {
                 drop(state_guard);
-                return Ok(Response::builder()
-                    .status(StatusCode::NOT_MODIFIED)
-                    .header(CONTENT_TYPE, JSON_MIME)
-                    .default_header()
-                    .body(Full::from(b"info: file unchanged".to_vec()))?);
+                return build_response(
+                    StatusCode::NOT_MODIFIED,
+                    JSON_MIME,
+                    b"info: file unchanged".to_vec(),
+                );
             }
-            state_guard.file_infos[file_index].last_file_mtime = Some(mtime);
+            file_info.last_modification_time = Some(mtime);
             info!(
                 "File modification time updated to {}",
-                state_guard.file_infos[file_index].modification_time_string()
+                file_info.modification_time_string()
             );
-            state_guard.file_infos[file_index].reloading = true;
-            state_guard.file_infos[file_index].last_reload_ok = false;
+            file_info.reloading = true;
+            file_info.last_reload_ok = false;
             drop(state_guard);
             info!("Reload requested");
             txs[file_index].send(LoaderMessage::Reload)?;
             let body = get_status(state)?;
-            Response::builder()
-                .status(StatusCode::ACCEPTED)
-                .header(CONTENT_TYPE, JSON_MIME)
-                .default_header()
-                .body(Full::from(body))
+            build_response(StatusCode::ACCEPTED, JSON_MIME, body)
         }
         _ => {
             // unknown command or unexpected number of arguments
-            Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .header(CONTENT_TYPE, OCTET_MIME)
-                .default_header()
-                .body(Full::from(vec![]))
+            not_found_response(&[])
         }
     };
     Ok(response?)
@@ -402,32 +389,19 @@ async fn handle(
                 shared.token,
                 req.uri()
             );
-            return Ok(Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .header(CONTENT_TYPE, OCTET_MIME)
-                .default_header()
-                .body(Full::from(vec![]))?);
+            return not_found_response(&[]);
         }
     } else {
         // no token
         warn!("Received request with no token: {:?}", req.uri());
-        return Ok(Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .header(CONTENT_TYPE, OCTET_MIME)
-            .default_header()
-            .body(Full::from(vec![]))?);
+        return not_found_response(&[]);
     }
 
-    let (file_index, cmd_idx) = if path_parts.len() >= 2 {
-        // try to parse file index
-        let file_index_str = path_parts[1];
-        match file_index_str.parse::<usize>() {
-            Ok(idx) => (Some(idx), 2),
-            Err(_) => (None, 1), // no file index provided
-        }
-    } else {
-        (None, 1) // no file index provided
-    };
+    // Try to parse file index from path_parts[1]
+    let (file_index, cmd_idx) = path_parts
+        .get(1)
+        .and_then(|s| s.parse::<usize>().ok())
+        .map_or((None, 1), |idx| (Some(idx), 2));
     // check command
     let response = if let Some(cmd) = path_parts.get(cmd_idx) {
         handle_cmd(&state, &txs, cmd, file_index, &path_parts[cmd_idx + 1..]).await?
@@ -498,7 +472,7 @@ pub async fn surver_main(
             reloading: false,
             last_reload_ok: true,
             last_reload_time: None,
-            last_file_mtime: None,
+            last_modification_time: None,
         };
         {
             let mut state_guard = state.write().expect("State lock poisoned when adding file");
@@ -609,20 +583,21 @@ fn loader(
             let mut state_guard = state
                 .write()
                 .expect("State lock poisoned in loader after body load");
-            state_guard.file_infos[file_index].timetable = body_result.time_table;
-            state_guard.file_infos[file_index].signals.clear(); // Clear old signals on reload
-            if let Ok(meta) = fs::metadata(&state_guard.file_infos[file_index].filename) {
-                state_guard.file_infos[file_index].last_file_mtime = Some(meta.modified()?);
+            let file_info = &mut state_guard.file_infos[file_index];
+            file_info.timetable = body_result.time_table;
+            file_info.signals.clear(); // Clear old signals on reload
+            if let Ok(meta) = fs::metadata(&file_info.filename) {
+                file_info.last_modification_time = Some(meta.modified()?);
                 info!(
                     "File modification time of {} set to {}",
                     filename,
-                    state_guard.file_infos[file_index].modification_time_string()
+                    file_info.modification_time_string()
                 );
             }
-            state_guard.file_infos[file_index].last_reload_time = Some(Instant::now());
-            state_guard.file_infos[file_index].reloading = false;
-            state_guard.file_infos[file_index].last_reload_ok = true;
-            state_guard.file_infos[file_index].notify.notify_waiters();
+            file_info.last_reload_time = Some(Instant::now());
+            file_info.reloading = false;
+            file_info.last_reload_ok = true;
+            file_info.notify.notify_waiters();
         }
         // source is private, only owned by us
         let mut source = body_result.source;

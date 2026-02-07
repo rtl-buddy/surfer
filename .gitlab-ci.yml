@@ -1,6 +1,8 @@
 image: rust:latest
 
 variables:
+    SURFER_MSRV: "1.90.0"
+    SURVER_MSRV: "1.90.0"
     CARGO_HOME: $CI_PROJECT_DIR/cargo
     FF_ENABLE_BASH_EXIT_CODE_CHECK: "true"
     GIT_SUBMODULE_STRATEGY: normal
@@ -143,7 +145,7 @@ test-all-features:
 
 test-oldest-supported:
     # This version should match rust-version in Cargo.toml
-    image: rust:1.90
+    image: rust:$SURFER_MSRV
     stage: test
     extends: .snapshots
     script:
@@ -153,9 +155,8 @@ test-oldest-supported:
 
 test-surver-oldest-supported:
     # This version should match rust-version in surver/Cargo.toml
-    image: rust:1.90
+    image: rust:$SURVER_MSRV
     stage: test
-    extends: .snapshots
     script:
         - rustc -V
         - cargo -V
@@ -196,8 +197,8 @@ test-macos-aarch64:
     before_script:
         - brew install rustup-init
         - ulimit -n 1000
-        - rustup install 1.91
-        - rustup override set 1.91
+        - rustup install $SURFER_MSRV
+        - rustup override set $SURFER_MSRV
     script:
         - rustc -V
         - cargo -V
@@ -392,8 +393,8 @@ macos-aarch64_build:
     image: macos-14-xcode-15
     before_script:
         - brew install rustup-init
-        - rustup install 1.91
-        - rustup override set 1.91
+        - rustup install $SURFER_MSRV
+        - rustup override set $SURFER_MSRV
         - cargo -V
         - rustc -V
         - git fetch --tags

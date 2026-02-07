@@ -27,10 +27,9 @@ async fn server_reload_with_overwrite() {
     let src1 = examples.join("counter.vcd");
     let src2 = examples.join("counter2.vcd");
 
-    // Prepare a unique temporary directory and destination file path
-    let tmpdir = std::env::temp_dir().join(format!("surver_reload_test_{}", fastrand::u64(..)));
-    fs::create_dir_all(&tmpdir).expect("create temp dir");
-    let dest = tmpdir.join("counter.vcd");
+    // Prepare a temporary directory and destination file path with automatic cleanup
+    let tmpdir = tempfile::tempdir().expect("create temp dir");
+    let dest = tmpdir.path().join("counter.vcd");
 
     // Copy initial file to destination
     fs::copy(&src1, &dest).expect("copy counter.vcd to temp");
@@ -141,8 +140,6 @@ async fn server_reload_with_overwrite() {
         "unchanged file should yield 304"
     );
 
-    // Cleanup: stop server and remove temp dir
+    // Cleanup: stop server (temp dir is automatically cleaned up when tmpdir is dropped)
     handle.abort();
-    let _ = fs::remove_file(&dest);
-    let _ = fs::remove_dir(&tmpdir);
 }

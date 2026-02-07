@@ -38,4 +38,5 @@ vergen-gitcl = { workspace = true, features = ["build"] }
 [dev-dependencies]
 filetime.workspace = true
 reqwest.workspace = true
+tempfile.workspace = true
 tokio = { workspace = true, features = ["rt", "time", "macros", "rt-multi-thread"] }

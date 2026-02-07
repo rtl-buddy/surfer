@@ -8,7 +8,7 @@ use eyre::{Context, Result, anyhow};
 use eyre::{bail, eyre};
 use reqwest::StatusCode;
 use thiserror::Error;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use wellen::CompressedTimeTable;
 
 use surver::{

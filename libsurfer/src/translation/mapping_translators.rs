@@ -749,15 +749,10 @@ mod tests {
 
     #[test]
     fn file_based_translator_basic_translate_and_fallback() {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        // Unique temp file path
-        let ts = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let mut pathbuf = std::env::temp_dir();
-        pathbuf.push(format!("mapping_test_{}.txt", ts));
-        let path = Utf8PathBuf::from_path_buf(pathbuf).expect("temp path must be UTF-8");
+        // Create a temporary file with automatic cleanup
+        let temp_file = tempfile::NamedTempFile::new().expect("create temp file");
+        let path = Utf8PathBuf::from_path_buf(temp_file.path().to_path_buf())
+            .expect("temp path must be UTF-8");
 
         let content = "Name = ExampleMapping\nBits =  4\n0[red] ZERO\n1[green] ONE\n2[blue] TWO";
         std::fs::write(path.as_std_path(), content).expect("write mapping file");
@@ -806,18 +801,21 @@ mod tests {
 
     #[test]
     fn filename_derived_name_when_no_name_line_present() {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let ts = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_micros();
-        let stem = format!("auto_file_name_{}", ts);
-        let mut pathbuf = std::env::temp_dir();
-        pathbuf.push(format!("{stem}.mapping"));
+        // Create a temporary file with automatic cleanup
+        let temp_file = tempfile::Builder::new()
+            .suffix(".mapping")
+            .prefix("auto_file_name_")
+            .tempfile()
+            .expect("create temp file");
+        let path = Utf8PathBuf::from_path_buf(temp_file.path().to_path_buf())
+            .expect("temp path must be UTF-8");
 
         // No Name line, first line is Bits so default name should be file stem
         let content = "Bits=3\n0[red] ZERO\n1[green] ONE\n2[blue] TWO";
-        let path = Utf8PathBuf::from_path_buf(pathbuf).expect("temp path must be UTF-8");
+        let stem = path
+            .file_stem()
+            .expect("temp file should have stem")
+            .to_string();
         std::fs::write(path.as_std_path(), content).expect("write mapping file");
         let translator = MappingTranslator::new_from_file(&path)
             .ok()
@@ -877,15 +875,10 @@ mod tests {
 
     #[test]
     fn parse_and_translate_valuekind_keywords() {
-        use std::time::{SystemTime, UNIX_EPOCH};
-
-        let ts = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let mut pathbuf = std::env::temp_dir();
-        pathbuf.push(format!("mapping_kinds_{}.txt", ts));
-        let path = Utf8PathBuf::from_path_buf(pathbuf).expect("temp path must be UTF-8");
+        // Create a temporary file with automatic cleanup
+        let temp_file = tempfile::NamedTempFile::new().expect("create temp file");
+        let path = Utf8PathBuf::from_path_buf(temp_file.path().to_path_buf())
+            .expect("temp path must be UTF-8");
 
         // Define entries with various ValueKind keywords
         let content = "Bits =  4\n0[warn] ZERO\n1[undef] ONE\n2[highimp] TWO\n3[dontcare] THREE\n4[weak] FOUR\n5[error] FIVE\n6[normal] SIX";

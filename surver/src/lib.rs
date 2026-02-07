@@ -1,5 +1,5 @@
 //! External access to the Surver server.
-use std::sync::LazyLock;
+use std::{sync::LazyLock, time::SystemTime};
 
 use serde::{Deserialize, Serialize};
 
@@ -35,8 +35,31 @@ pub struct SurverFileInfo {
     pub format: wellen::FileFormat,
     pub reloading: bool,
     pub last_load_ok: bool,
-    // Time for last successful load, if known
-    pub last_load_time: Option<u64>,
+    pub last_modification_time: Option<SystemTime>,
 }
+
+impl SurverFileInfo {
+    pub fn modification_time_string(&self) -> String {
+        modification_time_string(self.last_modification_time)
+    }
+}
+
 pub static BINCODE_OPTIONS: LazyLock<bincode::DefaultOptions> =
     LazyLock::new(bincode::DefaultOptions::new);
+
+pub(crate) fn modification_time_string(mtime: Option<SystemTime>) -> String {
+    if let Some(mtime) = mtime {
+        let dur = mtime
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default();
+        return chrono::DateTime::<chrono::Utc>::from_timestamp(
+            dur.as_secs() as i64,
+            dur.subsec_nanos(),
+        )
+        .map_or_else(
+            || "Incorrect timestamp".to_string(),
+            |dt| dt.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+        );
+    }
+    "unknown".to_string()
+}

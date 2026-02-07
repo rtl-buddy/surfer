@@ -19,6 +19,9 @@ mod main_impl {
     };
     use tracing::error;
 
+    // Include the pre-generated icon data from build.rs
+    include!(concat!(env!("OUT_DIR"), "/icon_data.rs"));
+
     #[derive(clap::Subcommand)]
     enum Commands {
         #[cfg(not(target_arch = "wasm32"))]
@@ -201,21 +204,15 @@ mod main_impl {
             }
             _ => None,
         };
-        let icon = image::load_from_memory_with_format(
-            include_bytes!("../assets/com.gitlab.surferproject.surfer.png"),
-            image::ImageFormat::Png,
-        )
-        .expect("Failed to open icon path")
-        .to_rgba8();
-        let (icon_width, icon_height) = icon.dimensions();
+
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_app_id("org.surfer-project.surfer")
                 .with_title("Surfer")
                 .with_icon(egui::viewport::IconData {
-                    rgba: icon.into_raw(),
-                    width: icon_width,
-                    height: icon_height,
+                    rgba: ICON_RGBA.to_vec(),
+                    width: ICON_WIDTH,
+                    height: ICON_HEIGHT,
                 })
                 .with_inner_size(Vec2::new(
                     state.user.config.layout.window_width as f32,

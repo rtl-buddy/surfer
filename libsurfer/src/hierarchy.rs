@@ -175,6 +175,7 @@ impl SystemState {
                                 .auto_shrink([false; 2])
                                 .id_salt("variables")
                                 .show(ui, |ui| {
+                                    ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                                     self.draw_parameters(msgs, wave_container, &parameters, ui);
                                     self.draw_variable_list(
                                         msgs,
@@ -196,6 +197,8 @@ impl SystemState {
                         .auto_shrink([false; 2])
                         .id_salt("variables")
                         .show_rows(ui, row_height, variables.len(), |ui, row_range| {
+                            ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+
                             self.draw_variable_list(
                                 msgs,
                                 wave_container,
@@ -211,6 +214,8 @@ impl SystemState {
                         .auto_shrink([false; 2])
                         .id_salt("variables")
                         .show(ui, |ui| {
+                            ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+
                             draw_transaction_variable_list(msgs, waves, ui, s);
                         });
                 }
@@ -263,6 +268,7 @@ impl SystemState {
                     ScrollArea::both().id_salt("hierarchy").show(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                         if let Some(waves) = &self.user.waves {
+                            ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                             self.draw_all_scopes(msgs, waves, true, ui);
                         }
                     });
@@ -287,11 +293,7 @@ impl SystemState {
                         self.draw_variable_filter_edit(ui, msgs, true);
                     });
                     ui.add_space(3.0);
-
-                    ScrollArea::both().id_salt("variables").show(ui, |ui| {
-                        ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                        self.draw_all_variables(msgs, ui);
-                    });
+                    self.draw_all_variables(msgs, ui);
                 });
             },
         );
@@ -305,10 +307,13 @@ impl SystemState {
                     let row_height = ui
                         .text_style_height(&TextStyle::Monospace)
                         .max(ui.text_style_height(&TextStyle::Body));
+                    // Draw header before scroll area
+                    self.draw_variable_list_header(ui);
                     ScrollArea::both()
                         .auto_shrink([false; 2])
                         .id_salt("variables")
                         .show_rows(ui, row_height, variables.len(), |ui, row_range| {
+                            ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                             self.draw_variable_list(
                                 msgs,
                                 wave_container,

@@ -58,6 +58,7 @@ pub struct DrawingContext<'a> {
 #[derive(Debug)]
 pub struct DrawConfig {
     pub canvas_height: f32,
+    pub canvas_width: f32,
     pub line_height: f32,
     pub text_size: f32,
     pub extra_draw_width: i32,
@@ -65,9 +66,10 @@ pub struct DrawConfig {
 
 impl DrawConfig {
     #[must_use]
-    pub fn new(canvas_height: f32, line_height: f32, text_size: f32) -> Self {
+    pub fn new(canvas_height: f32, canvas_width: f32, line_height: f32, text_size: f32) -> Self {
         Self {
             canvas_height,
+            canvas_width,
             line_height,
             text_size,
             extra_draw_width: 6,
@@ -1386,14 +1388,17 @@ impl SystemState {
 
         let mut painter = ui.painter().clone();
         let rect = response.rect;
+        let canvas_size = rect.size();
+        let canvas_width = canvas_size.x;
+        let canvas_height = canvas_size.y;
         let container_rect = Rect::from_min_size(Pos2::ZERO, rect.size());
         let to_screen = RectTransform::from_to(container_rect, rect);
         let cfg = DrawConfig::new(
-            rect.height(),
+            canvas_height,
+            canvas_width,
             self.user.config.layout.waveforms_line_height,
             self.user.config.layout.waveforms_text_size,
         );
-        let frame_width = rect.width();
 
         let ctx = DrawingContext {
             painter: &mut painter,
@@ -1432,14 +1437,7 @@ impl SystemState {
 
                 let backgroundcolor =
                     self.get_background_color(waves, drawing_info.vidx(), item_count);
-                self.draw_background(
-                    drawing_info,
-                    y_zero,
-                    &ctx,
-                    gap,
-                    frame_width,
-                    backgroundcolor,
-                );
+                self.draw_background(drawing_info, y_zero, &ctx, gap, backgroundcolor);
                 match drawing_info {
                     ItemDrawingInfo::Variable(drawing_info) => {
                         if ucursor.as_ref().is_none() {
@@ -1643,12 +1641,11 @@ impl SystemState {
         y_zero: f32,
         ctx: &DrawingContext<'_>,
         gap: f32,
-        frame_width: f32,
         background_color: Color32,
     ) {
         // Draw background
         let min = (ctx.to_screen)(0.0, drawing_info.top() - y_zero - gap);
-        let max = (ctx.to_screen)(frame_width, drawing_info.bottom() - y_zero + gap);
+        let max = (ctx.to_screen)(ctx.cfg.canvas_width, drawing_info.bottom() - y_zero + gap);
         ctx.painter
             .rect_filled(Rect { min, max }, CornerRadius::ZERO, background_color);
     }
@@ -1690,10 +1687,8 @@ impl SystemState {
         waves: &WaveData,
         ctx: &DrawingContext,
         viewport_idx: usize,
-        frame_width: f32,
     ) {
-        let ticks =
-            self.get_ticks_for_viewport_idx(waves, viewport_idx, frame_width, ctx.cfg.text_size);
+        let ticks = self.get_ticks_for_viewport_idx(waves, viewport_idx, ctx.cfg);
 
         waves.draw_ticks(
             self.user.config.theme.foreground,

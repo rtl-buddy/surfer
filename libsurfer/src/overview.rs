@@ -25,6 +25,7 @@ impl SystemState {
         let frame_height = frame_size.y;
         let cfg = DrawConfig::new(
             frame_height,
+            frame_width,
             self.user.config.layout.waveforms_line_height,
             self.user.config.layout.waveforms_text_size,
         );
@@ -54,7 +55,6 @@ impl SystemState {
             .iter()
             .map(|viewport| {
                 get_viewport_rect(
-                    frame_width,
                     container_rect,
                     &ctx,
                     &num_timestamps,
@@ -68,11 +68,10 @@ impl SystemState {
             });
 
         // Draw cursor
-        waves.draw_cursor(&self.user.config.theme, &mut ctx, frame_size, &viewport_all);
+        waves.draw_cursor(&self.user.config.theme, &mut ctx, &viewport_all);
 
         // Draw ticks
-        let mut ticks =
-            self.get_ticks_for_viewport(waves, &viewport_all, frame_width, ctx.cfg.text_size);
+        let mut ticks = self.get_ticks_for_viewport(waves, &viewport_all, &cfg);
 
         if ticks.len() >= 2 {
             // Remove first and last tick
@@ -89,7 +88,7 @@ impl SystemState {
         }
 
         // Draw markers
-        waves.draw_markers(&self.user.config.theme, &mut ctx, frame_size, &viewport_all);
+        waves.draw_markers(&self.user.config.theme, &mut ctx, &viewport_all);
         waves.draw_marker_number_boxes(
             &mut ctx,
             frame_size,
@@ -110,7 +109,6 @@ impl SystemState {
 }
 
 fn get_viewport_rect(
-    frame_width: f32,
     container_rect: Rect,
     ctx: &DrawingContext<'_>,
     num_timestamps: &num::BigInt,
@@ -119,12 +117,12 @@ fn get_viewport_rect(
 ) -> Rect {
     let minx = viewport_all.pixel_from_absolute_time(
         viewport.curr_left.absolute(num_timestamps),
-        frame_width,
+        ctx.cfg.canvas_width,
         num_timestamps,
     );
     let maxx = viewport_all.pixel_from_absolute_time(
         viewport.curr_right.absolute(num_timestamps),
-        frame_width,
+        ctx.cfg.canvas_width,
         num_timestamps,
     );
     let min = (ctx.to_screen)(minx, 0.);

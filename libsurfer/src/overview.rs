@@ -53,15 +53,7 @@ impl SystemState {
         waves
             .viewports
             .iter()
-            .map(|viewport| {
-                get_viewport_rect(
-                    container_rect,
-                    &ctx,
-                    &num_timestamps,
-                    &viewport_all,
-                    viewport,
-                )
-            })
+            .map(|viewport| get_viewport_rect(&ctx, &num_timestamps, &viewport_all, viewport))
             .for_each(|rect| {
                 ctx.painter
                     .rect_filled(rect, CornerRadius::ZERO, fill_color);
@@ -109,7 +101,6 @@ impl SystemState {
 }
 
 fn get_viewport_rect(
-    container_rect: Rect,
     ctx: &DrawingContext<'_>,
     num_timestamps: &num::BigInt,
     viewport_all: &Viewport,
@@ -126,6 +117,6 @@ fn get_viewport_rect(
         num_timestamps,
     );
     let min = (ctx.to_screen)(minx, 0.);
-    let max = (ctx.to_screen)(maxx, container_rect.max.y);
+    let max = (ctx.to_screen)(maxx, ctx.cfg.canvas_height);
     Rect { min, max }
 }

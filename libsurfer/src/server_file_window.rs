@@ -1,11 +1,25 @@
+use ecolor::Color32;
 use egui::{Context, Key, ScrollArea, TextWrapMode, Window};
+use surver::SurverFileInfo;
 
 use crate::{SystemState, message::Message, wave_source::LoadOptions};
+
+fn draw_file_info_tooltip(ui: &mut egui::Ui, file_info: &SurverFileInfo, is_loadable: bool) {
+    ui.set_max_width(ui.spacing().tooltip_width);
+    if is_loadable {
+        ui.label(format!("Size: {} bytes", file_info.bytes));
+        ui.label(format!(
+            "Last modified: {}",
+            file_info.modification_time_string()
+        ));
+    } else {
+        ui.colored_label(Color32::RED, "File cannot be loaded. See logs for details.");
+    }
+}
 
 impl SystemState {
     pub fn draw_surver_file_window(&self, ctx: &Context, msgs: &mut Vec<Message>) {
         let mut open = true;
-        let mut selected_file_idx = *self.surver_selected_file.borrow();
         let mut load_options = *self.surver_load_options.borrow();
         let mut should_load = false;
 
@@ -17,40 +31,31 @@ impl SystemState {
                     ui.vertical(|ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                         if let Some(file_infos) = self.user.surver_file_infos.as_ref() {
+                            let selected_idx = *self.surver_selected_file.borrow();
                             for (i, file_info) in file_infos.iter().enumerate() {
                                 // Only make item selectable if last_load_ok is true
                                 ui.add_enabled_ui(file_info.last_load_ok, |ui| {
                                     let response = ui
                                         .selectable_label(
-                                            Some(i) == selected_file_idx && file_info.last_load_ok,
+                                            Some(i) == selected_idx && file_info.last_load_ok,
                                             &file_info.filename,
                                         )
                                         .on_hover_ui(|ui| {
-                                            ui.set_max_width(ui.spacing().tooltip_width);
-                                            if file_info.last_load_ok {
-                                                ui.label(format!(
-                                                    "Size: {} bytes",
-                                                    file_info.bytes
-                                                ));
-                                            } else {
-                                                ui.colored_label(
-                                                    ecolor::Color32::RED,
-                                                    "File cannot be loaded. See logs for details.",
-                                                );
-                                            }
+                                            draw_file_info_tooltip(
+                                                ui,
+                                                file_info,
+                                                file_info.last_load_ok,
+                                            );
                                         });
 
-                                    // Handle single click to select
-                                    if response.clicked() && file_info.last_load_ok {
-                                        selected_file_idx = Some(i);
+                                    // Handle click and double-click to select (and optionally load)
+                                    if (response.clicked() || response.double_clicked())
+                                        && file_info.last_load_ok
+                                    {
                                         *self.surver_selected_file.borrow_mut() = Some(i);
-                                    }
-
-                                    // Handle double-click to select and load
-                                    if response.double_clicked() && file_info.last_load_ok {
-                                        selected_file_idx = Some(i);
-                                        *self.surver_selected_file.borrow_mut() = Some(i);
-                                        should_load = true;
+                                        if response.double_clicked() {
+                                            should_load = true;
+                                        }
                                     }
                                 });
                             }
@@ -64,7 +69,9 @@ impl SystemState {
                     return;
                 }
 
-                if ui.input(|i| i.key_pressed(Key::Enter)) && selected_file_idx.is_some() {
+                if ui.input(|i| i.key_pressed(Key::Enter))
+                    && self.surver_selected_file.borrow().is_some()
+                {
                     should_load = true;
                 }
 
@@ -94,7 +101,7 @@ impl SystemState {
                     }
 
                     // Disable Select button when nothing is selected
-                    ui.add_enabled_ui(selected_file_idx.is_some(), |ui| {
+                    ui.add_enabled_ui(self.surver_selected_file.borrow().is_some(), |ui| {
                         if ui.button("Select").clicked() {
                             should_load = true;
                         }
@@ -103,7 +110,7 @@ impl SystemState {
             });
 
         // Handle file loading
-        if should_load && let Some(file_idx) = selected_file_idx {
+        if should_load && let Some(file_idx) = *self.surver_selected_file.borrow() {
             msgs.push(Message::SetSurverFileWindowVisible(false));
             msgs.push(Message::LoadSurverFileByIndex(
                 Some(file_idx),
@@ -118,6 +125,8 @@ impl SystemState {
         if !open {
             msgs.push(Message::SetSurverFileWindowVisible(false));
         }
+
+        // Update persisted state
         *self.surver_load_options.borrow_mut() = load_options;
     }
 }

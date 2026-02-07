@@ -25,7 +25,7 @@ use wellen::{
 use crate::{
     BINCODE_OPTIONS, HTTP_SERVER_KEY, HTTP_SERVER_VALUE_SURFER, SURFER_VERSION, SurverFileInfo,
     SurverStatus, WELLEN_SURFER_DEFAULT_OPTIONS, WELLEN_VERSION, X_SURFER_VERSION,
-    X_WELLEN_VERSION,
+    X_WELLEN_VERSION, modification_time_string,
 };
 
 struct ReadOnly {
@@ -46,7 +46,7 @@ struct FileInfo {
     reloading: bool,
     last_reload_ok: bool,
     last_reload_time: Option<Instant>,
-    last_file_mtime: Option<SystemTime>,
+    last_modification_time: Option<SystemTime>,
 }
 
 #[derive(Default)]
@@ -55,24 +55,11 @@ struct SurverState {
 }
 
 impl FileInfo {
-    pub fn modification_time_string(&self) -> String {
-        if let Some(mtime) = self.last_file_mtime {
-            let dur = mtime
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default();
-            return chrono::DateTime::<chrono::Utc>::from_timestamp(
-                dur.as_secs() as i64,
-                dur.subsec_nanos(),
-            )
-            .map_or_else(
-                || "Incorrect timestamp".to_string(),
-                |dt| dt.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
-            );
-        }
-        "unknown".to_string()
+    fn modification_time_string(&self) -> String {
+        modification_time_string(self.last_modification_time)
     }
 
-    pub fn reload_time_string(&self) -> String {
+    fn reload_time_string(&self) -> String {
         if let Some(time) = self.last_reload_time {
             return format!("{:?} ago", time.elapsed());
         }
@@ -105,6 +92,19 @@ impl FileInfo {
     }
 }
 
+impl From<&FileInfo> for SurverFileInfo {
+    fn from(file_info: &FileInfo) -> Self {
+        Self {
+            bytes: file_info.body_len + file_info.header_len,
+            bytes_loaded: file_info.body_progress.load(Ordering::SeqCst) + file_info.header_len,
+            filename: file_info.filename.clone(),
+            format: file_info.file_format,
+            reloading: file_info.reloading,
+            last_load_ok: file_info.last_reload_ok,
+            last_modification_time: file_info.last_modification_time,
+        }
+    }
+}
 enum LoaderMessage {
     SignalRequest(SignalRequest),
     Reload,
@@ -188,15 +188,7 @@ fn get_status(state: &Arc<RwLock<SurverState>>) -> Result<Vec<u8>> {
     let state_guard = state.read().expect("State lock poisoned in get_status");
     let mut file_infos = Vec::new();
     for file_info in &state_guard.file_infos {
-        file_infos.push(SurverFileInfo {
-            bytes: file_info.body_len + file_info.header_len,
-            bytes_loaded: file_info.body_progress.load(Ordering::SeqCst) + file_info.header_len,
-            filename: file_info.filename.clone(),
-            format: file_info.file_format,
-            reloading: file_info.reloading,
-            last_load_ok: file_info.last_reload_ok,
-            last_load_time: file_info.last_reload_time.map(|t| t.elapsed().as_secs()),
-        });
+        file_infos.push(file_info.into());
     }
     drop(state_guard);
     let status = SurverStatus {
@@ -337,7 +329,8 @@ async fn handle_cmd(
             };
             let mtime = meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
             // Should probably look at file lengths as well for extra safety, but they are not updated correctly at the moment
-            let unchanged = state_guard.file_infos[file_index].last_file_mtime == Some(mtime)
+            let unchanged = state_guard.file_infos[file_index].last_modification_time
+                == Some(mtime)
                 && state_guard.file_infos[file_index].last_reload_ok;
             if unchanged {
                 drop(state_guard);
@@ -347,7 +340,7 @@ async fn handle_cmd(
                     .default_header()
                     .body(Full::from(b"info: file unchanged".to_vec()))?);
             }
-            state_guard.file_infos[file_index].last_file_mtime = Some(mtime);
+            state_guard.file_infos[file_index].last_modification_time = Some(mtime);
             info!(
                 "File modification time updated to {}",
                 state_guard.file_infos[file_index].modification_time_string()
@@ -498,7 +491,7 @@ pub async fn surver_main(
             reloading: false,
             last_reload_ok: true,
             last_reload_time: None,
-            last_file_mtime: None,
+            last_modification_time: None,
         };
         {
             let mut state_guard = state.write().expect("State lock poisoned when adding file");
@@ -612,7 +605,7 @@ fn loader(
             state_guard.file_infos[file_index].timetable = body_result.time_table;
             state_guard.file_infos[file_index].signals.clear(); // Clear old signals on reload
             if let Ok(meta) = fs::metadata(&state_guard.file_infos[file_index].filename) {
-                state_guard.file_infos[file_index].last_file_mtime = Some(meta.modified()?);
+                state_guard.file_infos[file_index].last_modification_time = Some(meta.modified()?);
                 info!(
                     "File modification time of {} set to {}",
                     filename,

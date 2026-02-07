@@ -15,7 +15,11 @@ use sys_locale::get_locale;
 
 use crate::viewport::Viewport;
 use crate::wave_data::WaveData;
-use crate::{Message, SystemState, translation::group_n_chars, view::DrawingContext};
+use crate::{
+    Message, SystemState,
+    translation::group_n_chars,
+    view::{DrawConfig, DrawingContext},
+};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct TimeScale {
@@ -503,29 +507,22 @@ impl SystemState {
         &self,
         waves: &WaveData,
         viewport_idx: usize,
-        frame_width: f32,
-        text_size: f32,
+        cfg: &DrawConfig,
     ) -> Vec<(String, f32)> {
-        self.get_ticks_for_viewport(
-            waves,
-            &waves.viewports[viewport_idx],
-            frame_width,
-            text_size,
-        )
+        self.get_ticks_for_viewport(waves, &waves.viewports[viewport_idx], cfg)
     }
 
     pub fn get_ticks_for_viewport(
         &self,
         waves: &WaveData,
         viewport: &Viewport,
-        frame_width: f32,
-        text_size: f32,
+        cfg: &DrawConfig,
     ) -> Vec<(String, f32)> {
         get_ticks_internal(
             viewport,
             &waves.inner.metadata().timescale,
-            frame_width,
-            text_size,
+            cfg.canvas_width,
+            cfg.text_size,
             &self.user.wanted_timeunit,
             &self.get_time_format(),
             self.user.config.theme.ticks.density,

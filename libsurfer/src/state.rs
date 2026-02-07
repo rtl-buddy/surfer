@@ -23,9 +23,10 @@ use crate::{
     wave_source::{LoadOptions, WaveFormat, WaveSource},
 };
 use egui::{
-    CornerRadius, Stroke, Visuals,
+    Visuals,
     style::{Selection, WidgetVisuals, Widgets},
 };
+use epaint::{CornerRadius, Stroke};
 use eyre::{Context, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};

@@ -42,27 +42,15 @@ impl WaveData {
             .unwrap_or(theme.cursor.color)
     }
 
-    pub fn draw_cursor(
-        &self,
-        theme: &SurferTheme,
-        ctx: &mut DrawingContext,
-        size: Vec2,
-        viewport: &Viewport,
-    ) {
+    pub fn draw_cursor(&self, theme: &SurferTheme, ctx: &mut DrawingContext, viewport: &Viewport) {
         if let Some(marker) = &self.cursor {
             let num_timestamps = self.safe_num_timestamps();
-            let x = viewport.pixel_from_time(marker, size.x, &num_timestamps);
-            draw_vertical_line(x, ctx, size, theme.cursor.clone().into());
+            let x = viewport.pixel_from_time(marker, ctx.cfg.canvas_width, &num_timestamps);
+            draw_vertical_line(x, ctx, theme.cursor.clone().into());
         }
     }
 
-    pub fn draw_markers(
-        &self,
-        theme: &SurferTheme,
-        ctx: &mut DrawingContext,
-        size: Vec2,
-        viewport: &Viewport,
-    ) {
+    pub fn draw_markers(&self, theme: &SurferTheme, ctx: &mut DrawingContext, viewport: &Viewport) {
         let num_timestamps = self.safe_num_timestamps();
         for (idx, marker) in &self.markers {
             let color = self.get_marker_color(*idx, theme);
@@ -70,8 +58,8 @@ impl WaveData {
                 color,
                 width: theme.cursor.width,
             };
-            let x = viewport.pixel_from_time(marker, size.x, &num_timestamps);
-            draw_vertical_line(x, ctx, size, stroke);
+            let x = viewport.pixel_from_time(marker, ctx.cfg.canvas_width, &num_timestamps);
+            draw_vertical_line(x, ctx, stroke);
         }
     }
 
@@ -330,7 +318,6 @@ impl SystemState {
         &self,
         waves: &WaveData,
         ctx: &mut DrawingContext,
-        view_width: f32,
         gap: f32,
         viewport: &Viewport,
         y_zero: f32,
@@ -362,7 +349,8 @@ impl SystemState {
 
             let background_color = get_marker_background_color(item, &self.user.config.theme);
 
-            let x = waves.numbered_marker_location(drawing_info.idx, viewport, view_width);
+            let x =
+                waves.numbered_marker_location(drawing_info.idx, viewport, ctx.cfg.canvas_width);
 
             // Time string
             let time = time_formatter.format(
@@ -408,9 +396,14 @@ fn get_marker_background_color(item: &DisplayedItem, theme: &SurferTheme) -> Col
 }
 
 /// Draw a vertical line at the given x position with the specified stroke
-fn draw_vertical_line(x: f32, ctx: &mut DrawingContext, size: Vec2, stroke: Stroke) {
-    ctx.painter
-        .line_segment([(ctx.to_screen)(x, 0.), (ctx.to_screen)(x, size.y)], stroke);
+fn draw_vertical_line(x: f32, ctx: &mut DrawingContext, stroke: Stroke) {
+    ctx.painter.line_segment(
+        [
+            (ctx.to_screen)(x, 0.),
+            (ctx.to_screen)(x, ctx.cfg.canvas_height),
+        ],
+        stroke,
+    );
 }
 
 /// Generate the message for a marker click based on its index

@@ -331,7 +331,6 @@ fn find_user_mapping_translators_at_path(path: &Path) -> Vec<Arc<DynBasicTransla
                     mapping_file.path().display(),
                     e
                 );
-                continue;
             }
             Ok(translator) => {
                 tracing::info!(

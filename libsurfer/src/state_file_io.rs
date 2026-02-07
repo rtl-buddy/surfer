@@ -8,6 +8,7 @@ use tracing::error;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::async_util::perform_async_work;
+use crate::channels::{checked_send, checked_send_many};
 
 use crate::{
     SystemState, async_util::AsyncJob, message::Message, wave_source::STATE_FILE_EXTENSION,
@@ -70,11 +71,7 @@ impl SystemState {
         };
         if let Some(path) = path {
             let sender = self.channels.msg_sender.clone();
-            for message in messages(path) {
-                if let Err(e) = sender.send(message) {
-                    error!("Failed to send message: {e}");
-                }
-            }
+            checked_send_many(&sender, messages(path));
         } else {
             self.file_dialog_open(
                 "Load state",
@@ -107,11 +104,7 @@ impl SystemState {
         if let Some(path) = path {
             let sender = self.channels.msg_sender.clone();
             perform_async_work(async move {
-                for message in messages(path.into()).await {
-                    if let Err(e) = sender.send(message) {
-                        error!("Failed to send message: {e}");
-                    }
-                }
+                checked_send_many(&sender, messages(path.into()).await);
             });
         } else {
             self.file_dialog_save(
@@ -164,9 +157,7 @@ impl SystemState {
         match ron::de::from_bytes(&bytes).context("Failed loading state from bytes") {
             Ok(s) => {
                 let sender = self.channels.msg_sender.clone();
-                if let Err(e) = sender.send(Message::LoadState(s, None)) {
-                    error!("Failed to send message: {e}");
-                }
+                checked_send(&sender, Message::LoadState(s, None));
             }
             Err(e) => {
                 error!("Failed to load state: {e:#?}");

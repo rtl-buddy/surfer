@@ -6,6 +6,7 @@ use std::sync::Mutex;
 use std::sync::atomic::AtomicU64;
 
 use crate::async_util::{perform_async_work, perform_work};
+use crate::channels::checked_send;
 use crate::cxxrtl_container::CxxrtlContainer;
 use crate::file_dialog::OpenMode;
 use crate::remote::{get_hierarchy_from_server, get_server_status, server_reload};
@@ -278,9 +279,7 @@ impl SystemState {
                 ),
                 Err(e) => Message::Error(e),
             };
-            if let Err(e) = sender.send(msg) {
-                error!("Failed to send message: {e}");
-            }
+            checked_send(&sender, msg);
         });
 
         self.progress_tracker = Some(LoadProgress::new(LoadProgressStatus::ReadingHeader(
@@ -317,12 +316,10 @@ impl SystemState {
                                 }
                             };
 
-                            sender
-                                .send(Message::LoadState(
-                                    new_state,
-                                    Some(path.into_std_path_buf()),
-                                ))
-                                .unwrap();
+                            checked_send(
+                                &sender,
+                                Message::LoadState(new_state, Some(path.into_std_path_buf())),
+                            );
                         });
                     } else {
                         self.load_from_bytes(
@@ -376,9 +373,7 @@ impl SystemState {
                     let response: reqwest::Response = match maybe_response {
                         Ok(r) => r,
                         Err(e) => {
-                            if let Err(e) = sender.send(Message::Error(e)) {
-                                error!("Failed to send error message: {e}");
-                            }
+                            checked_send(&sender, Message::Error(e));
                             return;
                         }
                     };
@@ -444,9 +439,7 @@ impl SystemState {
                         Ok(b) => Message::FileDownloaded(url, b, load_options),
                         Err(e) => Message::Error(e),
                     };
-                    if let Err(e) = sender.send(msg) {
-                        error!("Failed to send message: {e}");
-                    }
+                    checked_send(&sender, msg);
                 });
 
                 self.progress_tracker =
@@ -478,9 +471,7 @@ impl SystemState {
             ),
             Err(e) => Message::Error(Report::msg(e)),
         };
-        if let Err(e) = sender.send(msg) {
-            error!("Failed to send error message: {e}");
-        }
+        checked_send(&sender, msg);
         Ok(())
     }
     pub fn load_transactions_from_bytes(
@@ -504,9 +495,7 @@ impl SystemState {
             ),
             Err(e) => Message::Error(Report::msg(e)),
         };
-        if let Err(e) = sender.send(msg) {
-            error!("Failed to send message: {e}");
-        }
+        checked_send(&sender, msg);
     }
 
     /// uses the server status in order to display a loading bar
@@ -572,9 +561,7 @@ impl SystemState {
                 ),
                 Err(e) => Message::Error(e),
             };
-            if let Err(e) = sender.send(msg) {
-                error!("Failed to send message: {e}");
-            }
+            checked_send(&sender, msg);
         };
         #[cfg(not(target_arch = "wasm32"))]
         futures::executor::block_on(task);
@@ -606,9 +593,7 @@ impl SystemState {
                 ),
                 Err(e) => Message::Error(e),
             };
-            if let Err(e) = sender.send(msg) {
-                error!("Failed to send message: {e}");
-            }
+            checked_send(&sender, msg);
         });
 
         self.progress_tracker = Some(LoadProgress::new(LoadProgressStatus::ReadingHeader(
@@ -654,9 +639,7 @@ impl SystemState {
                     Ok(body) => Message::WaveBodyLoaded(start, source, BodyResult::Local(body)),
                     Err(e) => Message::Error(e),
                 };
-                if let Err(e) = sender.send(msg) {
-                    error!("Failed to send message: {e}");
-                }
+                checked_send(&sender, msg);
             };
             if let Some(pool) = pool {
                 pool.install(action);
@@ -689,10 +672,7 @@ impl SystemState {
                     let action = || {
                         let loaded = source.load_signals(&signals, &hierarchy, true);
                         let res = LoadSignalsResult::local(source, loaded, from_unique_id);
-                        let msg = Message::SignalsLoaded(start, res);
-                        if let Err(e) = sender.send(msg) {
-                            error!("Failed to send message: {e}");
-                        }
+                        checked_send(&sender, Message::SignalsLoaded(start, res));
                     };
                     if let Some(pool) = pool {
                         pool.install(action);
@@ -718,9 +698,7 @@ impl SystemState {
                         }
                         Err(e) => Message::Error(e),
                     };
-                    if let Err(e) = sender.send(msg) {
-                        error!("Failed to send message: {e}");
-                    }
+                    checked_send(&sender, msg);
                 });
             }
         }

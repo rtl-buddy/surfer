@@ -22,13 +22,13 @@ python = ["libsurfer/python"]
 wasm_plugins = ["libsurfer/wasm_plugins"]
 
 [dependencies]
+bincode.workspace = true
 camino.workspace = true
 clap.workspace = true
 eframe.workspace = true
 egui.workspace = true
 emath.workspace = true
 eyre.workspace = true
-image.workspace = true
 libsurfer = { path = "../libsurfer", default-features = false }
 ron.workspace = true
 simple-eyre.workspace = true
@@ -37,4 +37,7 @@ tokio = { workspace = true, features = ["rt", "time", "macros"] }
 tracing.workspace = true
 
 [build-dependencies]
+bincode.workspace = true
+egui.workspace = true
+png.workspace = true
 vergen-gitcl = { workspace = true, features = ["build"] }

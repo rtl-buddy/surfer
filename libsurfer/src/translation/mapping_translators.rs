@@ -401,18 +401,18 @@ fn parse_key_value(token: &str) -> Result<(VariableValue, u32), MappingParseErro
             // Preserve the binary string length (e.g., 0b0101 => 4 bits, not 3)
             let bits = bin_str.len() as u32;
             return Ok((VariableValue::BigUint(val), bits));
-        } else {
-            // String literal
-            let lower = bin_str.to_lowercase();
-
-            // Validate that string contains only valid characters: 01zx-hlwu
-            if lower
-                .chars()
-                .all(|c| matches!(c, '0' | '1' | 'z' | 'x' | '-' | 'h' | 'l' | 'w' | 'u'))
-            {
-                return Ok((VariableValue::String(lower.to_string()), lower.len() as u32));
-            }
         }
+        // String literal
+        let lower = bin_str.to_lowercase();
+
+        // Validate that string contains only valid characters: 01zx-hlwu
+        if lower
+            .chars()
+            .all(|c| matches!(c, '0' | '1' | 'z' | 'x' | '-' | 'h' | 'l' | 'w' | 'u'))
+        {
+            return Ok((VariableValue::String(lower.to_string()), lower.len() as u32));
+        }
+
         return Err(MappingParseError::InvalidBitsValue(token.to_string()));
     }
 

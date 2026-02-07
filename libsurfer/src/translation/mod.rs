@@ -18,6 +18,7 @@ mod enum_translator;
 mod event_translator;
 mod fixed_point;
 mod instruction_translators;
+#[cfg(not(target_arch = "wasm32"))]
 mod mapping_translators;
 pub mod numeric_translators;
 #[cfg(feature = "python")]

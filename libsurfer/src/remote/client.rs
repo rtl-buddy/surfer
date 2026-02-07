@@ -18,6 +18,7 @@ use surver::{
 
 use super::HierarchyResponse;
 use crate::async_util::{perform_async_work, sleep_ms};
+use crate::channels::checked_send;
 use crate::message::Message;
 use crate::wave_source::{LoadOptions, WaveSource};
 use crate::wellen::{BodyResult, HeaderResult};
@@ -275,9 +276,7 @@ pub fn get_hierarchy_from_server(
             }
             Err(e) => Message::Error(e),
         };
-        if let Err(e) = sender.send(msg) {
-            error!("Failed to send message: {e}");
-        }
+        checked_send(&sender, msg);
     });
 }
 
@@ -295,9 +294,7 @@ pub fn get_time_table_from_server(sender: Sender<Message>, server: String, file_
             Ok(table) => Message::WaveBodyLoaded(start, source, BodyResult::Remote(table, server)),
             Err(e) => Message::Error(e),
         };
-        if let Err(e) = sender.send(msg) {
-            error!("Failed to send message: {e}");
-        }
+        checked_send(&sender, msg);
     });
 }
 
@@ -314,9 +311,7 @@ pub fn get_server_status(sender: Sender<Message>, server: String, delay_ms: u64)
             Ok(status) => Message::SetSurverStatus(start, server, status),
             Err(e) => Message::Error(e),
         };
-        if let Err(e) = sender.send(msg) {
-            error!("Failed to send message: {e}");
-        }
+        checked_send(&sender, msg);
     });
 }
 
@@ -342,9 +337,7 @@ pub fn server_reload(
                 Message::Error(err)
             }
         };
-        if let Err(e) = sender.send(msg) {
-            error!("Failed to send message: {e}");
-        }
+        checked_send(&sender, msg);
         if request_hierarchy {
             get_hierarchy_from_server(sender, server, load_options, file_index);
         }

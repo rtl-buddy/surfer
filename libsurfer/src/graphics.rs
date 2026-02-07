@@ -85,7 +85,6 @@ impl WaveData {
     pub(crate) fn draw_graphics(
         &self,
         ctx: &mut DrawingContext,
-        size: Vec2,
         viewport: &Viewport,
         theme: &SurferTheme,
     ) {
@@ -98,10 +97,18 @@ impl WaveData {
                     to: (to_point, to_dir),
                     text,
                 } => {
-                    let from_x = viewport.pixel_from_time(&from_point.x, size.x, &num_timestamps);
+                    let from_x = viewport.pixel_from_time(
+                        &from_point.x,
+                        ctx.cfg.canvas_width,
+                        &num_timestamps,
+                    );
                     let from_y = self.get_item_y(&from_point.y);
 
-                    let to_x = viewport.pixel_from_time(&to_point.x, size.x, &num_timestamps);
+                    let to_x = viewport.pixel_from_time(
+                        &to_point.x,
+                        ctx.cfg.canvas_width,
+                        &num_timestamps,
+                    );
                     let to_y = self.get_item_y(&to_point.y);
 
                     if let (Some(from_y), Some(to_y)) = (from_y, to_y) {
@@ -138,7 +145,8 @@ impl WaveData {
                     pos: (pos, dir),
                     text,
                 } => {
-                    let to_x = viewport.pixel_from_time(&pos.x, size.x, &num_timestamps);
+                    let to_x =
+                        viewport.pixel_from_time(&pos.x, ctx.cfg.canvas_width, &num_timestamps);
                     let to_y = self.get_item_y(&pos.y);
                     if let Some(to_y) = to_y {
                         ctx.painter.text(

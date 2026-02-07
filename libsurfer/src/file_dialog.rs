@@ -6,10 +6,10 @@ use std::path::PathBuf;
 use camino::Utf8PathBuf;
 use rfd::{AsyncFileDialog, FileHandle};
 use serde::Deserialize;
-use tracing::error;
 
 use crate::SystemState;
 use crate::async_util::perform_async_work;
+use crate::channels::checked_send_many;
 use crate::message::Message;
 use crate::transactions::TRANSACTIONS_FILE_EXTENSION;
 
@@ -33,11 +33,7 @@ impl SystemState {
 
         perform_async_work(async move {
             if let Some(file) = create_file_dialog(filter, title).pick_file().await {
-                for message in messages(file.path().to_path_buf()) {
-                    if let Err(e) = sender.send(message) {
-                        error!("Failed to send message: {e}");
-                    }
-                }
+                checked_send_many(&sender, messages(file.path().to_path_buf()));
             }
         });
     }
@@ -55,11 +51,7 @@ impl SystemState {
 
         perform_async_work(async move {
             if let Some(file) = create_file_dialog(filter, title).pick_file().await {
-                for message in messages(file.read().await) {
-                    if let Err(e) = sender.send(message) {
-                        error!("Failed to send message: {e}");
-                    }
-                }
+                checked_send_many(&sender, messages(file.read().await));
             }
         });
     }
@@ -78,12 +70,7 @@ impl SystemState {
 
         perform_async_work(async move {
             if let Some(file) = create_file_dialog(filter, title).save_file().await {
-                let msgs = messages(file).await;
-                for message in msgs {
-                    if let Err(e) = sender.send(message) {
-                        error!("Failed to send message: {e}");
-                    }
-                }
+                checked_send_many(&sender, messages(file).await);
             }
         });
     }
@@ -102,12 +89,7 @@ impl SystemState {
 
         perform_async_work(async move {
             if let Some(file) = create_file_dialog(filter, title).save_file().await {
-                let msgs = messages(file).await;
-                for message in msgs {
-                    if let Err(e) = sender.send(message) {
-                        error!("Failed to send message: {e}");
-                    }
-                }
+                checked_send_many(&sender, messages(file).await);
             }
         });
     }

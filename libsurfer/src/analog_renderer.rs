@@ -10,8 +10,9 @@ use crate::translation::TranslatorList;
 use crate::view::DrawingContext;
 use crate::viewport::Viewport;
 use crate::wave_data::WaveData;
-use egui::{Color32, Pos2, Stroke, emath};
-use epaint::PathShape;
+use ecolor::Color32;
+use emath::{Align2, Pos2, Rect, Vec2};
+use epaint::{CornerRadius, PathShape, Stroke};
 use num::{BigInt, ToPrimitive};
 use std::collections::HashMap;
 
@@ -121,7 +122,6 @@ pub fn draw_analog(
     color: Color32,
     offset: f32,
     height_scaling_factor: f32,
-    frame_width: f32,
     ctx: &mut DrawingContext,
 ) {
     let AnalogDrawingCommands::Ready {
@@ -135,7 +135,7 @@ pub fn draw_analog(
         analog_settings,
     } = analog_commands
     else {
-        draw_building_indicator(offset, height_scaling_factor, frame_width, ctx);
+        draw_building_indicator(offset, height_scaling_factor, ctx);
         return;
     };
 
@@ -170,16 +170,11 @@ pub fn draw_analog(
         }
     }
 
-    draw_amplitude_labels(&render_ctx, frame_width, ctx);
+    draw_amplitude_labels(&render_ctx, ctx);
 }
 
 /// Draw a building indicator with animated dots while analog cache is being built.
-fn draw_building_indicator(
-    offset: f32,
-    height_scaling_factor: f32,
-    frame_width: f32,
-    ctx: &mut DrawingContext,
-) {
+fn draw_building_indicator(offset: f32, height_scaling_factor: f32, ctx: &mut DrawingContext) {
     // Animate dots: cycle through ".", "..", "..." every 333ms
     let elapsed = ctx.painter.ctx().input(|i| i.time);
     let dot_index = (elapsed / 0.333) as usize % 3;
@@ -188,12 +183,12 @@ fn draw_building_indicator(
     let text_size = ctx.cfg.text_size;
     let row_height = ctx.cfg.line_height * height_scaling_factor;
     let center_y = offset + row_height / 2.0;
-    let center_x = frame_width / 2.0;
+    let center_x = ctx.cfg.canvas_width / 2.0;
     let pos = (ctx.to_screen)(center_x, center_y);
 
     ctx.painter.text(
         pos,
-        egui::Align2::CENTER_CENTER,
+        Align2::CENTER_CENTER,
         text,
         egui::FontId::monospace(text_size),
         ctx.theme.foreground.gamma_multiply(0.6),
@@ -690,7 +685,7 @@ impl RenderContext {
         let min = (ctx.to_screen)(start_x, self.offset);
         let max = (ctx.to_screen)(end_x, self.offset + self.line_height * self.height_scale);
         ctx.painter
-            .rect_filled(egui::Rect::from_min_max(min, max), 0.0, color);
+            .rect_filled(Rect::from_min_max(min, max), CornerRadius::ZERO, color);
     }
 }
 
@@ -852,7 +847,7 @@ fn format_amplitude_value(value: f64) -> String {
     }
 }
 
-fn draw_amplitude_labels(render_ctx: &RenderContext, frame_width: f32, ctx: &mut DrawingContext) {
+fn draw_amplitude_labels(render_ctx: &RenderContext, ctx: &mut DrawingContext) {
     const SPLIT_LABEL_HEIGHT_THRESHOLD: f32 = 2.0;
     const LABEL_ALPHA: f32 = 0.7;
     const BACKGROUND_ALPHA: u8 = 200;
@@ -873,21 +868,22 @@ fn draw_amplitude_labels(render_ctx: &RenderContext, frame_width: f32, ctx: &mut
             .painter
             .layout_no_wrap(combined_text.clone(), font.clone(), text_color);
 
-        let label_x = frame_width - galley.size().x - 5.0;
+        let label_x = ctx.cfg.canvas_width - galley.size().x - 5.0;
         let label_pos = render_ctx.to_screen(
             label_x,
             f64::midpoint(render_ctx.min_val, render_ctx.max_val),
             ctx,
         );
 
-        let rect = egui::Rect::from_min_size(
+        let rect = Rect::from_min_size(
             Pos2::new(label_pos.x - 2.0, label_pos.y - galley.size().y / 2.0 - 2.0),
-            egui::Vec2::new(galley.size().x + 4.0, galley.size().y + 4.0),
+            Vec2::new(galley.size().x + 4.0, galley.size().y + 4.0),
         );
-        ctx.painter.rect_filled(rect, 2.0, bg_color);
+        ctx.painter
+            .rect_filled(rect, CornerRadius::same(2), bg_color);
         ctx.painter.text(
             Pos2::new(label_pos.x, label_pos.y - galley.size().y / 2.0),
-            emath::Align2::LEFT_TOP,
+            Align2::LEFT_TOP,
             combined_text,
             font,
             text_color,
@@ -903,34 +899,31 @@ fn draw_amplitude_labels(render_ctx: &RenderContext, frame_width: f32, ctx: &mut
             .painter
             .layout_no_wrap(min_text.clone(), font.clone(), text_color);
 
-        let label_x = frame_width - max_galley.size().x.max(min_galley.size().x) - 5.0;
+        let label_x = ctx.cfg.canvas_width - max_galley.size().x.max(min_galley.size().x) - 5.0;
 
         let max_pos = render_ctx.to_screen(label_x, render_ctx.max_val, ctx);
-        let max_rect = egui::Rect::from_min_size(
+        let max_rect = Rect::from_min_size(
             Pos2::new(max_pos.x - 2.0, max_pos.y - 2.0),
-            egui::Vec2::new(max_galley.size().x + 4.0, max_galley.size().y + 4.0),
+            Vec2::new(max_galley.size().x + 4.0, max_galley.size().y + 4.0),
         );
-        ctx.painter.rect_filled(max_rect, 2.0, bg_color);
+        ctx.painter
+            .rect_filled(max_rect, CornerRadius::same(2), bg_color);
         ctx.painter.text(
             max_pos,
-            emath::Align2::LEFT_TOP,
+            Align2::LEFT_TOP,
             max_text,
             font.clone(),
             text_color,
         );
 
         let min_pos = render_ctx.to_screen(label_x, render_ctx.min_val, ctx);
-        let min_rect = egui::Rect::from_min_size(
+        let min_rect = Rect::from_min_size(
             Pos2::new(min_pos.x - 2.0, min_pos.y - min_galley.size().y - 2.0),
-            egui::Vec2::new(min_galley.size().x + 4.0, min_galley.size().y + 4.0),
+            Vec2::new(min_galley.size().x + 4.0, min_galley.size().y + 4.0),
         );
-        ctx.painter.rect_filled(min_rect, 2.0, bg_color);
-        ctx.painter.text(
-            min_pos,
-            emath::Align2::LEFT_BOTTOM,
-            min_text,
-            font,
-            text_color,
-        );
+        ctx.painter
+            .rect_filled(min_rect, CornerRadius::same(2), bg_color);
+        ctx.painter
+            .text(min_pos, Align2::LEFT_BOTTOM, min_text, font, text_color);
     }
 }

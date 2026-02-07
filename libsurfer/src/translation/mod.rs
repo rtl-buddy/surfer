@@ -18,6 +18,7 @@ mod enum_translator;
 mod event_translator;
 mod fixed_point;
 mod instruction_translators;
+#[cfg(not(target_arch = "wasm32"))]
 mod mapping_translators;
 pub mod numeric_translators;
 #[cfg(feature = "python")]
@@ -261,7 +262,7 @@ fn find_user_decoders_at_path(path: &Path) -> Vec<Arc<DynBasicTranslator>> {
                             decoder,
                             num_bits: width.unsigned_abs() as u32,
                         };
-                        tracing::info!(
+                        info!(
                             "Loaded {}-bit instruction decoder: {} ",
                             width.unsigned_abs(),
                             translator.name(),
@@ -331,7 +332,6 @@ fn find_user_mapping_translators_at_path(path: &Path) -> Vec<Arc<DynBasicTransla
                     mapping_file.path().display(),
                     e
                 );
-                continue;
             }
             Ok(translator) => {
                 tracing::info!(

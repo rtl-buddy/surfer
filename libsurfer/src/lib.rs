@@ -65,11 +65,13 @@ pub mod wave_source;
 pub mod wcp;
 pub mod wellen;
 
+use crate::channels::checked_send;
 use crate::config::AutoLoad;
 use crate::displayed_item_tree::ItemIndex;
 use crate::displayed_item_tree::TargetPosition;
 use crate::remote::get_time_table_from_server;
 use crate::variable_name_type::VariableNameType;
+
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -1172,9 +1174,7 @@ impl SystemState {
                 perform_work(
                     move || match PluginTranslator::new(path.into_std_path_buf()) {
                         Ok(t) => {
-                            if let Err(e) = sender.send(Message::TranslatorLoaded(Arc::new(t))) {
-                                error!("Failed to send message: {e}");
-                            }
+                            checked_send(&sender, Message::TranslatorLoaded(Arc::new(t)));
                         }
                         Err(e) => {
                             error!("Failed to load wasm translator {e:#}");

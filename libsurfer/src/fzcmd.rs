@@ -286,9 +286,7 @@ fn fuzzy_score(line: &str, query: &str) -> (i64, Vec<bool>) {
     let (score, indices) = MATCHER.fuzzy_indices(line, query).unwrap_or_default();
 
     let mut matches = vec![false; line.len()];
-    for i in indices {
-        matches[i] = true;
-    }
+    indices.iter().for_each(|&i| matches[i] = true);
     (score, matches)
 }
 

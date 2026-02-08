@@ -61,11 +61,8 @@ impl SystemState {
     }
 
     pub fn add_batch_commands<I: IntoIterator<Item = String>>(&mut self, commands: I) {
-        let parsed = self.parse_batch_commands(commands);
-        for msg in parsed {
-            self.batch_messages.push_back(msg);
-            self.batch_messages_completed = false;
-        }
+        let messages = self.parse_batch_commands(commands);
+        self.add_batch_messages(messages);
     }
 
     pub fn add_batch_messages<I: IntoIterator<Item = Message>>(&mut self, messages: I) {

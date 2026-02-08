@@ -80,6 +80,7 @@ lz4_flex = "0.12"
 notify = "8.0"
 num = { version = "0.4", features = ["serde"] }
 numeric-sort = "0.1.4"
+png = "0.18"
 port_check = "0.3"
 project-root = "0.2.2"
 pure-rust-locales = "0.8.1"

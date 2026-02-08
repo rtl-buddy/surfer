@@ -28,28 +28,6 @@ There are a number of compile-time [features](features) that can be enabled/disa
 
 If you plan to contribute to the development, please see the [development](development information).
 
-Surfer depends on `openssl`. If you get linker errors, please install this via your package manager.
-
-#### Debian/Ubuntu
-
-```bash
-sudo apt install openssl
-sudo apt install libssl-dev
-```
-
-#### Fedora
-
-```bash
-sudo dnf install openssl
-sudo dnf install openssl-devel
-```
-
-#### Arch
-
-```bash
-sudo pacman -S openssl
-```
-
 ### Installing a specific version
 
 To install an earlier version, use:

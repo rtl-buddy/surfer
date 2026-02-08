@@ -93,7 +93,7 @@ linux_install:
     stage: test
     script:
         - apt-get update -y
-        - apt-get install -y openssl libssl-dev zip
+        - apt-get install -y zip
         - git fetch --tags
         - rustc -V
         - cargo -V
@@ -288,7 +288,7 @@ linux_build:
     needs: [test]
     script:
         - apt-get update -y
-        - apt-get install -y openssl libssl-dev zip
+        - apt-get install -y zip
         - git fetch --tags
         - rustc -V
         - cargo -V
@@ -312,7 +312,6 @@ rocky_build:
     script:
         - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         - . "/builds/surfer-project/surfer/cargo/env"
-        - dnf install -y openssl openssl-devel
         - dnf groupinstall -y 'Development Tools'
         - git submodule update --init
         - mkdir dist
@@ -341,7 +340,7 @@ linux_arm64_build:
     needs: [test-linux-arm64]
     script:
         - apt-get update -y
-        - apt-get install -y openssl libssl-dev zip
+        - apt-get install -y zip
         - git fetch --tags
         - rustc -V
         - cargo -V

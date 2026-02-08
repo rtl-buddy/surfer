@@ -395,59 +395,13 @@ impl SystemState {
             Message::AddStreamOrGeneratorFromName(scope, name) => {
                 self.save_current_canvas(format!("Add Stream/Generator from name: {}", &name));
                 let waves = self.user.waves.as_mut()?;
-                let inner = waves.inner.as_transactions()?;
-                match scope {
-                    Some(StreamScopeRef::Root) => {
-                        let (stream_id, name) = inner
-                            .get_stream_from_name(name)
-                            .map(|s| (s.id, s.name.clone()))
-                            .unwrap();
-
-                        waves.add_stream(TransactionStreamRef::new_stream(stream_id, name));
-                    }
-                    Some(StreamScopeRef::Stream(stream)) => {
-                        let (stream_id, id, name) = inner
-                            .get_generator_from_name(Some(stream.stream_id), name)
-                            .map(|g| (g.stream_id, g.id, g.name.clone()))
-                            .unwrap();
-
-                        waves.add_generator(TransactionStreamRef::new_gen(stream_id, id, name));
-                    }
-                    Some(StreamScopeRef::Empty(_)) => {}
-                    None => {
-                        let (stream_id, id, name) = inner
-                            .get_generator_from_name(None, name)
-                            .map(|g| (g.stream_id, g.id, g.name.clone()))
-                            .unwrap();
-
-                        waves.add_generator(TransactionStreamRef::new_gen(stream_id, id, name));
-                    }
-                }
+                waves.add_stream_or_generator_from_name(scope, name)?;
                 self.invalidate_draw_commands();
             }
             Message::AddAllFromStreamScope(scope_name) => {
                 self.save_current_canvas(format!("Add all from scope {}", scope_name.clone()));
                 let waves = self.user.waves.as_mut()?;
-                if scope_name == "tr" {
-                    waves.add_all_streams();
-                } else {
-                    let inner = waves.inner.as_transactions()?;
-                    let stream = inner.get_stream_from_name(scope_name)?;
-                    let gens = stream
-                        .generators
-                        .iter()
-                        .map(|gen_id| inner.get_generator(*gen_id).unwrap())
-                        .map(|g| (g.stream_id, g.id, g.name.clone()))
-                        .collect_vec();
-
-                    for (stream_id, id, name) in gens {
-                        waves.add_generator(TransactionStreamRef::new_gen(
-                            stream_id,
-                            id,
-                            name.clone(),
-                        ));
-                    }
-                }
+                waves.add_all_from_stream_scope(scope_name)?;
                 self.invalidate_draw_commands();
             }
             Message::InvalidateCount => self.user.count = None,
@@ -1065,59 +1019,7 @@ impl SystemState {
                 };
                 self.save_current_canvas(undo_msg.to_string());
                 let waves = self.user.waves.as_mut()?;
-                let inner = waves.inner.as_transactions()?;
-                let mut transactions = waves
-                    .items_tree
-                    .iter_visible()
-                    .flat_map(|node| {
-                        let item = &waves.displayed_items[&node.item_ref];
-                        match item {
-                            DisplayedItem::Stream(s) => {
-                                let stream_ref = &s.transaction_stream_ref;
-                                let stream_id = stream_ref.stream_id;
-                                if let Some(gen_id) = stream_ref.gen_id {
-                                    inner.get_transactions_from_generator(gen_id)
-                                } else {
-                                    inner.get_transactions_from_stream(stream_id)
-                                }
-                            }
-                            _ => vec![],
-                        }
-                    })
-                    .collect_vec();
-
-                transactions.sort_unstable();
-                let tx = if let Some(focused_tx) = &waves.focused_transaction.0 {
-                    let next_id = transactions
-                        .iter()
-                        .enumerate()
-                        .find(|(_, tx)| **tx == focused_tx.id)
-                        .map_or(
-                            if next { transactions.len() - 1 } else { 0 },
-                            |(vec_idx, _)| {
-                                if next {
-                                    if vec_idx + 1 < transactions.len() {
-                                        vec_idx + 1
-                                    } else {
-                                        transactions.len() - 1
-                                    }
-                                } else {
-                                    vec_idx.saturating_sub(1)
-                                }
-                            },
-                        );
-                    Some(TransactionRef {
-                        id: *transactions.get(next_id).unwrap(),
-                    })
-                } else if !transactions.is_empty() {
-                    Some(TransactionRef {
-                        id: *transactions.first().unwrap(),
-                    })
-                } else {
-                    None
-                };
-                waves.focused_transaction = (tx, waves.focused_transaction.1.clone());
-
+                waves.move_to_transaction(next)?;
                 self.invalidate_draw_commands();
             }
             Message::ResetVariableFormat(displayed_field_ref) => {
@@ -1619,36 +1521,7 @@ impl SystemState {
             }
             Message::ChangeVariableNameType(target, name_type) => {
                 let waves = self.user.waves.as_mut()?;
-                let mut recompute_names = false;
-                let mut change_type = |item_ref: DisplayedItemRef| {
-                    waves.displayed_items.entry(item_ref).and_modify(|item| {
-                        if let DisplayedItem::Variable(variable) = item {
-                            variable.display_name_type = name_type;
-                            recompute_names = true;
-                        }
-                    });
-                };
-
-                match target {
-                    MessageTarget::Explicit(vidx) => {
-                        if let Some(item_ref) =
-                            waves.items_tree.get_visible(vidx).map(|node| node.item_ref)
-                        {
-                            change_type(item_ref);
-                        }
-                    }
-                    MessageTarget::CurrentSelection => {
-                        waves
-                            .items_tree
-                            .iter_visible_selected()
-                            .for_each(|node| change_type(node.item_ref));
-                        waves
-                            .focused_item
-                            .and_then(|vidx| waves.items_tree.get_visible(vidx))
-                            .map(|node| node.item_ref)
-                            .map(change_type);
-                    }
-                }
+                let recompute_names = waves.change_variable_name_type(target, name_type);
 
                 if recompute_names {
                     waves.compute_variable_display_names();

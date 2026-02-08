@@ -6,9 +6,10 @@ use itertools::Itertools;
 use num::BigUint;
 
 use crate::SystemState;
+use crate::displayed_item::DisplayedItem;
 use crate::message::Message;
-use crate::transaction_container::TransactionStreamRef;
 use crate::transaction_container::{StreamScopeRef, TransactionContainer};
+use crate::transaction_container::{TransactionRef, TransactionStreamRef};
 use crate::wave_data::ScopeType;
 use crate::wave_data::WaveData;
 
@@ -75,6 +76,117 @@ impl SystemState {
                 self.handle_pointer_in_ui(ui, msgs);
                 draw_focused_transaction_details(ui, transactions, focused_transaction);
             });
+    }
+}
+
+impl WaveData {
+    pub fn add_stream_or_generator_from_name(
+        &mut self,
+        scope: Option<StreamScopeRef>,
+        name: String,
+    ) -> Option<()> {
+        let inner = self.inner.as_transactions()?;
+        Some(match scope {
+            Some(StreamScopeRef::Root) => {
+                let (stream_id, name) = inner
+                    .get_stream_from_name(name)
+                    .map(|s| (s.id, s.name.clone()))
+                    .unwrap();
+
+                self.add_stream(TransactionStreamRef::new_stream(stream_id, name));
+            }
+            Some(StreamScopeRef::Stream(stream)) => {
+                let (stream_id, id, name) = inner
+                    .get_generator_from_name(Some(stream.stream_id), name)
+                    .map(|g| (g.stream_id, g.id, g.name.clone()))
+                    .unwrap();
+
+                self.add_generator(TransactionStreamRef::new_gen(stream_id, id, name));
+            }
+            Some(StreamScopeRef::Empty(_)) => {}
+            None => {
+                let (stream_id, id, name) = inner
+                    .get_generator_from_name(None, name)
+                    .map(|g| (g.stream_id, g.id, g.name.clone()))
+                    .unwrap();
+
+                self.add_generator(TransactionStreamRef::new_gen(stream_id, id, name));
+            }
+        })
+    }
+
+    pub fn add_all_from_stream_scope(&mut self, scope_name: String) -> Option<()> {
+        Some(if scope_name == "tr" {
+            self.add_all_streams();
+        } else {
+            let inner = self.inner.as_transactions()?;
+            let stream = inner.get_stream_from_name(scope_name)?;
+            let gens = stream
+                .generators
+                .iter()
+                .map(|gen_id| inner.get_generator(*gen_id).unwrap())
+                .map(|g| (g.stream_id, g.id, g.name.clone()))
+                .collect_vec();
+
+            for (stream_id, id, name) in gens {
+                self.add_generator(TransactionStreamRef::new_gen(stream_id, id, name.clone()));
+            }
+        })
+    }
+
+    pub fn move_to_transaction(&mut self, next: bool) -> Option<()> {
+        let inner = self.inner.as_transactions()?;
+        let mut transactions = self
+            .items_tree
+            .iter_visible()
+            .flat_map(|node| {
+                let item = &self.displayed_items[&node.item_ref];
+                match item {
+                    DisplayedItem::Stream(s) => {
+                        let stream_ref = &s.transaction_stream_ref;
+                        let stream_id = stream_ref.stream_id;
+                        if let Some(gen_id) = stream_ref.gen_id {
+                            inner.get_transactions_from_generator(gen_id)
+                        } else {
+                            inner.get_transactions_from_stream(stream_id)
+                        }
+                    }
+                    _ => vec![],
+                }
+            })
+            .collect_vec();
+        transactions.sort_unstable();
+        let tx = if let Some(focused_tx) = &self.focused_transaction.0 {
+            let next_id = transactions
+                .iter()
+                .enumerate()
+                .find(|(_, tx)| **tx == focused_tx.id)
+                .map_or(
+                    if next { transactions.len() - 1 } else { 0 },
+                    |(vec_idx, _)| {
+                        if next {
+                            if vec_idx + 1 < transactions.len() {
+                                vec_idx + 1
+                            } else {
+                                transactions.len() - 1
+                            }
+                        } else {
+                            vec_idx.saturating_sub(1)
+                        }
+                    },
+                );
+            Some(TransactionRef {
+                id: *transactions.get(next_id).unwrap(),
+            })
+        } else if !transactions.is_empty() {
+            Some(TransactionRef {
+                id: *transactions.first().unwrap(),
+            })
+        } else {
+            None
+        };
+        self.focused_transaction = (tx, self.focused_transaction.1.clone());
+        Some(())
     }
 }
 

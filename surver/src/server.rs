@@ -305,7 +305,7 @@ async fn handle_cmd(
     file_index: Option<usize>,
     args: &[&str],
 ) -> Result<Response<Full<Bytes>>> {
-    let response = match (file_index, cmd, args) {
+    match (file_index, cmd, args) {
         (_, "get_status", []) => {
             let body = get_status(state)?;
             build_response(StatusCode::OK, JSON_MIME, body)
@@ -359,8 +359,7 @@ async fn handle_cmd(
             // unknown command or unexpected number of arguments
             not_found_response(&[])
         }
-    };
-    Ok(response?)
+    }
 }
 
 async fn handle(

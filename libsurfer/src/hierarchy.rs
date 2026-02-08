@@ -576,23 +576,23 @@ impl SystemState {
             return;
         };
 
-        let Some(child_scopes) = wave_container
+        wave_container
             .child_scopes(root_scope)
             .context("Failed to get child scopes")
             .map_err(|e| warn!("{e:#?}"))
             .ok()
-        else {
-            return;
-        };
-
-        let child_scopes_sorted = child_scopes
-            .iter()
+            .into_iter()
+            .flatten()
             .sorted_by(|a, b| numeric_sort::cmp(&a.name(), &b.name()))
-            .collect_vec();
-
-        for child_scope in child_scopes_sorted {
-            self.draw_selectable_child_or_orphan_scope(msgs, wave, child_scope, draw_variables, ui);
-        }
+            .for_each(|child_scope| {
+                self.draw_selectable_child_or_orphan_scope(
+                    msgs,
+                    wave,
+                    &child_scope,
+                    draw_variables,
+                    ui,
+                );
+            });
     }
 
     fn filter_and_draw_variable_list(
@@ -691,7 +691,7 @@ impl SystemState {
                     .theme
                     .variable_icons
                     .get_icon(meta.as_ref());
-                (format!("{} ", icon), color)
+                (format!("{icon} "), color)
             } else {
                 (String::new(), self.user.config.theme.foreground)
             };

@@ -114,13 +114,12 @@ use crate::displayed_item::{
 use crate::displayed_item_tree::VisibleItemIndex;
 use crate::drawing_canvas::TxDrawingCommands;
 use crate::message::Message;
-use crate::transaction_container::{StreamScopeRef, TransactionRef, TransactionStreamRef};
+use crate::transaction_container::{TransactionRef, TransactionStreamRef};
 use crate::translation::{AnyTranslator, all_translators};
 use crate::variable_filter::{VariableIOFilterType, VariableNameFilterType};
 use crate::viewport::Viewport;
-use crate::wave_container::VariableRefExt;
-use crate::wave_container::{ScopeRefExt, WaveContainer};
-use crate::wave_data::{ScopeType, WaveData};
+use crate::wave_container::{ScopeRefExt, VariableRefExt, WaveContainer};
+use crate::wave_data::WaveData;
 use crate::wave_source::{LoadOptions, WaveFormat, WaveSource};
 use crate::wellen::{HeaderResult, convert_format};
 
@@ -290,25 +289,7 @@ impl SystemState {
         match message {
             Message::SetActiveScope(scope) => {
                 let waves = self.user.waves.as_mut()?;
-                if let Some(scope) = scope {
-                    let scope = if let ScopeType::StreamScope(StreamScopeRef::Empty(name)) = scope {
-                        ScopeType::StreamScope(StreamScopeRef::new_stream_from_name(
-                            waves.inner.as_transactions().unwrap(),
-                            name,
-                        ))
-                    } else {
-                        scope
-                    };
-
-                    if waves.inner.scope_exists(&scope) {
-                        waves.active_scope = Some(scope);
-                    } else {
-                        warn!("Setting active scope to {scope} which does not exist");
-                    }
-                } else {
-                    // Set to top-level scope
-                    waves.active_scope = None;
-                }
+                waves.set_active_scope(scope)?;
             }
             Message::ExpandScope(scope_ref) => {
                 *self.scope_ref_to_expand.borrow_mut() = Some(scope_ref);
@@ -1209,8 +1190,7 @@ impl SystemState {
                 // add source and time table
                 let maybe_cmd = waves // TODO
                     .inner
-                    .as_waves_mut()
-                    .unwrap()
+                    .as_waves_mut()?
                     .wellen_add_body(body)
                     .map_err(|err| {
                         error!("While getting commands to lazy-load signals: {err:?}");
@@ -1220,8 +1200,7 @@ impl SystemState {
                 // Pre-load parameters
                 let param_cmd = waves
                     .inner
-                    .as_waves_mut()
-                    .unwrap()
+                    .as_waves_mut()?
                     .load_parameters()
                     .map_err(|err| {
                         error!("While getting commands to lazy-load parameters: {err:?}");
@@ -1265,7 +1244,7 @@ impl SystemState {
                     .waves
                     .as_mut()
                     .expect("Waves should be loaded at this point!");
-                match waves.inner.as_waves_mut().unwrap().on_signals_loaded(res) {
+                match waves.inner.as_waves_mut()?.on_signals_loaded(res) {
                     Err(err) => error!("{err:?}"),
                     Ok(Some(cmd)) => self.load_variables(cmd),
                     _ => {}
@@ -1662,11 +1641,11 @@ impl SystemState {
             Message::InvalidateDrawCommands => self.invalidate_draw_commands(),
             Message::UnpauseSimulation => {
                 let waves = self.user.waves.as_ref()?;
-                waves.inner.as_waves().unwrap().unpause_simulation();
+                waves.inner.as_waves()?.unpause_simulation();
             }
             Message::PauseSimulation => {
                 let waves = self.user.waves.as_ref()?;
-                waves.inner.as_waves().unwrap().pause_simulation();
+                waves.inner.as_waves()?.pause_simulation();
             }
             Message::Batch(messages) => {
                 for message in messages {

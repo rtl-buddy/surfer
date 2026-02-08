@@ -4,6 +4,7 @@ use emath::Align;
 use ftr_parser::types::Transaction;
 use itertools::Itertools;
 use num::BigUint;
+use tracing::warn;
 
 use crate::SystemState;
 use crate::displayed_item::DisplayedItem;
@@ -90,16 +91,14 @@ impl WaveData {
             Some(StreamScopeRef::Root) => {
                 let (stream_id, name) = inner
                     .get_stream_from_name(name)
-                    .map(|s| (s.id, s.name.clone()))
-                    .unwrap();
+                    .map(|s| (s.id, s.name.clone()))?;
 
                 self.add_stream(TransactionStreamRef::new_stream(stream_id, name));
             }
             Some(StreamScopeRef::Stream(stream)) => {
                 let (stream_id, id, name) = inner
                     .get_generator_from_name(Some(stream.stream_id), name)
-                    .map(|g| (g.stream_id, g.id, g.name.clone()))
-                    .unwrap();
+                    .map(|g| (g.stream_id, g.id, g.name.clone()))?;
 
                 self.add_generator(TransactionStreamRef::new_gen(stream_id, id, name));
             }
@@ -107,8 +106,7 @@ impl WaveData {
             None => {
                 let (stream_id, id, name) = inner
                     .get_generator_from_name(None, name)
-                    .map(|g| (g.stream_id, g.id, g.name.clone()))
-                    .unwrap();
+                    .map(|g| (g.stream_id, g.id, g.name.clone()))?;
 
                 self.add_generator(TransactionStreamRef::new_gen(stream_id, id, name));
             }
@@ -176,17 +174,35 @@ impl WaveData {
                     },
                 );
             Some(TransactionRef {
-                id: *transactions.get(next_id).unwrap(),
+                id: *transactions.get(next_id)?,
             })
-        } else if !transactions.is_empty() {
-            Some(TransactionRef {
-                id: *transactions.first().unwrap(),
-            })
+        } else if let Some(first) = transactions.first() {
+            Some(TransactionRef { id: *first })
         } else {
             None
         };
         self.focused_transaction = (tx, self.focused_transaction.1.clone());
         Some(())
+    }
+
+    pub fn set_active_scope(&mut self, scope: Option<ScopeType>) -> Option<()> {
+        Some(if let Some(scope) = scope {
+            let scope = if let ScopeType::StreamScope(StreamScopeRef::Empty(name)) = scope {
+                let inner = self.inner.as_transactions()?;
+                ScopeType::StreamScope(StreamScopeRef::new_stream_from_name(inner, name))
+            } else {
+                scope
+            };
+
+            if self.inner.scope_exists(&scope) {
+                self.active_scope = Some(scope);
+            } else {
+                warn!("Setting active scope to {scope} which does not exist");
+            }
+        } else {
+            // Set to top-level scope
+            self.active_scope = None;
+        })
     }
 }
 

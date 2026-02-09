@@ -172,11 +172,12 @@ impl WaveData {
                 false
             }
         });
-        let display_items = self.update_displayed_items(
+        let display_items = Self::update_displayed_items(
             &new_waves,
             &self.displayed_items,
             keep_unavailable,
             translators,
+            &mut self.items_tree,
         );
 
         let old_num_timestamps = self.num_timestamps();
@@ -213,16 +214,18 @@ impl WaveData {
     pub fn update_with_items(
         &mut self,
         new_items: &HashMap<DisplayedItemRef, DisplayedItem>,
-        items_tree: DisplayedItemTree,
+        mut items_tree: DisplayedItemTree,
         translators: &TranslatorList,
     ) -> Option<LoadSignalsCmd> {
-        self.items_tree = items_tree;
-        self.displayed_items = self.update_displayed_items(
+        self.displayed_items = Self::update_displayed_items(
             self.inner.as_waves().unwrap(),
             new_items,
             true,
             translators,
+            &mut items_tree,
         );
+        self.items_tree = items_tree;
+
         self.display_item_ref_counter = self
             .displayed_items
             .keys()
@@ -300,30 +303,30 @@ impl WaveData {
     }
 
     fn update_displayed_items(
-        &self,
         waves: &WaveContainer,
         items: &HashMap<DisplayedItemRef, DisplayedItem>,
         keep_unavailable: bool,
         translators: &TranslatorList,
+        items_tree: &mut DisplayedItemTree,
     ) -> HashMap<DisplayedItemRef, DisplayedItem> {
         items
             .iter()
-            .filter_map(|(id, i)| {
-                match i {
+            .filter_map(|(&id, i)| {
+                let new = match i {
                     // keep without a change
                     DisplayedItem::Divider(_)
                     | DisplayedItem::Marker(_)
                     | DisplayedItem::TimeLine(_)
                     | DisplayedItem::Stream(_)
-                    | DisplayedItem::Group(_) => Some((*id, i.clone())),
+                    | DisplayedItem::Group(_) => Some((id, i.clone())),
                     DisplayedItem::Variable(s) => {
-                        s.update(waves, keep_unavailable).map(|r| (*id, r))
+                        s.update(waves, keep_unavailable).map(|r| (id, r))
                     }
                     DisplayedItem::Placeholder(p) => {
                         match waves.update_variable_ref(&p.variable_ref) {
                             None => {
                                 if keep_unavailable {
-                                    Some((*id, DisplayedItem::Placeholder(p.clone())))
+                                    Some((id, DisplayedItem::Placeholder(p.clone())))
                                 } else {
                                     None
                                 }
@@ -334,7 +337,7 @@ impl WaveData {
                                     .context("When updating")
                                     .map_err(|e| error!("{e:#?}"))
                                 else {
-                                    return Some((*id, DisplayedItem::Placeholder(p.clone())));
+                                    return Some((id, DisplayedItem::Placeholder(p.clone())));
                                 };
                                 let translator = variable_translator(
                                     p.format.as_ref(),
@@ -344,7 +347,7 @@ impl WaveData {
                                 );
                                 let info = translator.variable_info(&meta).unwrap();
                                 Some((
-                                    *id,
+                                    id,
                                     DisplayedItem::Variable(
                                         p.clone().into_variable(info, new_variable_ref),
                                     ),
@@ -352,7 +355,19 @@ impl WaveData {
                             }
                         }
                     }
+                };
+
+                // remove element from item_tree if we are about to remove it from the displayed_items
+                // we only remove variables or placeholders, so we don't have to think about traversing
+                if new.is_none() {
+                    let removed = items_tree.drain_recursive_if(|n| n.item_ref == id);
+                    assert!(
+                        removed.len() <= 1,
+                        "more elements removed then should be possible"
+                    )
                 }
+
+                new
             })
             .collect()
     }

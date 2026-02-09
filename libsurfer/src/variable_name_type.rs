@@ -5,7 +5,9 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::displayed_item_tree::Node;
+use crate::displayed_item::DisplayedItemRef;
+use crate::displayed_item_tree::{Node, VisibleItemIndex};
+use crate::message::MessageTarget;
 use crate::wave_container::{ScopeRefExt, VariableRefExt};
 use crate::{displayed_item::DisplayedItem, wave_container::VariableRef, wave_data::WaveData};
 
@@ -90,6 +92,41 @@ impl WaveData {
         }
         self.default_variable_name_type = name_type;
         self.compute_variable_display_names();
+    }
+
+    pub fn change_variable_name_type(
+        &mut self,
+        target: MessageTarget<VisibleItemIndex>,
+        name_type: VariableNameType,
+    ) -> bool {
+        let mut recompute_names = false;
+        let mut change_type = |item_ref: DisplayedItemRef| {
+            self.displayed_items.entry(item_ref).and_modify(|item| {
+                if let DisplayedItem::Variable(variable) = item {
+                    variable.display_name_type = name_type;
+                    recompute_names = true;
+                }
+            });
+        };
+
+        match target {
+            MessageTarget::Explicit(vidx) => {
+                if let Some(item_ref) = self.items_tree.get_visible(vidx).map(|node| node.item_ref)
+                {
+                    change_type(item_ref);
+                }
+            }
+            MessageTarget::CurrentSelection => {
+                self.items_tree
+                    .iter_visible_selected()
+                    .for_each(|node| change_type(node.item_ref));
+                self.focused_item
+                    .and_then(|vidx| self.items_tree.get_visible(vidx))
+                    .map(|node| node.item_ref)
+                    .map(change_type);
+            }
+        }
+        recompute_names
     }
 }
 

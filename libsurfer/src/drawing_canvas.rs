@@ -570,7 +570,7 @@ impl SystemState {
                 );
             }
 
-            for generator in &generators {
+            for generator in generators {
                 // find first visible transaction
                 let first_visible_transaction_index =
                     match generator.transactions.binary_search_by_key(

@@ -1061,4 +1061,25 @@ impl WaveData {
 
         Some(())
     }
+
+    pub fn set_active_scope(&mut self, scope: Option<ScopeType>) -> Option<()> {
+        if let Some(scope) = scope {
+            let scope = if let ScopeType::StreamScope(StreamScopeRef::Empty(name)) = scope {
+                let inner = self.inner.as_transactions()?;
+                ScopeType::StreamScope(StreamScopeRef::new_stream_from_name(inner, name))
+            } else {
+                scope
+            };
+
+            if self.inner.scope_exists(&scope) {
+                self.active_scope = Some(scope);
+            } else {
+                warn!("Setting active scope to {scope} which does not exist");
+            }
+        } else {
+            // Set to top-level scope
+            self.active_scope = None;
+        };
+        Some(())
+    }
 }

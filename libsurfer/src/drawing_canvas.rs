@@ -298,7 +298,7 @@ fn variable_digital_draw_commands(
                 error!(
                     "{translator_name} for {variable_name} failed. Disabling:",
                     translator_name = translator.name(),
-                    variable_name = displayed_variable.variable_ref.full_path_string()
+                    variable_name = displayed_variable.variable_ref.full_path_string_no_index()
                 );
                 error!("{e:#}");
                 local_msgs.push(Message::ResetVariableFormat(displayed_field_ref));

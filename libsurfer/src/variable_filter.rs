@@ -14,7 +14,7 @@ use std::cell::RefCell;
 use crate::data_container::DataContainer::Transactions;
 use crate::transaction_container::{StreamScopeRef, TransactionStreamRef};
 use crate::variable_direction::VariableDirectionExt;
-use crate::wave_container::WaveContainer;
+use crate::wave_container::{VariableRefExt, WaveContainer};
 use crate::wave_data::ScopeType;
 use crate::{SystemState, message::Message, wave_container::VariableRef};
 use surfer_translation_types::VariableDirection;
@@ -196,7 +196,7 @@ impl VariableFilter {
             variables
                 .iter()
                 .filter(|&vr| self.kind_filter(vr, wave_container_opt))
-                .filter(|&vr| name_filter(&vr.full_path().join(".")))
+                .filter(|&vr| name_filter(&vr.full_path_string()))
                 .cloned()
                 .collect_vec()
         } else {

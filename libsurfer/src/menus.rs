@@ -588,7 +588,7 @@ impl SystemState {
                 if self.wcp_client_capabilities.goto_declaration
                     && ui.button("Go to declaration").clicked()
                 {
-                    let variable = variable.variable_ref.full_path_string();
+                    let variable = variable.variable_ref.full_path_string_no_index();
                     self.channels.wcp_s2c_sender.as_ref().map(|ch| {
                         block_on(
                             ch.send(WcpSCMessage::event(WcpEvent::goto_declaration { variable })),
@@ -596,13 +596,13 @@ impl SystemState {
                     });
                 }
                 if self.wcp_client_capabilities.add_drivers && ui.button("Add drivers").clicked() {
-                    let variable = variable.variable_ref.full_path_string();
+                    let variable = variable.variable_ref.full_path_string_no_index();
                     self.channels.wcp_s2c_sender.as_ref().map(|ch| {
                         block_on(ch.send(WcpSCMessage::event(WcpEvent::add_drivers { variable })))
                     });
                 }
                 if self.wcp_client_capabilities.add_loads && ui.button("Add loads").clicked() {
-                    let variable = variable.variable_ref.full_path_string();
+                    let variable = variable.variable_ref.full_path_string_no_index();
                     self.channels.wcp_s2c_sender.as_ref().map(|ch| {
                         block_on(ch.send(WcpSCMessage::event(WcpEvent::add_loads { variable })))
                     });
@@ -792,8 +792,8 @@ impl SystemState {
                             .variable_meta(&path.root)
                             .and_then(|meta| t.translates(&meta))
                             .context(format!(
-                                "Failed to check if {translator_name} translates {:?}",
-                                path.root.full_path(),
+                                "Failed to check if {translator_name} translates {}",
+                                path.root.full_path_string_no_index(),
                             )) {
                             Ok(TranslationPreference::Yes) => true,
                             Ok(TranslationPreference::Prefer) => true,

@@ -8,7 +8,7 @@ use crate::transaction_container::StreamScopeRef;
 use crate::transactions::{draw_transaction_root, draw_transaction_variable_list};
 use crate::variable_direction::get_direction_string;
 use crate::view::draw_true_name;
-use crate::wave_container::{ScopeRef, ScopeRefExt, VariableRef, WaveContainer};
+use crate::wave_container::{ScopeRef, ScopeRefExt, VariableRef, VariableRefExt, WaveContainer};
 use crate::wave_data::{ScopeType, WaveData};
 use derive_more::{Display, FromStr};
 use ecolor::Color32;
@@ -762,7 +762,7 @@ impl SystemState {
                         label.append(&value, 0.0, text_format);
                     } else {
                         let name = if display_full_path {
-                            variable.full_path().join(".")
+                            variable.full_path_string()
                         } else {
                             variable.name.clone()
                         };

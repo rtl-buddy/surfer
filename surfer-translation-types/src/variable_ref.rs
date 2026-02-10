@@ -15,6 +15,12 @@ pub struct VariableRef<VarId, ScopeId> {
     pub name: String,
     /// Backend specific numeric ID. Performance optimization.
     pub id: VarId,
+    /// Index
+    ///
+    /// Only used to point out a variable in an array of variables,
+    /// not variables that are arrays themselves, so only a single index required.
+    #[serde(default)]
+    pub index: Option<i64>,
 }
 
 impl<VarId, ScopeId> VariableRef<VarId, ScopeId> {
@@ -27,6 +33,7 @@ impl<VarId, ScopeId> VariableRef<VarId, ScopeId> {
             path: self.path.map_id(scope_fn),
             name: self.name,
             id: var_fn(self.id),
+            index: self.index,
         }
     }
 

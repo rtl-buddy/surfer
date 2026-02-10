@@ -135,14 +135,38 @@ impl ScopeRefExt for ScopeRef {
     }
 }
 
+fn extract_index(s: String) -> (String, Option<i64>) {
+    if let Some(start_idx) = s.rfind('[')
+        && start_idx > 0
+        && s.ends_with(']')
+    {
+        let index_str = &s[start_idx + 1..s.len() - 1];
+        if let Ok(index) = index_str.parse::<i64>() {
+            let name = s[..start_idx].to_string();
+            return (name, Some(index));
+        }
+    }
+    (s, None)
+}
+
 #[local_impl::local_impl]
 impl VariableRefExt for VariableRef {
     fn new(path: ScopeRef, name: String) -> Self {
-        Self::new_with_id(path, name, VarId::default())
+        Self::new_with_id_and_index(path, name, VarId::default(), None)
     }
 
-    fn new_with_id(path: ScopeRef, name: String, id: VarId) -> Self {
-        Self { path, name, id }
+    fn new_with_id_and_index(path: ScopeRef, name: String, id: VarId, index: Option<i64>) -> Self {
+        let (name, index) = if index.is_none() {
+            extract_index(name)
+        } else {
+            (name, index)
+        };
+        Self {
+            path,
+            name,
+            id,
+            index,
+        }
     }
 
     fn from_hierarchy_string(s: &str) -> Self {
@@ -153,12 +177,16 @@ impl VariableRefExt for VariableRef {
                 path: ScopeRef::empty(),
                 name: String::new(),
                 id: VarId::default(),
+                index: None,
             }
         } else {
+            let name = components.last().unwrap().to_string();
+            let (name, index) = extract_index(name);
             Self {
                 path: ScopeRef::from_strs(&components[..(components.len()) - 1]),
-                name: components.last().unwrap().to_string(),
+                name,
                 id: VarId::default(),
+                index,
             }
         }
     }
@@ -174,18 +202,20 @@ impl VariableRefExt for VariableRef {
                 path: ScopeRef::empty(),
                 name: String::new(),
                 id,
+                index: None,
             }
         } else {
             Self {
                 path: ScopeRef::from_strs(&components[..(components.len()) - 1]),
                 name: components.last().unwrap().to_string(),
                 id,
+                index: None,
             }
         }
     }
 
-    /// A human readable full path to the scope
-    fn full_path_string(&self) -> String {
+    /// A human readable full path to the variable, including scope, but no index
+    fn full_path_string_no_index(&self) -> String {
         if self.path.has_empty_strs() {
             self.name.clone()
         } else {
@@ -193,6 +223,16 @@ impl VariableRefExt for VariableRef {
         }
     }
 
+    /// A human readable full path to the variable, including scope and index if present
+    fn full_path_string(&self) -> String {
+        if let Some(index) = self.index {
+            format!("{}.{}[{}]", self.path, self.name, index)
+        } else {
+            self.full_path_string_no_index()
+        }
+    }
+
+    /// The full path as a vector of strings, including scope and variable name
     fn full_path(&self) -> Vec<String> {
         self.path
             .strs()
@@ -202,11 +242,26 @@ impl VariableRefExt for VariableRef {
             .collect()
     }
 
+    /// The full path as a vector of strings, including scope, variable name and index if present
+    fn full_path_with_index(&self) -> Vec<String> {
+        if let Some(index) = self.index {
+            self.path
+                .strs()
+                .iter()
+                .cloned()
+                .chain([self.name.clone(), format!("[{index}]")])
+                .collect()
+        } else {
+            self.full_path()
+        }
+    }
+
     fn from_strs(s: &[&str]) -> Self {
         Self {
             path: ScopeRef::from_strs(&s[..(s.len() - 1)]),
             name: (*s.last().expect("from_strs called with an empty string")).to_string(),
             id: VarId::default(),
+            index: None,
         }
     }
 
@@ -621,5 +676,101 @@ impl WaveContainer {
     #[must_use]
     pub fn supports_analog(&self) -> bool {
         matches!(self, WaveContainer::Wellen(_))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extract_index_with_valid_index() {
+        let (name, index) = extract_index("signal[5]".to_string());
+        assert_eq!(name, "signal");
+        assert_eq!(index, Some(5));
+    }
+
+    #[test]
+    fn extract_index_with_zero_index() {
+        let (name, index) = extract_index("data[0]".to_string());
+        assert_eq!(name, "data");
+        assert_eq!(index, Some(0));
+    }
+
+    #[test]
+    fn extract_index_with_negative_index() {
+        let (name, index) = extract_index("array[-1]".to_string());
+        assert_eq!(name, "array");
+        assert_eq!(index, Some(-1));
+    }
+
+    #[test]
+    fn extract_index_with_large_number() {
+        let (name, index) = extract_index("mem[999999]".to_string());
+        assert_eq!(name, "mem");
+        assert_eq!(index, Some(999999));
+    }
+
+    #[test]
+    fn extract_index_no_brackets() {
+        let (name, index) = extract_index("simple_signal".to_string());
+        assert_eq!(name, "simple_signal");
+        assert_eq!(index, None);
+    }
+
+    #[test]
+    fn extract_index_empty_brackets() {
+        let (name, index) = extract_index("signal[]".to_string());
+        assert_eq!(name, "signal[]");
+        assert_eq!(index, None);
+    }
+
+    #[test]
+    fn extract_index_non_numeric_index() {
+        let (name, index) = extract_index("signal[abc]".to_string());
+        assert_eq!(name, "signal[abc]");
+        assert_eq!(index, None);
+    }
+
+    #[test]
+    fn extract_index_only_opening_bracket() {
+        let (name, index) = extract_index("signal[5".to_string());
+        assert_eq!(name, "signal[5");
+        assert_eq!(index, None);
+    }
+
+    #[test]
+    fn extract_index_only_closing_bracket() {
+        let (name, index) = extract_index("signal5]".to_string());
+        assert_eq!(name, "signal5]");
+        assert_eq!(index, None);
+    }
+
+    #[test]
+    fn extract_index_multiple_brackets() {
+        let (name, index) = extract_index("array[3][5]".to_string());
+        assert_eq!(name, "array[3]");
+        assert_eq!(index, Some(5));
+    }
+
+    #[test]
+    fn extract_index_with_dot_notation() {
+        let (name, index) = extract_index("struct.field[10]".to_string());
+        assert_eq!(name, "struct.field");
+        assert_eq!(index, Some(10));
+    }
+
+    #[test]
+    fn extract_index_bracket_at_start() {
+        let (name, index) = extract_index("[5]signal".to_string());
+        assert_eq!(name, "[5]signal");
+        assert_eq!(index, None);
+    }
+
+    #[test]
+    fn extract_index_no_text() {
+        let (name, index) = extract_index("[5]".to_string());
+        assert_eq!(name, "[5]");
+        assert_eq!(index, None);
     }
 }

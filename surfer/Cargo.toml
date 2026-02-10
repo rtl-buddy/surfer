@@ -28,8 +28,8 @@ eframe.workspace = true
 egui.workspace = true
 emath.workspace = true
 eyre.workspace = true
-image.workspace = true
 libsurfer = { path = "../libsurfer", default-features = false }
+png.workspace = true
 ron.workspace = true
 simple-eyre.workspace = true
 surver.workspace = true

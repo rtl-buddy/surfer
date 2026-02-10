@@ -201,21 +201,29 @@ mod main_impl {
             }
             _ => None,
         };
-        let icon = image::load_from_memory_with_format(
-            include_bytes!("../assets/com.gitlab.surferproject.surfer.png"),
-            image::ImageFormat::Png,
-        )
-        .expect("Failed to open icon path")
-        .to_rgba8();
-        let (icon_width, icon_height) = icon.dimensions();
+
+        // Load icon using png crate
+        let icon_bytes = include_bytes!("../assets/com.gitlab.surferproject.surfer.png");
+        let decoder = png::Decoder::new(std::io::Cursor::new(&icon_bytes[..]));
+        let mut reader = decoder.read_info().expect("Failed to read PNG info");
+        let mut icon_data = vec![
+            0;
+            reader
+                .output_buffer_size()
+                .expect("Failed to calculate PNG buffer size")
+        ];
+        let info = reader
+            .next_frame(&mut icon_data)
+            .expect("Failed to decode PNG");
+
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_app_id("org.surfer-project.surfer")
                 .with_title("Surfer")
                 .with_icon(egui::viewport::IconData {
-                    rgba: icon.into_raw(),
-                    width: icon_width,
-                    height: icon_height,
+                    rgba: icon_data,
+                    width: info.width,
+                    height: info.height,
                 })
                 .with_inner_size(Vec2::new(
                     state.user.config.layout.window_width as f32,

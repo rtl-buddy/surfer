@@ -124,6 +124,8 @@ impl WaveData {
                 .iter()
                 .map(|gen_id| inner.get_generator(*gen_id).unwrap())
                 .map(|g| (g.stream_id, g.id, g.name.clone()))
+                // Sort by name to get deterministic order
+                .sorted_by(|a, b| numeric_sort::cmp(&a.2, &b.2))
                 .collect_vec();
 
             for (stream_id, id, name) in gens {

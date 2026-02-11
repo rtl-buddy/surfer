@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use camino::Utf8PathBuf;
-use directories::ProjectDirs;
 use extism::{Manifest, PTR, Plugin, PluginBuilder, Wasm, host_fn};
 use extism_convert;
 use extism_manifest::MemoryOptions;
@@ -32,8 +31,7 @@ pub fn discover_wasm_translators() -> Vec<Message> {
             .map(|dirs| dirs.data_dir().join(TRANSLATOR_DIR)),
     ]
     .into_iter()
-    .flatten()
-    .collect::<Vec<_>>();
+    .flatten();
 
     let plugin_files = search_dirs
         .into_iter()
@@ -271,7 +269,7 @@ host_fn!(current_dir() -> String {
 });
 
 host_fn!(translators_config_dir() -> extism_convert::Json(Option<String>) {
-    Ok(extism_convert::Json(ProjectDirs::from("org", "surfer-project", "surfer")
+    Ok(extism_convert::Json(PROJECT_DIR.as_ref()
         .map(|dirs| dirs.config_dir().join("translators"))
         .and_then(|dir| {
             dir.to_str().ok_or_else(|| {

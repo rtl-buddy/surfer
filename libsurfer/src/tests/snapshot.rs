@@ -28,6 +28,7 @@ use crate::{
     state::UserState,
     transaction_container::{StreamScopeRef, TransactionRef, TransactionStreamRef},
     variable_filter::{VariableIOFilterType, VariableNameFilterType},
+    variable_name_type::VariableNameType,
     wave_container::{ScopeRef, ScopeRefExt, VariableRef, VariableRefExt},
     wave_data::ScopeType,
     wave_source::{LoadOptions, STATE_FILE_EXTENSION},
@@ -626,6 +627,18 @@ snapshot_ui! {resizing_the_canvas_redraws, || {
 
     state
 }}
+
+snapshot_ui_with_file_and_msgs! {set_variable_name_type, "examples/counter.vcd", [
+    Message::AddVariables(vec![VariableRef::from_hierarchy_string("tb.dut.clk"),
+                               VariableRef::from_hierarchy_string("tb.dut.clk"),
+                               VariableRef::from_hierarchy_string("tb.dut.clk"),
+                               VariableRef::from_hierarchy_string("tb.clk")]),
+    Message::ChangeVariableNameType(MessageTarget::Explicit(VisibleItemIndex(0)), VariableNameType::Global),
+    Message::FocusItem(VisibleItemIndex(1)),
+    Message::ChangeVariableNameType(MessageTarget::CurrentSelection, VariableNameType::Unique),
+    Message::ChangeVariableNameType(MessageTarget::Explicit(VisibleItemIndex(2)), VariableNameType::Local),
+    Message::ChangeVariableNameType(MessageTarget::Explicit(VisibleItemIndex(3)), VariableNameType::Unique),
+]}
 
 snapshot_ui_with_file_and_msgs! {clock_pulses_render_line, "examples/counter.vcd", [
     Message::AddScope(ScopeRef::from_strs(&["tb"]), false),
@@ -2360,6 +2373,15 @@ snapshot_ui_with_file_and_msgs! {simple_ftr_loads, "examples/my_db.ftr", [
     Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(3, 7, "data_stream.rdata".to_string())),
     Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(3, 8, "data_stream.wdata".to_string())),
 
+]}
+
+snapshot_ui_with_file_and_msgs! {add_stream_from_name, "examples/my_db.ftr", [
+    Message::AddStreamOrGeneratorFromName(None, "read".to_string()),
+    Message::AddDivider(Some("Add all for root".to_string()), None),
+    Message::AddAllFromStreamScope("tr".to_string()),
+    Message::AddDivider(Some("Add all for pipelined_stream".to_string()), None),
+    Message::AddAllFromStreamScope("tr.pipelined_stream".to_string()),
+    Message::MoveTransaction { next: true },
 ]}
 
 snapshot_ui_with_file_and_msgs! {focus_transaction, "examples/my_db.ftr", [

@@ -692,7 +692,10 @@ impl WaveData {
             streams.push((stream.id, stream.name.clone()));
         }
 
-        for (id, name) in streams {
+        for (id, name) in streams
+            .into_iter()
+            .sorted_by(|a, b| numeric_sort::cmp(&a.1, &b.1))
+        {
             self.add_stream(TransactionStreamRef::new_stream(id, name));
         }
     }

@@ -4,7 +4,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use camino::Utf8PathBuf;
+use directories::ProjectDirs;
 use extism::{Manifest, PTR, Plugin, PluginBuilder, Wasm, host_fn};
+use extism_convert;
 use extism_manifest::MemoryOptions;
 use eyre::{Context, anyhow};
 use surfer_translation_types::plugin_types::TranslateParams;
@@ -111,6 +113,13 @@ impl PluginTranslator {
                 extism::UserData::new(()),
                 file_exists,
             )
+            .with_function(
+                "translators_config_dir",
+                [PTR],
+                [PTR],
+                extism::UserData::new(()),
+                translators_config_dir,
+            )
             .build()
             .map_err(|e| anyhow!("Failed to load plugin from {} {e}", file.to_string_lossy()))?;
 
@@ -150,7 +159,7 @@ impl Translator<VarId, ScopeId, Message> for PluginTranslator {
         let mut plugin = self.plugin.lock().unwrap();
         if plugin.function_exists("set_wave_source") {
             plugin
-                .call::<_, ()>("set_wave_source", wave_source)
+                .call::<_, ()>("set_wave_source", extism_convert::Json(wave_source))
                 .map_err(|e| {
                     error!(
                         "Failed to set_wave_source on {}. {e}",
@@ -259,6 +268,16 @@ host_fn!(current_dir() -> String {
             }).map(ToString::to_string)
         })
         .map_err(|e| extism::Error::msg(format!("{e:#}")))
+});
+
+host_fn!(translators_config_dir() -> extism_convert::Json(Option<String>) {
+    Ok(extism_convert::Json(ProjectDirs::from("org", "surfer-project", "surfer")
+        .map(|dirs| dirs.config_dir().join("translators"))
+        .and_then(|dir| {
+            dir.to_str().ok_or_else(|| {
+                anyhow!("{} is not valid utf8", dir.to_string_lossy())
+            }).map(|s| s.to_string()).ok()
+        })))
 });
 
 host_fn!(read_file(filename: String) -> Vec<u8> {

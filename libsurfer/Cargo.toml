@@ -15,6 +15,7 @@ notify.workspace = true
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 directories.workspace = true
 extism = { workspace = true, optional = true }
+extism-convert = { workspace = true, optional = true }
 extism-manifest = { workspace = true, optional = true }
 futures = { workspace = true, features = ["executor"] }
 tokio = { workspace = true, features = ["macros"] }
@@ -42,6 +43,7 @@ python = ["pyo3", "surfer-translation-types/pyo3"]
 wasm_plugins = [
     "dep:extism",
     "dep:extism-manifest",
+    "dep:extism-convert",
     "surfer-translation-types/wasm_plugins",
 ]
 

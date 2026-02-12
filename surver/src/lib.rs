@@ -20,6 +20,14 @@ pub const WELLEN_SURFER_DEFAULT_OPTIONS: wellen::LoadOptions = wellen::LoadOptio
     remove_scopes_with_empty_name: true,
 };
 
+#[derive(Debug, Deserialize)]
+pub struct SurverConfig {
+    /// IP address to bind the HTTP server to
+    pub bind_address: String,
+    /// Default port for the HTTP server
+    pub port: u16,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurverStatus {
     pub wellen_version: String,

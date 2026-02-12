@@ -305,6 +305,14 @@ async fn handle_cmd(
     file_index: Option<usize>,
     args: &[&str],
 ) -> Result<Response<Full<Bytes>>> {
+    // Check file index is valid if provided
+    if let Some(file_index) = file_index {
+        let state_guard = state.read().expect("State lock poisoned in handle_cmd");
+        if file_index >= state_guard.file_infos.len() {
+            drop(state_guard);
+            return not_found_response(b"Invalid file index");
+        }
+    }
     match (file_index, cmd, args) {
         (_, "get_status", []) => {
             let body = get_status(state)?;

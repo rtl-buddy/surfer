@@ -16,6 +16,7 @@ use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
+use surver::SurverConfig;
 
 use crate::hierarchy::{HierarchyStyle, ParameterDisplayLocation};
 use crate::keyboard_shortcuts::{SurferShortcuts, deserialize_shortcuts};
@@ -134,7 +135,7 @@ pub struct SurferConfig {
     /// WCP Configuration
     pub wcp: WcpConfig,
     /// HTTP Server Configuration
-    pub server: ServerConfig,
+    pub server: SurverConfig,
     /// Animation time for UI elements in seconds
     pub animation_time: f32,
     /// UI animation enabled
@@ -1022,14 +1023,6 @@ pub struct WcpConfig {
     pub autostart: bool,
     /// Address to bind to (address:port)
     pub address: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ServerConfig {
-    /// IP address to bind the HTTP server to
-    pub bind_address: String,
-    /// Default port for the HTTP server
-    pub port: u16,
 }
 
 fn default_colors() -> HashMap<String, Color32> {

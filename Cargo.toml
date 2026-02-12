@@ -104,7 +104,7 @@ test-log = "0.2.15"
 thiserror = "2"
 tokio = { version = "1.43", features = ["rt", "time", "macros"] }
 tokio-stream = "0.1.17"
-toml = { version = "0.9.8", default-features = false, features = ["parse"] }
+toml = { version = "1.0", default-features = false, features = ["parse"] }
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 vergen-gitcl = "9.1"

@@ -9,4 +9,4 @@ repository.workspace = true
 
 [dependencies]
 extism-pdk = { version = "1.4.1", default-features = false }
-surfer-translation-types = { version = "0.6.0-dev", path = "../surfer-translation-types" }
+surfer-translation-types = { version = "0.7.0-dev", path = "../surfer-translation-types" }

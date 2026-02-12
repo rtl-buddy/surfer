@@ -2964,7 +2964,7 @@ dependencies = [
 
 [[package]]
 name = "libsurfer"
-version = "0.6.0"
+version = "0.7.0-dev"
 dependencies = [
  "base64",
  "bincode",
@@ -5005,7 +5005,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "surfer"
-version = "0.6.0"
+version = "0.7.0-dev"
 dependencies = [
  "camino",
  "clap",
@@ -5028,7 +5028,7 @@ dependencies = [
 
 [[package]]
 name = "surfer-translation-types"
-version = "0.6.0"
+version = "0.7.0-dev"
 dependencies = [
  "derive_more",
  "ecolor",
@@ -5041,7 +5041,7 @@ dependencies = [
 
 [[package]]
 name = "surfer-wcp"
-version = "0.6.0"
+version = "0.7.0-dev"
 dependencies = [
  "num",
  "serde",
@@ -5050,7 +5050,7 @@ dependencies = [
 
 [[package]]
 name = "surver"
-version = "0.6.0"
+version = "0.7.0-dev"
 dependencies = [
  "bincode",
  "bytesize",
@@ -5597,7 +5597,7 @@ dependencies = [
 
 [[package]]
 name = "translator-docs"
-version = "0.6.0"
+version = "0.7.0-dev"
 dependencies = [
  "extism-pdk",
  "surfer-translation-types",
@@ -5951,7 +5951,7 @@ dependencies = [
 
 [[package]]
 name = "wasm_example_translator"
-version = "0.6.0"
+version = "0.7.0-dev"
 dependencies = [
  "extism-pdk",
  "surfer-translation-types",

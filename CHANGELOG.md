@@ -9,6 +9,47 @@ released as a new version.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.0] - 2026-02-12
+
+## Added
+
+- Color translators that set the wave color based on RGB, YCbCr or Grayscale.
+- Waveform events are now supported.
+- Translator methods that directly return floats.
+- Commands: `surver_select_file` and `surver_switch_file` to change files without and with keeping waveform variables.
+- Keyboard shortcut to add a divider: `d`.
+- Buttons to expand/collapse the hierarchy.
+- It is possible to deselect a scope, leading to that the root scope is selected.
+- New commands: `scope_select_root` and `stream_select_root` the selects the root scope/stream.
+- Optional and configurable icons for variable and scope types.
+- Many keyboard bindings are now configurable.
+- Mapping translator that can convert values to text using a configuration file.
+- WCP command `set_cursor` for positioning the cursor.
+- Translator plugins can now access a configuration directory.
+
+## Changed
+
+- There is a separate crate, `surfer-wcp`, to assist in connecting to Surfer via WCP.
+- A workaround for an egui issue has been removed since it was fixed in egui. This should lead to cursors ending up close to where you actually clicked and better aligned with transitions when drawing. If something looks worse, please open an issue.
+
+## Fixed
+
+* Row computation for transactions where several transactions start at the same time.
+* Analog drawing is faster thanks to direct conversion to floats.
+* It is again possible to start surfer with a surver URL.
+* Logging is working again in the WASM version.
+* Adding a scope corresponding to a compound variable (array, record, etc) as a group will set the variables in that group to have local names.
+* More variable context menu entries operate on all selected variables.
+* Real-valued parameters are now handled as parameters.
+* Save state file dialog behaves better on macOS.
+* Bug where viewports got inverted when loading a state file.
+* String decoding in FST and VCD (due to improvements in wellen).
+* Crash when file was changed multiple times on disk, caused by the UI not refreshed.
+* The drawing of mouse gesture and measure widgets is now correctly positioned in y-direction even when the timeline is visible.
+* Several issues related to vertical scroll of the waveform view, especially related to items with different heights.
+* Bug where different array items were reloaded as the same.
+* It is now possible to select a specific array item for a command.
+
 ## [0.5.0] - 2025-12-19
 
 ## Added
@@ -244,7 +285,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Initial numbered version
 
 
-[Unreleased]: https://gitlab.com/surfer-project/surfer/-/compare/v0.5.0...main
+[Unreleased]: https://gitlab.com/surfer-project/surfer/-/compare/v0.6.0...main
+[0.6.0]: https://gitlab.com/surfer-project/surfer/-/tree/v0.6.0
 [0.5.0]: https://gitlab.com/surfer-project/surfer/-/tree/v0.5.0
 [0.4.0]: https://gitlab.com/surfer-project/surfer/-/tree/v0.4.0
 [0.3.0]: https://gitlab.com/surfer-project/surfer/-/tree/v0.3.0

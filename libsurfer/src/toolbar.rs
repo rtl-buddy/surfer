@@ -4,6 +4,7 @@ use egui_remixicon::icons;
 use emath::{Align, Vec2};
 
 use crate::message::MessageTarget;
+use crate::time::time_input_widget;
 use crate::wave_container::SimulationStatus;
 use crate::wave_source::LoadOptions;
 use crate::{
@@ -360,6 +361,25 @@ impl SystemState {
             );
 
             self.simulation_status_toolbar(ui, msgs);
+            if let Some(waves) = &self.user.waves {
+                ui.separator();
+                time_input_widget(ui, waves, msgs, &mut self.time_widget.borrow_mut());
+                if self.time_widget.borrow().parsed_value.is_some()
+                    && let Some(time_stamp) = self
+                        .time_widget
+                        .borrow()
+                        .to_timescale_ticks(&waves.inner.metadata().timescale)
+                {
+                    add_toolbar_button(
+                        ui,
+                        msgs,
+                        icons::TARGET_FILL,
+                        "Go to time",
+                        Message::GoToTime(Some(time_stamp), 0),
+                        true,
+                    );
+                }
+            }
         });
     }
 }

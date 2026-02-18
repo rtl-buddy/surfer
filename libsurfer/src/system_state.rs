@@ -15,6 +15,7 @@ use crate::{
     hierarchy::ScopeExpandType,
     message::Message,
     state::UserState,
+    time::TimeInputState,
     translation::{TranslatorList, all_translators},
     wave_container::VariableRef,
     wave_source::{LoadOptions, LoadProgress},
@@ -83,6 +84,9 @@ pub struct SystemState {
     // This item works with the expand scope feature to determine what hierarchys to open
     pub scope_ref_to_expand: RefCell<Option<ScopeExpandType>>,
 
+    pub(crate) time_widget: RefCell<TimeInputState>,
+    pub(crate) time_edit_focused: bool,
+
     // Benchmarking stuff
     /// Invalidate draw commands every frame to make performance comparison easier
     pub(crate) continuous_redraw: bool,
@@ -146,6 +150,8 @@ impl SystemState {
             surver_selected_file: RefCell::new(None),
             surver_load_options: RefCell::new(LoadOptions::Clear),
             expand_parameter_section: false,
+            time_widget: RefCell::new(TimeInputState::default()),
+            time_edit_focused: false,
 
             url_callback: None,
             continuous_redraw: false,

@@ -309,6 +309,7 @@ pub enum Message {
     SetMouseGestureDragStart(Option<Pos2>),
     SetMeasureDragStart(Option<Pos2>),
     SetFilterFocused(bool),
+    SetTimeEditFocused(bool),
     SetVariableNameFilterType(VariableNameFilterType),
     SetVariableNameFilterCaseInsensitive(bool),
     SetVariableIOFilter(VariableIOFilterType, bool),

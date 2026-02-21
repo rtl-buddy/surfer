@@ -479,6 +479,182 @@ impl BasicTranslator<VarId, ScopeId> for IdenticalMSBsTranslator {
     }
 }
 
+pub struct AllBitsSetTranslator {}
+
+impl BasicTranslator<VarId, ScopeId> for AllBitsSetTranslator {
+    fn name(&self) -> String {
+        String::from("All bits set")
+    }
+
+    fn basic_translate(&self, num_bits: u32, value: &VariableValue) -> (String, ValueKind) {
+        match value {
+            VariableValue::BigUint(v) => {
+                let val = if v.count_ones() == num_bits as u64 {
+                    '1'
+                } else {
+                    '0'
+                };
+                (val.to_string(), ValueKind::Normal)
+            }
+            VariableValue::String(s) => {
+                let extended_string = extend_string(s, num_bits) + s;
+                let val = extended_string
+                    .chars()
+                    .fold('1', |acc, bit| match (acc, bit) {
+                        // Anything ANDed to 0 becomes 0
+                        ('0', _) | (_, '0') => '0',
+                        // Regular bit AND behavior
+                        ('1', '1') => '1',
+                        // Anything else maps to "undefined"
+                        _ => 'x',
+                    });
+                let bs = val.to_string();
+                (val.to_string(), kind_for_binary_representation(&bs))
+            }
+        }
+    }
+
+    fn basic_translate_numeric(&self, num_bits: u32, value: &VariableValue) -> Option<f64> {
+        Some(parse_value_to_numeric(value, |v| {
+            if v.count_ones() == num_bits as u64 {
+                1.
+            } else {
+                0.
+            }
+        }))
+    }
+
+    fn variable_info(&self, _variable: &VariableMeta) -> Result<VariableInfo> {
+        Ok(VariableInfo::Bool)
+    }
+}
+
+pub struct AnyBitSetTranslator {}
+
+impl BasicTranslator<VarId, ScopeId> for AnyBitSetTranslator {
+    fn name(&self) -> String {
+        String::from("Any bits set")
+    }
+
+    fn basic_translate(&self, num_bits: u32, value: &VariableValue) -> (String, ValueKind) {
+        match value {
+            VariableValue::BigUint(v) => {
+                let val = if v.count_ones().is_zero() { '0' } else { '1' };
+                (val.to_string(), ValueKind::Normal)
+            }
+            VariableValue::String(s) => {
+                let extended_string = extend_string(s, num_bits) + s;
+                let val = extended_string
+                    .chars()
+                    .fold('0', |acc, bit| match (acc, bit) {
+                        // Anything ORed to 0 becomes 0
+                        ('1', _) | (_, '1') => '1',
+                        // Regular bit OR behavior
+                        ('0', '0') => '0',
+                        // Anything else maps to "undefined"
+                        _ => 'x',
+                    });
+                let bs = val.to_string();
+                (val.to_string(), kind_for_binary_representation(&bs))
+            }
+        }
+    }
+
+    fn basic_translate_numeric(&self, _num_bits: u32, value: &VariableValue) -> Option<f64> {
+        Some(parse_value_to_numeric(value, |v| {
+            if v.count_ones().is_zero() { 0. } else { 1. }
+        }))
+    }
+
+    fn variable_info(&self, _variable: &VariableMeta) -> Result<VariableInfo> {
+        Ok(VariableInfo::Bool)
+    }
+}
+
+pub struct AnyBitUnsetTranslator {}
+
+impl BasicTranslator<VarId, ScopeId> for AnyBitUnsetTranslator {
+    fn name(&self) -> String {
+        String::from("Any bits unset")
+    }
+
+    fn basic_translate(&self, num_bits: u32, value: &VariableValue) -> (String, ValueKind) {
+        match value {
+            VariableValue::BigUint(v) => {
+                let val = if v.count_ones() == num_bits as u64 {
+                    '0'
+                } else {
+                    '1'
+                };
+                (val.to_string(), ValueKind::Normal)
+            }
+            VariableValue::String(_) => {
+                let (s, kind) = AllBitsSetTranslator {}.basic_translate(num_bits, value);
+
+                let not_s = match s.as_str() {
+                    "0" => "1".to_string(),
+                    "1" => "0".to_string(),
+                    _ => s,
+                };
+
+                (not_s, kind)
+            }
+        }
+    }
+
+    fn basic_translate_numeric(&self, num_bits: u32, value: &VariableValue) -> Option<f64> {
+        Some(parse_value_to_numeric(value, |v| {
+            if v.count_ones() == num_bits as u64 {
+                0.
+            } else {
+                1.
+            }
+        }))
+    }
+
+    fn variable_info(&self, _variable: &VariableMeta) -> Result<VariableInfo> {
+        Ok(VariableInfo::Bool)
+    }
+}
+
+pub struct AllBitsUnsetTranslator {}
+
+impl BasicTranslator<VarId, ScopeId> for AllBitsUnsetTranslator {
+    fn name(&self) -> String {
+        String::from("All bits unset")
+    }
+
+    fn basic_translate(&self, num_bits: u32, value: &VariableValue) -> (String, ValueKind) {
+        match value {
+            VariableValue::BigUint(v) => {
+                let val = if v.count_ones().is_zero() { '1' } else { '0' };
+                (val.to_string(), ValueKind::Normal)
+            }
+            VariableValue::String(_) => {
+                let (s, kind) = AnyBitSetTranslator {}.basic_translate(num_bits, value);
+
+                let not_s = match s.as_str() {
+                    "0" => "1".to_string(),
+                    "1" => "0".to_string(),
+                    _ => s,
+                };
+
+                (not_s, kind)
+            }
+        }
+    }
+
+    fn basic_translate_numeric(&self, _num_bits: u32, value: &VariableValue) -> Option<f64> {
+        Some(parse_value_to_numeric(value, |v| {
+            if v.count_ones().is_zero() { 1. } else { 0. }
+        }))
+    }
+
+    fn variable_info(&self, _variable: &VariableMeta) -> Result<VariableInfo> {
+        Ok(VariableInfo::Bool)
+    }
+}
+
 #[cfg(test)]
 mod test {
 
@@ -1102,6 +1278,236 @@ mod test {
                 .basic_translate(5, &VariableValue::BigUint(BigUint::from(0b11111u32)))
                 .0,
             "5"
+        );
+    }
+
+    #[test]
+    fn all_bits_set_translation_string() {
+        assert_eq!(
+            AllBitsSetTranslator {}
+                .basic_translate(3, &VariableValue::String("000".to_string()))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AllBitsSetTranslator {}
+                .basic_translate(3, &VariableValue::String("111".to_string()))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AllBitsSetTranslator {}
+                .basic_translate(3, &VariableValue::String("101".to_string()))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AllBitsSetTranslator {}
+                .basic_translate(3, &VariableValue::String("0xz".to_string()))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AllBitsSetTranslator {}
+                .basic_translate(3, &VariableValue::String("1xz".to_string()))
+                .0,
+            "x"
+        );
+    }
+
+    #[test]
+    fn all_bits_set_translation_bigint() {
+        assert_eq!(
+            AllBitsSetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b000u32)))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AllBitsSetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b111u32)))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AllBitsSetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b101u32)))
+                .0,
+            "0"
+        );
+    }
+
+    #[test]
+    fn any_bit_set_translation_string() {
+        assert_eq!(
+            AnyBitSetTranslator {}
+                .basic_translate(3, &VariableValue::String("000".to_string()))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AnyBitSetTranslator {}
+                .basic_translate(3, &VariableValue::String("111".to_string()))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AnyBitSetTranslator {}
+                .basic_translate(3, &VariableValue::String("101".to_string()))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AnyBitSetTranslator {}
+                .basic_translate(3, &VariableValue::String("0xz".to_string()))
+                .0,
+            "x"
+        );
+        assert_eq!(
+            AnyBitSetTranslator {}
+                .basic_translate(3, &VariableValue::String("1xz".to_string()))
+                .0,
+            "1"
+        );
+    }
+
+    #[test]
+    fn any_bits_set_translation_bigint() {
+        assert_eq!(
+            AnyBitSetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b000u32)))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AnyBitSetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b111u32)))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AnyBitSetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b101u32)))
+                .0,
+            "1"
+        );
+    }
+
+    #[test]
+    fn all_bits_unset_translation_string() {
+        assert_eq!(
+            AllBitsUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("000".to_string()))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AllBitsUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("111".to_string()))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AllBitsUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("101".to_string()))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AllBitsUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("0xz".to_string()))
+                .0,
+            "x"
+        );
+        assert_eq!(
+            AllBitsUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("1xz".to_string()))
+                .0,
+            "0"
+        );
+    }
+
+    #[test]
+    fn all_bits_unset_translation_bigint() {
+        assert_eq!(
+            AllBitsUnsetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b000u32)))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AllBitsUnsetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b111u32)))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AllBitsUnsetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b101u32)))
+                .0,
+            "0"
+        );
+    }
+
+    #[test]
+    fn any_bit_unset_translation_string() {
+        assert_eq!(
+            AnyBitUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("000".to_string()))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AnyBitUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("111".to_string()))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AnyBitUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("101".to_string()))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AnyBitUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("0xz".to_string()))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AnyBitUnsetTranslator {}
+                .basic_translate(3, &VariableValue::String("1xz".to_string()))
+                .0,
+            "x"
+        );
+    }
+
+    #[test]
+    fn any_bits_unset_translation_bigint() {
+        assert_eq!(
+            AnyBitUnsetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b000u32)))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AnyBitUnsetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b111u32)))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            AnyBitUnsetTranslator {}
+                .basic_translate(3, &VariableValue::BigUint(BigUint::from(0b101u32)))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            AnyBitUnsetTranslator {}
+                .basic_translate(10, &VariableValue::BigUint(BigUint::from(0b111u32)))
+                .0,
+            "1"
         );
     }
 }

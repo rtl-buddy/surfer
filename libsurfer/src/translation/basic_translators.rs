@@ -3,7 +3,7 @@ use crate::wave_container::{ScopeId, VarId, VariableMeta};
 
 use eyre::Result;
 use itertools::Itertools;
-use num::{One, Zero};
+use num::{Integer, One, Zero};
 use surfer_translation_types::{
     BasicTranslator, VariableValue, check_vector_variable, extend_string,
     kind_for_binary_representation, parse_value_to_numeric,
@@ -134,7 +134,7 @@ impl BasicTranslator<VarId, ScopeId> for BitTranslator {
     }
 
     fn variable_info(&self, _variable: &VariableMeta) -> Result<VariableInfo> {
-        Ok(VariableInfo::Bool)
+        Ok(VariableInfo::nameless_bool())
     }
 }
 
@@ -476,6 +476,50 @@ impl BasicTranslator<VarId, ScopeId> for IdenticalMSBsTranslator {
             let lo = leading_ones(v, num_bits);
             lz.max(lo) as f64
         }))
+    }
+}
+
+pub struct ParityTranslator {}
+
+impl BasicTranslator<VarId, ScopeId> for ParityTranslator {
+    fn name(&self) -> String {
+        String::from("Parity")
+    }
+
+    fn basic_translate(&self, num_bits: u32, value: &VariableValue) -> (String, ValueKind) {
+        match value {
+            VariableValue::BigUint(v) => {
+                let val = if v.count_ones().is_odd() { '1' } else { '0' };
+                (val.to_string(), ValueKind::Normal)
+            }
+            VariableValue::String(s) => {
+                let extended_string = extend_string(s, num_bits) + s;
+                let val = extended_string
+                    .chars()
+                    .fold('0', |acc, bit| match (acc, bit) {
+                        // Regular XOR behavior
+                        ('1', '0') | ('0', '1') => '1',
+                        ('0', '0') | ('1', '1') => '0',
+                        // Anything else maps to "undefined"
+                        _ => 'x',
+                    });
+                let bs = val.to_string();
+                (val.to_string(), kind_for_binary_representation(&bs))
+            }
+        }
+    }
+
+    fn basic_translate_numeric(&self, _num_bits: u32, value: &VariableValue) -> Option<f64> {
+        Some(parse_value_to_numeric(value, |v| {
+            if v.count_ones().is_odd() { 1. } else { 0. }
+        }))
+    }
+
+    fn variable_info(&self, _variable: &VariableMeta) -> Result<VariableInfo> {
+        Ok(VariableInfo::Bool {
+            true_name: Some("Odd".to_string()),
+            false_name: Some("Even".to_string()),
+        })
     }
 }
 
@@ -1102,6 +1146,56 @@ mod test {
                 .basic_translate(5, &VariableValue::BigUint(BigUint::from(0b11111u32)))
                 .0,
             "5"
+        );
+    }
+
+    #[test]
+    fn parity_translation_string() {
+        assert_eq!(
+            ParityTranslator {}
+                .basic_translate(5, &VariableValue::String("00000".to_string()))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            ParityTranslator {}
+                .basic_translate(5, &VariableValue::String("11111".to_string()))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            ParityTranslator {}
+                .basic_translate(5, &VariableValue::String("10111".to_string()))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            ParityTranslator {}
+                .basic_translate(4, &VariableValue::String("10zx".to_string()))
+                .0,
+            "x"
+        );
+    }
+
+    #[test]
+    fn parity_translation_bigint() {
+        assert_eq!(
+            ParityTranslator {}
+                .basic_translate(5, &VariableValue::BigUint(BigUint::from(0b00000u32)))
+                .0,
+            "0"
+        );
+        assert_eq!(
+            ParityTranslator {}
+                .basic_translate(5, &VariableValue::BigUint(BigUint::from(0b11111u32)))
+                .0,
+            "1"
+        );
+        assert_eq!(
+            ParityTranslator {}
+                .basic_translate(5, &VariableValue::BigUint(BigUint::from(0b10111u32)))
+                .0,
+            "0"
         );
     }
 }

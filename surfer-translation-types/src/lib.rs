@@ -265,7 +265,10 @@ pub enum VariableInfo {
     /// A flat bit-vector variable.
     Bits,
     /// A single-bit variable.
-    Bool,
+    Bool {
+        true_name: Option<String>,
+        false_name: Option<String>,
+    },
     /// A clock variable.
     Clock,
     // NOTE: only used for state saving where translators will clear this out with the actual value
@@ -275,6 +278,15 @@ pub enum VariableInfo {
     /// A real-number variable.
     Real,
     Event,
+}
+
+impl VariableInfo {
+    pub fn nameless_bool() -> Self {
+        Self::Bool {
+            true_name: None,
+            false_name: None,
+        }
+    }
 }
 
 #[derive(Debug, Display, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]

@@ -94,7 +94,10 @@ pub enum AnalogDrawingCommands {
 }
 #[derive(Clone, PartialEq, Debug)]
 pub enum DigitalDrawingType {
-    Bool,
+    Bool {
+        true_name: Option<String>,
+        false_name: Option<String>,
+    },
     Clock,
     Event,
     Vector,
@@ -103,7 +106,13 @@ pub enum DigitalDrawingType {
 impl From<&VariableInfo> for DigitalDrawingType {
     fn from(info: &VariableInfo) -> Self {
         match info {
-            VariableInfo::Bool => DigitalDrawingType::Bool,
+            VariableInfo::Bool {
+                true_name,
+                false_name,
+            } => DigitalDrawingType::Bool {
+                true_name: true_name.clone(),
+                false_name: false_name.clone(),
+            },
             VariableInfo::Clock => DigitalDrawingType::Clock,
             VariableInfo::Event => DigitalDrawingType::Event,
             _ => DigitalDrawingType::Vector,
@@ -184,7 +193,7 @@ fn variable_draw_commands(
     let is_analog_mode = displayed_variable.analog.is_some();
     let is_bool = matches!(
         info,
-        VariableInfo::Bool | VariableInfo::Clock | VariableInfo::Event
+        VariableInfo::Bool { .. } | VariableInfo::Clock | VariableInfo::Event
     );
 
     if is_analog_mode && !is_bool {
@@ -1003,11 +1012,31 @@ impl SystemState {
                         match commands {
                             DrawingCommands::Digital(digital_commands) => {
                                 match digital_commands.drawing_type {
-                                    DigitalDrawingType::Bool | DigitalDrawingType::Clock => {
+                                    DigitalDrawingType::Bool { .. } | DigitalDrawingType::Clock => {
                                         let draw_clock = (digital_commands.drawing_type
                                             == DigitalDrawingType::Clock)
                                             && draw_clock_rising_marker;
                                         let draw_background = self.fill_high_values();
+                                        let (low_name, high_name) =
+                                            match &digital_commands.drawing_type {
+                                                DigitalDrawingType::Bool {
+                                                    true_name,
+                                                    false_name,
+                                                } => (false_name, true_name),
+                                                _ => (&None, &None),
+                                            };
+                                        let text_color = {
+                                            // Get background color and determine best text color
+                                            let background_color = self.get_background_color(
+                                                waves,
+                                                drawing_info.vidx(),
+                                                item_count,
+                                            );
+                                            self.user
+                                                .config
+                                                .theme
+                                                .get_best_text_color(background_color)
+                                        };
                                         for (old, new) in digital_commands
                                             .values
                                             .iter()
@@ -1017,6 +1046,9 @@ impl SystemState {
                                                 (old, new),
                                                 new.1.force_anti_alias,
                                                 color,
+                                                low_name,
+                                                high_name,
+                                                text_color,
                                                 y_offset,
                                                 height_scaling_factor,
                                                 draw_clock,
@@ -1386,6 +1418,9 @@ impl SystemState {
         ((old_x, prev_region), (new_x, new_region)): (&(f32, DrawnRegion), &(f32, DrawnRegion)),
         force_anti_alias: bool,
         color: Color32,
+        low_name: &Option<String>,
+        high_name: &Option<String>,
+        text_color: Color32,
         offset: f32,
         height_scaling_factor: f32,
         draw_clock_marker: bool,
@@ -1444,6 +1479,43 @@ impl SystemState {
                 ],
                 stroke,
             ));
+
+            let name_info = match (prev_result.value.as_str(), low_name, high_name) {
+                //("0", Some(name), _) => Some((name.clone(), text_color)),
+                //("1", _, Some(name)) => Some((name.clone(), text_color)),
+                ("0", Some(name), _) => Some((name.clone(), text_color)),
+                ("1", _, Some(name)) => Some((name.clone(), text_color)),
+                _ => None,
+            };
+
+            if let Some((name, text_color)) = name_info {
+                let transition_width = (new_x - old_x).min(ctx.theme.vector_transition_width);
+                let text_size = ctx.cfg.text_size;
+                let char_width = text_size * (20. / 31.);
+
+                let text_area = (new_x - old_x) - transition_width;
+                let num_chars = (text_area / char_width).floor() as usize;
+                let fits_text = num_chars >= 1;
+
+                if fits_text {
+                    let content = if name.len() > num_chars {
+                        name.chars()
+                            .take(num_chars - 1)
+                            .chain(['…'])
+                            .collect::<String>()
+                    } else {
+                        name
+                    };
+
+                    ctx.painter.text(
+                        trace_coords(*old_x + transition_width, 0.5),
+                        Align2::LEFT_CENTER,
+                        content,
+                        FontId::monospace(text_size),
+                        text_color,
+                    );
+                }
+            }
 
             if draw_clock_marker && (old_height < new_height) {
                 ctx.painter.add(PathShape::convex_polygon(

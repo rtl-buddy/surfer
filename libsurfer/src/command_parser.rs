@@ -4,6 +4,7 @@ use std::sync::LazyLock;
 use std::{fs, str::FromStr};
 
 use crate::config::ArrowKeyBindings;
+use crate::displayed_item::{AnalogRenderStyle, AnalogSettings, AnalogYAxisScale};
 use crate::displayed_item_tree::{Node, VisibleItemIndex};
 use crate::fzcmd::{Command, ParamGreed};
 use crate::hierarchy::HierarchyStyle;
@@ -252,6 +253,8 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
             "item_set_color",
             "item_set_background_color",
             "item_set_format",
+            "item_set_analog",
+            "item_set_height",
             "item_unset_color",
             "item_unset_background_color",
             "item_unfocus",
@@ -615,6 +618,55 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
                             word.to_string(),
                         )))
                     }),
+                ),
+                "item_set_analog" => single_word(
+                    vec![
+                        "off".to_string(),
+                        "step_viewport".to_string(),
+                        "step_global".to_string(),
+                        "interpolated_viewport".to_string(),
+                        "interpolated_global".to_string(),
+                    ],
+                    Box::new(|word| {
+                        Some(Command::Terminal(Message::SetAnalogSettings(
+                            MessageTarget::CurrentSelection,
+                            match word {
+                                "off" => None,
+                                "step_viewport" => Some(AnalogSettings {
+                                    render_style: AnalogRenderStyle::Step,
+                                    y_axis_scale: AnalogYAxisScale::Viewport,
+                                }),
+                                "step_global" => Some(AnalogSettings {
+                                    render_style: AnalogRenderStyle::Step,
+                                    y_axis_scale: AnalogYAxisScale::Global,
+                                }),
+                                "interpolated_viewport" => Some(AnalogSettings {
+                                    render_style: AnalogRenderStyle::Interpolated,
+                                    y_axis_scale: AnalogYAxisScale::Viewport,
+                                }),
+                                "interpolated_global" => Some(AnalogSettings {
+                                    render_style: AnalogRenderStyle::Interpolated,
+                                    y_axis_scale: AnalogYAxisScale::Global,
+                                }),
+                                _ => None,
+                            },
+                        )))
+                    }),
+                ),
+                "item_set_height" => single_word(
+                    vec![
+                        "1".to_string(),
+                        "2".to_string(),
+                        "3".to_string(),
+                        "4".to_string(),
+                        "8".to_string(),
+                    ],
+                    Box::new(|word| {
+                        Some(Command::Terminal(Message::ItemHeightScalingFactorChange(
+                            MessageTarget::CurrentSelection,
+                            word.parse::<f32>().unwrap_or_default()
+                        )))
+                    })
                 ),
                 "item_unset_background_color" => Some(Command::Terminal(
                     Message::ItemBackgroundColorChange(MessageTarget::CurrentSelection, None),

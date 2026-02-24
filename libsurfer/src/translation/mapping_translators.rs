@@ -757,9 +757,7 @@ mod tests {
         let content = "Name = ExampleMapping\nBits =  4\n0[red] ZERO\n1[green] ONE\n2[blue] TWO";
         std::fs::write(path.as_std_path(), content).expect("write mapping file");
 
-        let translator = MappingTranslator::new_from_file(&path)
-            .ok()
-            .expect("create translator");
+        let translator = MappingTranslator::new_from_file(&path).expect("create translator");
         assert_eq!(translator.name(), "ExampleMapping");
 
         // Match padded binary for string value
@@ -817,9 +815,7 @@ mod tests {
             .expect("temp file should have stem")
             .to_string();
         std::fs::write(path.as_std_path(), content).expect("write mapping file");
-        let translator = MappingTranslator::new_from_file(&path)
-            .ok()
-            .expect("create translator");
+        let translator = MappingTranslator::new_from_file(&path).expect("create translator");
         assert_eq!(translator.name(), stem); // derived from filename
         assert_eq!(translator.map.bits, 3);
         // Translate a BigUint value 2 => binary 10 padded to 3 bits -> 010 maps to TWO
@@ -884,9 +880,7 @@ mod tests {
         let content = "Bits =  4\n0[warn] ZERO\n1[undef] ONE\n2[highimp] TWO\n3[dontcare] THREE\n4[weak] FOUR\n5[error] FIVE\n6[normal] SIX";
         std::fs::write(path.as_std_path(), content).expect("write mapping file");
 
-        let translator = MappingTranslator::new_from_file(&path)
-            .ok()
-            .expect("create translator");
+        let translator = MappingTranslator::new_from_file(&path).expect("create translator");
         assert_eq!(translator.map.bits, 4);
 
         // Test each ValueKind keyword

@@ -302,6 +302,7 @@ mod tests {
         Two(String, String),
     }
 
+    #[allow(clippy::type_complexity)]
     fn get_parser() -> Command<CommandOutputs> {
         fn single_word(
             suggestions: Vec<String>,

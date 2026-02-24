@@ -101,7 +101,7 @@ where
         .unwrap();
 
     runtime.block_on(async {
-        if let Err(_) = timeout(Duration::from_secs(30), body).await {
+        if timeout(Duration::from_secs(30), body).await.is_err() {
             panic!("Test timed out");
         }
     });
@@ -250,7 +250,7 @@ fn start_stop() {
         tokio::time::sleep(Duration::from_millis(1000)).await;
         state.update(Message::StopWcpServer);
         tokio::time::sleep(Duration::from_millis(1000)).await;
-        if let Ok(_) = TcpStream::connect(format!("127.0.0.1:{port}")).await {
+        if TcpStream::connect(format!("127.0.0.1:{port}")).await.is_ok() {
             panic!("Connected after stopping server");
         }
     });

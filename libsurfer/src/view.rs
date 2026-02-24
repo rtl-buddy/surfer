@@ -394,9 +394,9 @@ impl SystemState {
             }
         }
 
-        if self.user.waves.is_some() {
-            let scroll_offset = self.user.waves.as_ref().unwrap().scroll_offset;
-            if self.user.waves.as_ref().unwrap().any_displayed() {
+        if let Some(user_waves) = &self.user.waves {
+            let scroll_offset = user_waves.scroll_offset;
+            if user_waves.any_displayed() {
                 let draw_focus_ids = self.command_prompt.visible
                     && expand_command(&self.command_prompt_text.borrow(), get_parser(self))
                         .expanded
@@ -893,13 +893,12 @@ impl SystemState {
 
         if self.show_tooltip() {
             variable_label = variable_label.on_hover_ui(|ui| {
-                let tooltip = if self.user.waves.is_some() {
+                let tooltip = if let Some(user_waves) = &self.user.waves {
                     if field.field.is_empty() {
-                        if let Some(meta) = meta {
-                            variable_tooltip_text(Some(meta), &field.root)
+                        if meta.is_some() {
+                            variable_tooltip_text(meta, &field.root)
                         } else {
-                            let wave_container =
-                                self.user.waves.as_ref().unwrap().inner.as_waves().unwrap();
+                            let wave_container = user_waves.inner.as_waves().unwrap();
                             let meta = wave_container.variable_meta(&field.root).ok();
                             variable_tooltip_text(meta.as_ref(), &field.root)
                         }

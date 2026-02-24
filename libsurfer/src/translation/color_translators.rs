@@ -493,7 +493,7 @@ mod test {
     // === YCbCr Translator Tests ===
     fn translate_ycbcr(num_bits: u32, y: u8, cb: u8, cr: u8) -> (String, ValueKind) {
         let translator = YCbCrTranslator {};
-        let nibble_length = num_bits.div_ceil(3) as u32;
+        let nibble_length = num_bits.div_ceil(3);
         let packed: u32 = (u32::from(y) << (2 * nibble_length))
             | (u32::from(cb) << nibble_length)
             | u32::from(cr);

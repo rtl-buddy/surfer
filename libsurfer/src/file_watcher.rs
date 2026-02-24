@@ -158,7 +158,7 @@ mod tests {
                 .wait_timeout(started, Duration::from_secs(10))
                 .unwrap();
             started = result.0;
-            if *started == true {
+            if *started {
                 // We received the notification and the value has been updated, we can leave.
                 return;
             }

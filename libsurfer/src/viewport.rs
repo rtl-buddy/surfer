@@ -571,8 +571,10 @@ mod tests {
 
     #[test]
     fn move_viewport_ease_in_out_reaches_target() {
-        let mut vp = Viewport::default();
-        vp.move_strategy = ViewportStrategy::EaseInOut { duration: 0.3 };
+        let mut vp = Viewport {
+            move_strategy: ViewportStrategy::EaseInOut { duration: 0.3 },
+            ..Default::default()
+        };
         let n = bi(1000);
         // request a move
         vp.set_viewport_to_clipped(Relative(0.1), Relative(0.3), &n);

@@ -132,7 +132,6 @@ pub(crate) fn render_and_compare_inner(
         });
         let result =
             image_compare::rgb_hybrid_compare(&new.clone().into_rgb8(), &prev.clone().into_rgb8())
-                .ok()
                 .expect("Comparison failing");
         // comparator.create_image_rgb(&prev_imgref.as_ref(), width, height);
 

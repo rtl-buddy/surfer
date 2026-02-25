@@ -49,12 +49,23 @@ Also note that Surfer versions are not yet that important, but more a reason to 
 
 ### Installing Surfer as a binary
 
-Some Linux distributions have Surfer available as a package to be installed through the package manager. These include:
+Some Linux distributions have Surfer available as a package to be installed through the package manager. The current status is:
 
-* [Arch Linux (AUR)](https://aur.archlinux.org/packages/surfer-waveform-git-bin)
-* [NixOS](https://search.nixos.org/packages?channel=25.05&show=surfer&query=surfer)
+#### `surfer`
 
-Homebrew also has a [formulae](https://formulae.brew.sh/formula/surfer).
+[![Packaging status](https://repology.org/badge/vertical-allrepos/surfer.svg)](https://repology.org/project/surfer/versions)
+
+Note that some of the packages, like the one for openSuse, is a completely different program though.
+
+For macOS (also included in the table above), Homebrew has a [formulae](https://formulae.brew.sh/formula/surfer).
+
+For at least Spack and Homebrew, it is also possible to install the latest git version. Click the table above to get more information.
+
+#### `surfer-waveform`
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/surfer-waveform.svg)](https://repology.org/project/surfer-waveform/versions)
+
+#### Latest version from Gitlab
 
 In addition, it is possible to download and install the latest binary built after each merge to main:
 

@@ -73,11 +73,16 @@ impl SystemState {
             let sender = self.channels.msg_sender.clone();
             checked_send_many(&sender, messages(path));
         } else {
+            // macos cannot handle dual prefixes
+            #[cfg(target_os = "macos")]
+            let ext = "ron";
+            #[cfg(not(target_os = "macos"))]
+            let ext = STATE_FILE_EXTENSION;
             self.file_dialog_open(
                 "Load state",
                 (
                     format!("Surfer state files (*.{STATE_FILE_EXTENSION})"),
-                    vec![STATE_FILE_EXTENSION.to_string()],
+                    vec![ext.to_string()],
                 ),
                 messages,
             );
@@ -107,11 +112,17 @@ impl SystemState {
                 checked_send_many(&sender, messages(path.into()).await);
             });
         } else {
+            // macos cannot handle dual prefixes
+            #[cfg(target_os = "macos")]
+            let ext = "ron";
+            #[cfg(not(target_os = "macos"))]
+            let ext = STATE_FILE_EXTENSION;
+
             self.file_dialog_save(
                 "Save state",
                 (
                     format!("Surfer state files (*.{STATE_FILE_EXTENSION})"),
-                    vec![STATE_FILE_EXTENSION.to_string()],
+                    vec![ext.to_string()],
                 ),
                 messages,
             );

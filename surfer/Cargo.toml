@@ -14,7 +14,9 @@ wasm-bindgen-futures.workspace = true
 web-sys.workspace = true
 
 [features]
-default = ["performance_plot", "wasm_plugins"]
+default = ["performance_plot", "wasm_plugins", "xdg-portal"]
+xdg-portal = ["libsurfer/xdg-portal"]
+gtk-dialog = ["libsurfer/gtk-dialog"]
 accesskit = ["libsurfer/accesskit"]
 f128 = ["libsurfer/f128"]
 performance_plot = ["libsurfer/performance_plot"]

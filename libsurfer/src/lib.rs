@@ -123,6 +123,9 @@ use crate::wave_data::WaveData;
 use crate::wave_source::{LoadOptions, WaveFormat, WaveSource};
 use crate::wellen::{HeaderResult, convert_format};
 
+#[cfg(all(feature = "xdg-portal", feature = "gtk-dialog"))]
+compile_error!("features `xdg-portal` and `gtk-dialog` are mutually exclusive");
+
 /// A number that is non-zero if there are asynchronously triggered operations that
 /// have been triggered but not successfully completed yet. In practice, if this is
 /// non-zero, we will re-run the egui update function in order to ensure that we deal

@@ -38,6 +38,7 @@ pub enum ShortcutAction {
     ShowCommandPrompt,
     RenameItem,
     DividerAdd,
+    ZoomToFit,
 }
 
 // Cached dispatch table entry: (action, modifier_priority)
@@ -105,6 +106,8 @@ pub struct SurferShortcuts {
     pub rename_item: Vec<KeyboardShortcut>,
     #[serde(with = "keyboard_shortcuts_serde")]
     pub divider_add: Vec<KeyboardShortcut>,
+    #[serde(with = "keyboard_shortcuts_serde")]
+    pub zoom_to_fit: Vec<KeyboardShortcut>,
 
     #[serde(skip)]
     cached_dispatch_table: Vec<DispatchEntry>,
@@ -250,6 +253,10 @@ impl SurferShortcuts {
                 action: ShortcutAction::DividerAdd,
                 priority: modifier_priority(&self.divider_add),
             },
+            DispatchEntry {
+                action: ShortcutAction::ZoomToFit,
+                priority: modifier_priority(&self.zoom_to_fit),
+            },
         ]);
 
         // Sort by modifier priority (lower number = higher priority)
@@ -287,6 +294,7 @@ impl SurferShortcuts {
             ShortcutAction::ShowCommandPrompt => &self.show_command_prompt,
             ShortcutAction::RenameItem => &self.rename_item,
             ShortcutAction::DividerAdd => &self.divider_add,
+            ShortcutAction::ZoomToFit => &self.zoom_to_fit,
         }
     }
 
@@ -443,6 +451,9 @@ impl SurferShortcuts {
             }
             ShortcutAction::DividerAdd => {
                 msgs.push(Message::AddDivider(None, None));
+            }
+            ShortcutAction::ZoomToFit => {
+                msgs.push(Message::ZoomToFit { viewport_idx: 0 });
             }
         }
     }

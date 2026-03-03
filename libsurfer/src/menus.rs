@@ -215,6 +215,12 @@ impl SystemState {
             .add_closing_menu(msgs, ui);
 
             b("Zoom to fit", Message::ZoomToFit { viewport_idx: 0 })
+                .shortcut(
+                    self.user
+                        .config
+                        .shortcuts
+                        .format_shortcut(ShortcutAction::ZoomToFit),
+                )
                 .enabled(waves_loaded)
                 .add_closing_menu(msgs, ui);
 

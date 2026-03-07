@@ -80,6 +80,17 @@ build_book:
         - cp snapshots/theme_*.png docs/configuration/themes
         - /builds/${CI_PROJECT_PATH}/cargo/bin/mdbook build
 
+msrv:
+  stage: test
+  image:
+    name: foresterre/cargo-msrv:latest
+    entrypoint: [""]
+  before_script:
+    - rustc --version
+    - cargo --version
+    - cargo msrv --version
+  script:
+    - cargo msrv --output-format minimal verify
 
 test:
     stage: test

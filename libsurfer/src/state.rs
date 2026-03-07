@@ -292,6 +292,7 @@ impl SystemState {
         new_waves: Box<WaveContainer>,
         load_options: LoadOptions,
     ) {
+        let filename_for_title = filename.clone();
         info!("{format} file loaded");
         let viewport = Viewport::new();
         let viewports = [viewport].to_vec();
@@ -362,6 +363,21 @@ impl SystemState {
         self.invalidate_draw_commands();
 
         self.user.waves = Some(new_wave);
+        // Update window title with waveform name
+        let title = match &filename_for_title {
+            WaveSource::File(path) => {
+                if let Some(name) = path.file_name() {
+                    format!("Surfer - {}", name)
+                } else {
+                    "Surfer".to_string()
+                }
+            }
+            WaveSource::Url(url) => format!("Surfer - {}", url),
+                _ => "Surfer".to_string(),
+        };
+        if let Some(ctx) = self.context.as_ref() {    
+            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
+        }
 
         if !is_reload && let Some(waves) = &mut self.user.waves {
             // Set time unit

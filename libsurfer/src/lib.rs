@@ -1592,6 +1592,8 @@ impl SystemState {
             Message::SetMouseGestureDragStart(pos) => self.gesture_start_location = pos,
             Message::SetMeasureDragStart(pos) => self.measure_start_location = pos,
             Message::SetFilterFocused(s) => self.user.variable_name_filter_focused = s,
+            Message::SetTimeEditFocused(s) => self.time_edit_focused = s,
+            Message::SetRequestTimeEditFocus(s) => self.request_time_edit_focus = s,
             Message::SetVariableNameFilterType(variable_name_filter_type) => {
                 self.user.variable_filter.name_filter_type = variable_name_filter_type;
             }

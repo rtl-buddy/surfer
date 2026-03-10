@@ -373,9 +373,9 @@ impl SystemState {
                 }
             }
             WaveSource::Url(url) => format!("Surfer - {}", url),
-                _ => "Surfer".to_string(),
+            _ => "Surfer".to_string(),
         };
-        if let Some(ctx) = self.context.as_ref() {    
+        if let Some(ctx) = self.context.as_ref() {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
         }
 

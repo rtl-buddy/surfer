@@ -186,6 +186,12 @@ pub struct TimeFormat {
     show_space: bool,
     /// Display time unit.
     show_unit: bool,
+    #[serde(default = "default_preferred_unit")]
+    preferred_unit: TimeUnit,
+}
+
+fn default_preferred_unit() -> TimeUnit {
+    TimeUnit::Auto
 }
 
 impl Default for TimeFormat {
@@ -194,18 +200,29 @@ impl Default for TimeFormat {
             format: TimeStringFormatting::No,
             show_space: true,
             show_unit: true,
+            preferred_unit: TimeUnit::Auto,
         }
     }
 }
 
 impl TimeFormat {
+    pub fn with_preferred_unit(mut self, unit: TimeUnit) -> Self {
+        self.preferred_unit = unit;
+        self
+    }
     /// Create a new `TimeFormat` with custom settings.
     #[must_use]
-    pub fn new(format: TimeStringFormatting, show_space: bool, show_unit: bool) -> Self {
+    pub fn new(
+        format: TimeStringFormatting,
+        show_space: bool,
+        show_unit: bool,
+        preferred_unit: TimeUnit,
+    ) -> Self {
         TimeFormat {
             format,
             show_space,
             show_unit,
+            preferred_unit,
         }
     }
 
@@ -1005,7 +1022,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::No,
                     show_space: false,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "2200000ps"
@@ -1021,7 +1039,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::No,
                     show_space: false,
-                    show_unit: false
+                    show_unit: false,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "22000"
@@ -1040,7 +1059,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "123\u{2009}456.789\u{2009}01 s"
@@ -1056,7 +1076,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "1456.7891 s"
@@ -1072,7 +1093,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "2200 μs"
@@ -1088,7 +1110,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "22\u{2009}200 μs"
@@ -1107,7 +1130,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "2200 μs"
@@ -1123,7 +1147,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "22 ms"
@@ -1139,7 +1164,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "1500 μs"
@@ -1155,7 +1181,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "220 ms"
@@ -1171,7 +1198,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "22 s"
@@ -1187,7 +1215,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::No,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "220000 s"
@@ -1206,7 +1235,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::No,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "2200"
@@ -1222,7 +1252,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::No,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "220"
@@ -1341,7 +1372,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "999.999\u{2009}999\u{2009}999 s"
@@ -1382,7 +1414,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::No,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "123456 ns"
@@ -1396,7 +1429,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::No,
                     show_space: false,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "123456ns"
@@ -1410,7 +1444,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::No,
                     show_space: true,
-                    show_unit: false
+                    show_unit: false,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "123456"
@@ -1424,7 +1459,8 @@ mod test {
                 &TimeFormat {
                     format: TimeStringFormatting::SI,
                     show_space: true,
-                    show_unit: true
+                    show_unit: true,
+                    preferred_unit: TimeUnit::Auto,
                 }
             ),
             "123\u{2009}456 ns"
@@ -1761,6 +1797,7 @@ mod get_ticks_tests {
             format: TimeStringFormatting::SI,
             show_space: true,
             show_unit: true,
+            preferred_unit: TimeUnit::Auto,
         };
 
         let mut config = crate::config::SurferConfig::default();

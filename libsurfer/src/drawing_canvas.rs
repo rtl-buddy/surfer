@@ -1023,10 +1023,18 @@ impl SystemState {
                                         }
                                     }
                                     DigitalDrawingType::Event => {
+                                        let mut prev_x: Option<f32> = None;
+
                                         for event in &digital_commands.values {
+                                            let aliased = prev_x == Some(event.0);
+                                            prev_x = Some(event.0);
+
+                                            let event_color =
+                                                if aliased { Color32::WHITE } else { color };
+
                                             self.draw_event(
                                                 event,
-                                                color,
+                                                event_color,
                                                 y_offset,
                                                 height_scaling_factor,
                                                 ctx,

@@ -46,7 +46,9 @@ impl WaveData {
     pub fn draw_cursor(&self, theme: &SurferTheme, ctx: &mut DrawingContext, viewport: &Viewport) {
         if let Some(marker) = &self.cursor {
             let num_timestamps = self.safe_num_timestamps();
-            let x = viewport.pixel_from_time(marker, ctx.cfg.canvas_width, &num_timestamps);
+            let x = viewport
+                .pixel_from_time(marker, ctx.cfg.canvas_width, &num_timestamps)
+                .round();
             draw_vertical_line(x, ctx, &theme.cursor);
         }
     }
@@ -59,7 +61,9 @@ impl WaveData {
                 color,
                 width: theme.cursor.width,
             };
-            let x = viewport.pixel_from_time(marker, ctx.cfg.canvas_width, &num_timestamps);
+            let x = viewport
+                .pixel_from_time(marker, ctx.cfg.canvas_width, &num_timestamps)
+                .round();
             draw_vertical_line(x, ctx, stroke);
         }
     }
@@ -196,8 +200,9 @@ impl WaveData {
             let item = DisplayedItem::Marker(displayed_item.clone());
             let background_color = get_marker_background_color(&item, theme);
 
-            let x =
-                self.numbered_marker_location(displayed_item.idx, viewport, ctx.cfg.canvas_width);
+            let x = self
+                .numbered_marker_location(displayed_item.idx, viewport, ctx.cfg.canvas_width)
+                .round();
             let idx_string = displayed_item.idx.to_string();
 
             Self::draw_text_with_background(

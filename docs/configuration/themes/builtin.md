@@ -45,3 +45,15 @@ Based on the article by Petroff https://doi.org/10.48550/arXiv.2107.02270.
 ## Solarized
 
 ![Surfer solarized theme](theme_solarized.png)
+
+## Rosé Pine
+
+![Surfer Rosé Pine theme](theme_rose_pine.png)
+
+## Rosé Pine Moon
+
+![Surfer Rosé Pine Moon theme](theme_rose_pine_moon.png)
+
+## Rosé Pine Dawn
+
+![Surfer Rosé Pine Dawn theme](theme_rose_pine_dawn.png)

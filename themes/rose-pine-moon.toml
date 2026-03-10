@@ -1,0 +1,55 @@
+# Rosé Pine Moon-like for Surfer
+foreground = "e0def4"
+alt_text_color = "2a283e"
+border_color = "56526e"
+selected_elements_colors = { background = "2a283e", foreground = "e0def4" }
+canvas_colors = { background = "232136", alt_background = "393552", foreground = "e0def4" }
+primary_ui_color = { background = "232136", foreground = "e0def4" }
+secondary_ui_color = { background = "2a273f", foreground = "e0def4" }
+accent_info = { background = "393552", foreground = "3e8fb0" }
+accent_warn = { background = "393552", foreground = "f6c177" }
+accent_error = { background = "393552", foreground = "eb6f92" }
+clock_highlight_line = { color = "6e6a86", width = 2 }
+clock_highlight_cycle = "393552"
+clock_rising_marker = false
+variable_default = "c4a7e7"
+variable_undef = "eb6f92"
+variable_highimp = "f6c177"
+variable_dontcare = "6e6a86"
+variable_weak = "ea9a97"
+variable_parameter = "3e8fb0"
+variable_event = "9ccfd8"
+transaction_default = "9ccfd8"
+waveform_opacity = 0.2
+wide_opacity = 0.0
+cursor = { color = "e0def4", width = 2 }
+gesture = { color = "ea9a97", width = 2 }
+measure = { color = "c4a7e7", width = 2 }
+linewidth = 2
+thick_linewidth = 4
+vector_transition_width = 6
+alt_frequency = 3
+viewport_separator = { color = "56526e", width = 4 }
+drag_threshold = 1.0
+drag_hint_color = "56526e"
+drag_hint_width = 2.0
+highlight_background = "44415a"
+
+[colors]
+Green = "9ccfd8"
+Red = "eb6f92"
+Yellow = "f6c177"
+Blue = "3e8fb0"
+Pink = "ea9a97"
+Orange = "ea9a97"
+Gray = "908caa"
+Violet = "c4a7e7"
+
+[ticks]
+style = { color = "393552", width = 2 }
+density = 1
+
+[relation_arrow]
+style = { color = "c4a7e7", width = 1.3 }
+head_angle = 25
+head_length = 8

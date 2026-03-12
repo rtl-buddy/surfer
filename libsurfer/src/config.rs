@@ -606,6 +606,10 @@ pub struct ScopeIconColors {
     pub vhdl_array: Color32,
     #[serde(deserialize_with = "deserialize_hex_color")]
     pub unknown: Color32,
+    #[serde(deserialize_with = "deserialize_hex_color")]
+    pub clocking: Color32,
+    #[serde(deserialize_with = "deserialize_hex_color")]
+    pub sv_array: Color32,
 }
 
 impl Default for ScopeIconColors {
@@ -635,6 +639,8 @@ impl Default for ScopeIconColors {
             vhdl_package: Color32::from_rgb(0xFF, 0xD5, 0x4F), // Yellow (like package)
             ghw_generic: Color32::from_rgb(0xB0, 0xBE, 0xC5), // Blue Grey Light
             vhdl_array: Color32::from_rgb(0xCE, 0x93, 0xD8), // Light Purple
+            clocking: Color32::from_rgb(0xF0, 0x62, 0x92), // Pink (like class)
+            sv_array: Color32::from_rgb(0xCE, 0x93, 0xD8), // Light Purple (like vhdl_array)
             unknown: Color32::from_rgb(0x9E, 0x9E, 0x9E), // Grey
         }
     }
@@ -673,6 +679,8 @@ pub struct ScopeIcons {
     pub ghw_generic: String,
     pub vhdl_array: String,
     pub unknown: String,
+    pub clocking: String,
+    pub sv_array: String,
     /// Colors for scope icons
     #[serde(default)]
     pub colors: ScopeIconColors,
@@ -708,6 +716,8 @@ impl Default for ScopeIcons {
             vhdl_package: icons::BOX_3_LINE.to_string(),
             ghw_generic: icons::SETTINGS_3_LINE.to_string(),
             vhdl_array: icons::BRACKETS_LINE.to_string(),
+            sv_array: icons::BRACKETS_LINE.to_string(),
+            clocking: icons::TIME_LINE.to_string(),
             unknown: icons::QUESTION_LINE.to_string(),
             colors: ScopeIconColors::default(),
         }
@@ -752,6 +762,8 @@ impl ScopeIcons {
                 ScopeType::GhwGeneric => (&self.ghw_generic, self.colors.ghw_generic),
                 ScopeType::VhdlArray => (&self.vhdl_array, self.colors.vhdl_array),
                 ScopeType::Unknown => (&self.unknown, self.colors.unknown),
+                ScopeType::SvArray => (&self.sv_array, self.colors.sv_array),
+                ScopeType::Clocking => (&self.clocking, self.colors.clocking),
                 _ => (&self.unknown, self.colors.unknown),
             },
         }

@@ -652,6 +652,7 @@ impl WellenContainer {
                     | ScopeType::Interface
                     | ScopeType::VhdlRecord
                     | ScopeType::VhdlArray
+                    | ScopeType::SvArray
             )
         } else {
             false
@@ -793,6 +794,7 @@ fn scope_type_to_string(tpe: ScopeType) -> &'static str {
         ScopeType::VhdlPackage => "package",
         ScopeType::GhwGeneric => "generic",
         ScopeType::VhdlArray => "array",
+        ScopeType::SvArray => "array",
         ScopeType::Unknown => "unknown",
         _ => todo!(),
     }

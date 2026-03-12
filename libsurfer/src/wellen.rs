@@ -843,7 +843,7 @@ impl FromVarType for VariableType {
             VarType::Port => VariableType::Port,
             VarType::Bit => VariableType::Bit,
             VarType::Logic => VariableType::Logic,
-            VarType::Int => VariableType::VCDInteger,
+            VarType::Int => VariableType::Int,
             VarType::Enum => VariableType::Enum,
             VarType::SparseArray => VariableType::SparseArray,
             VarType::RealTime => VariableType::RealTime,
@@ -858,6 +858,50 @@ impl FromVarType for VariableType {
             VarType::StdULogic => VariableType::StdULogic,
             VarType::StdULogicVector => VariableType::StdULogicVector,
             VarType::RealParameter => VariableType::RealParameter,
+        }
+    }
+}
+
+#[local_impl::local_impl]
+impl ToVarType for VariableType {
+    fn to_wellen_type(&self) -> VarType {
+        match self {
+            VariableType::VCDReg => VarType::Reg,
+            VariableType::VCDWire => VarType::Wire,
+            VariableType::VCDInteger => VarType::Integer,
+            VariableType::VCDReal => VarType::Real,
+            VariableType::VCDParameter => VarType::Parameter,
+            VariableType::VCDString => VarType::String,
+            VariableType::VCDTime => VarType::Time,
+            VariableType::VCDEvent => VarType::Event,
+            VariableType::VCDSupply0 => VarType::Supply0,
+            VariableType::VCDSupply1 => VarType::Supply1,
+            VariableType::VCDTri => VarType::Tri,
+            VariableType::VCDTriAnd => VarType::TriAnd,
+            VariableType::VCDTriOr => VarType::TriOr,
+            VariableType::VCDTriReg => VarType::TriReg,
+            VariableType::VCDTri0 => VarType::Tri0,
+            VariableType::VCDTri1 => VarType::Tri1,
+            VariableType::VCDWAnd => VarType::WAnd,
+            VariableType::VCDWOr => VarType::WOr,
+            VariableType::Port => VarType::Port,
+            VariableType::Bit => VarType::Bit,
+            VariableType::Logic => VarType::Logic,
+            VariableType::Int => VarType::Int,
+            VariableType::Enum => VarType::Enum,
+            VariableType::SparseArray => VarType::SparseArray,
+            VariableType::ShortInt => VarType::ShortInt,
+            VariableType::LongInt => VarType::LongInt,
+            VariableType::Byte => VarType::Byte,
+            VariableType::ShortReal => VarType::ShortReal,
+            VariableType::Boolean => VarType::Boolean,
+            VariableType::BitVector => VarType::BitVector,
+            VariableType::StdLogic => VarType::StdLogic,
+            VariableType::StdLogicVector => VarType::StdLogicVector,
+            VariableType::StdULogic => VarType::StdULogic,
+            VariableType::StdULogicVector => VarType::StdULogicVector,
+            VariableType::RealParameter => VarType::RealParameter,
+            VariableType::RealTime => VarType::RealTime,
         }
     }
 }

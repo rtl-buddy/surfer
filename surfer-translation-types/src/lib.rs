@@ -298,7 +298,7 @@ pub enum VariableType {
     #[display("integer")]
     VCDInteger,
     #[display("real time")]
-    VCDRealTime,
+    RealTime,
     #[display("supply 0")]
     VCDSupply0,
     #[display("supply 1")]
@@ -323,8 +323,6 @@ pub enum VariableType {
     Port,
     #[display("sparse array")]
     SparseArray,
-    #[display("realtime")]
-    RealTime,
 
     // System Verilog
     #[display("bit")]

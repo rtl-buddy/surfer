@@ -1,7 +1,8 @@
 //! Time handling and formatting.
 use derive_more::Display;
 use ecolor::Color32;
-use egui::Ui;
+use egui::{Button, Key, RichText, Ui};
+use egui_remixicon::icons;
 use emath::{Align2, Pos2};
 use enum_iterator::Sequence;
 use epaint::{FontId, Stroke};
@@ -269,11 +270,10 @@ pub enum TimeStringFormatting {
 /// Get rid of trailing zeros if the string contains a ., i.e., being fractional
 /// If the resulting string ends with ., remove that as well.
 fn strip_trailing_zeros_and_period(time: String) -> String {
-    if time.contains('.') {
-        time.trim_end_matches('0').trim_end_matches('.').to_string()
-    } else {
-        time
+    if !time.contains('.') {
+        return time;
     }
+    time.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
 /// Format number based on [`TimeStringFormatting`], i.e., possibly group digits together
@@ -335,7 +335,7 @@ fn find_auto_scale(time: &BigInt, timescale: &TimeScale) -> TimeUnit {
     let multiplier_digits = timescale.multiplier.unwrap_or(1).ilog10();
     let start_digits = -timescale.unit.exponent();
     for e in (3..=start_digits).step_by(3).rev() {
-        if (time % (BigInt::from(10).pow(e as u32 - multiplier_digits))).is_zero()
+        if (time % pow10(e as u32 - multiplier_digits)).is_zero()
             && let Some(unit) = TimeUnit::from_exponent(e - start_digits)
         {
             return unit;
@@ -425,24 +425,44 @@ impl TimeFormatter {
                 "{scaledtime:.precision$}",
                 scaledtime = BigRational::new(
                     time * self.timescale.multiplier.unwrap_or(1),
-                    (BigInt::from(10)).pow(exponent_diff as u32)
+                    pow10(exponent_diff as u32)
                 )
                 .to_f64()
                 .unwrap_or(f64::NAN)
             ))
         } else {
-            (time
-                * self.timescale.multiplier.unwrap_or(1)
-                * (BigInt::from(10)).pow(-exponent_diff as u32))
-            .to_string()
+            (time * self.timescale.multiplier.unwrap_or(1) * pow10(-exponent_diff as u32))
+                .to_string()
         };
 
         format!(
             "{scaledtime}{space}{unit}",
             scaledtime = split_and_format_number(&timestring, self.time_format.format),
-            space = &self.space_string,
+            space = if unit_string.is_empty() {
+                ""
+            } else {
+                &self.space_string
+            },
             unit = &unit_string
         )
+    }
+}
+
+/// Helper to compute powers of 10 efficiently.
+/// Returns precomputed values for exponents 0-21, or computes on-demand for others.
+fn pow10(exp: u32) -> BigInt {
+    match exp {
+        0 => BigInt::from(1),
+        1 => BigInt::from(10),
+        2 => BigInt::from(100),
+        3 => BigInt::from(1000),
+        6 => BigInt::from(1_000_000),
+        9 => BigInt::from(1_000_000_000),
+        12 => BigInt::from(1_000_000_000_000i64),
+        15 => BigInt::from(1_000_000_000_000_000i64),
+        18 => BigInt::from(1_000_000_000_000_000_000i64),
+        21 => BigInt::from(1_000_000_000_000_000_000_000i128),
+        _ => BigInt::from(10).pow(exp),
     }
 }
 
@@ -459,6 +479,321 @@ pub fn time_string(
     formatter.format(time)
 }
 
+/// Parse a time string and extract numeric value and unit (if present).
+///
+/// Parses strings like "100", "100ps", "100 ps", "1.5ms", etc.
+/// Returns (numeric_value_str, optional_unit)
+fn parse_time_input(input: &str) -> (String, Option<TimeUnit>) {
+    let sorted_units =
+        // Must be sorted by descending length to ensure correct matching (e.g., "ms" before "s")
+        [
+            ("zs", TimeUnit::ZeptoSeconds),
+            ("as", TimeUnit::AttoSeconds),
+            ("fs", TimeUnit::FemtoSeconds),
+            ("ps", TimeUnit::PicoSeconds),
+            ("ns", TimeUnit::NanoSeconds),
+            ("μs", TimeUnit::MicroSeconds),
+            ("us", TimeUnit::MicroSeconds), // Alternative spelling
+            ("ms", TimeUnit::MilliSeconds),
+            ("s", TimeUnit::Seconds),
+        ];
+
+    let trimmed = input.trim();
+
+    for (unit_str, unit) in sorted_units {
+        // Check if trimmed ends with this unit
+        if trimmed.ends_with(unit_str) {
+            let after_number = trimmed.len() - unit_str.len();
+
+            // Support both adjacent and whitespace-separated units: "100ns", "100 ns", "100\tms".
+            if after_number > 0 {
+                let numeric = trimmed[..after_number].trim_end();
+                if let Some(last_char) = numeric.chars().next_back()
+                    && (last_char.is_ascii_digit() || last_char == '.')
+                {
+                    return (numeric.to_string(), Some(unit));
+                }
+            }
+        }
+    }
+
+    (trimmed.to_string(), None)
+}
+
+/// Split a numeric string into integer and fractional parts.
+///
+/// Accepts "123", "123.", ".5", "123.456". Rejects negatives and non-digits.
+fn split_numeric_parts(numeric_str: &str) -> Result<(String, String), String> {
+    let trimmed = numeric_str.trim();
+    if trimmed.is_empty() {
+        return Err("Empty input".to_string());
+    }
+    if trimmed.starts_with('-') {
+        return Err("Negative numbers not supported".to_string());
+    }
+    let normalized = trimmed.strip_prefix('+').unwrap_or(trimmed);
+    let mut parts = normalized.split('.');
+    let integer_part = parts.next().unwrap_or("");
+    let fractional_part = parts.next().unwrap_or("");
+    if parts.next().is_some() {
+        return Err("Invalid number: multiple decimal points".to_string());
+    }
+
+    // Validate all characters in one pass by chaining iterators
+    let all_valid =
+        (integer_part.chars().chain(fractional_part.chars())).all(|c| c.is_ascii_digit());
+    if !all_valid {
+        return Err(format!("Failed to parse '{}' as number", numeric_str));
+    }
+
+    let integer = if integer_part.is_empty() {
+        "0".to_string()
+    } else {
+        integer_part.to_string()
+    };
+    Ok((integer, fractional_part.to_string()))
+}
+
+/// Convert a numeric string into an integer BigInt and normalized TimeUnit.
+///
+/// Decimal inputs are scaled by selecting a smaller unit so the numeric part is an integer.
+/// Example: "1.5" with unit ns -> 1500 ps.
+fn normalize_numeric_with_unit(
+    numeric_str: &str,
+    unit: TimeUnit,
+) -> Result<(BigInt, TimeUnit), String> {
+    let (integer_part, mut fractional_part) = split_numeric_parts(numeric_str)?;
+
+    // Trim trailing zeros in fractional part to minimize scaling
+    while fractional_part.ends_with('0') {
+        fractional_part.pop();
+    }
+
+    if fractional_part.is_empty() {
+        let value =
+            BigInt::parse_bytes(integer_part.as_bytes(), 10).unwrap_or_else(|| BigInt::from(0));
+        return Ok((value, unit));
+    }
+
+    let fractional_len = fractional_part.len();
+    // Prevent excessively long fractional parts that exceed available time units
+    if fractional_len > 21 {
+        return Err("Too many decimal places (max 21 supported)".to_string());
+    }
+
+    let steps = fractional_len.div_ceil(3) as i8; // ceil(fractional_len / 3)
+    let new_exponent = unit.exponent() - (steps * 3);
+    let new_unit = TimeUnit::from_exponent(new_exponent)
+        .ok_or_else(|| "Too much precision for available time units".to_string())?;
+
+    let mut combined = integer_part;
+    combined.push_str(&fractional_part);
+    let mut value = BigInt::parse_bytes(combined.as_bytes(), 10).unwrap_or_else(|| BigInt::from(0));
+
+    let extra_zeros = (steps as usize * 3).saturating_sub(fractional_len);
+    if extra_zeros > 0 {
+        let scale = pow10(extra_zeros as u32);
+        value *= scale;
+    }
+
+    Ok((value, new_unit))
+}
+
+// Conversion helper lives on TimeInputState to avoid leaking conversion detail.
+
+/// State for the time input widget.
+#[derive(Clone, Debug)]
+pub struct TimeInputState {
+    /// User's text input
+    input_text: String,
+    /// Parsed time value (if valid)
+    parsed_value: Option<BigInt>,
+    /// Unit extracted from input (if present)
+    input_unit: Option<TimeUnit>,
+    /// Normalized unit after handling decimals
+    normalized_unit: Option<TimeUnit>,
+    /// Selected unit from dropdown (used when no unit in input)
+    selected_unit: TimeUnit,
+    /// Error message (if any)
+    error: Option<String>,
+}
+
+impl Default for TimeInputState {
+    fn default() -> Self {
+        Self {
+            input_text: String::new(),
+            parsed_value: None,
+            input_unit: None,
+            normalized_unit: None,
+            selected_unit: TimeUnit::NanoSeconds,
+            error: None,
+        }
+    }
+}
+
+impl TimeInputState {
+    /// Create a new time input state with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Update the input text and parse it.
+    pub fn update_input(&mut self, input: String) {
+        self.input_text = input;
+        let (numeric_str, unit) = parse_time_input(&self.input_text);
+        self.input_unit = unit;
+
+        let base_unit = self.input_unit.unwrap_or(self.selected_unit);
+        match normalize_numeric_with_unit(&numeric_str, base_unit) {
+            Ok((val, normalized_unit)) => {
+                self.parsed_value = Some(val);
+                self.normalized_unit = Some(normalized_unit);
+                self.error = None;
+            }
+            Err(e) => {
+                self.parsed_value = None;
+                self.normalized_unit = None;
+                self.error = Some(e);
+            }
+        }
+    }
+
+    /// Get the effective unit (from input or dropdown).
+    pub fn effective_unit(&self) -> TimeUnit {
+        self.normalized_unit
+            .or(self.input_unit)
+            .unwrap_or(self.selected_unit)
+    }
+
+    /// Convert the parsed value into timescale ticks.
+    ///
+    /// When conversion is not exact, this truncates toward zero.
+    pub fn to_timescale_ticks(&self, timescale: &TimeScale) -> Option<BigInt> {
+        let value = self.parsed_value.clone()?;
+        let unit = self.effective_unit();
+        let base_unit = if unit == TimeUnit::None {
+            timescale.unit
+        } else {
+            unit
+        };
+        let unit_exp = base_unit.exponent();
+        let data_exp = timescale.unit.exponent();
+        let diff = unit_exp - data_exp;
+
+        let mut result = value;
+        if diff > 0 {
+            let scale = pow10(diff as u32);
+            result *= scale;
+        } else if diff < 0 {
+            let scale = pow10((-diff) as u32);
+            result /= scale;
+        }
+
+        let multiplier = timescale.multiplier.unwrap_or(1);
+        if multiplier != 1 {
+            let mult = BigInt::from(multiplier);
+            result /= mult;
+        }
+
+        Some(result)
+    }
+}
+
+/// Render a time input widget in egui.
+///
+/// Shows a text input field and a unit selector dropdown (only enabled when no unit in input).
+///
+/// # Example
+/// ```ignore
+/// let mut time_state = TimeInputState::default();
+///
+/// time_input_widget(ui, "Enter time:", &mut time_state);
+///
+/// if let Some((value, timescale)) = time_state.to_timescale() {
+///     println!("Time: {value} {:?}", timescale);
+/// }
+/// ```
+pub fn time_input_widget(
+    ui: &mut Ui,
+    waves: &WaveData,
+    msgs: &mut Vec<Message>,
+    state: &mut TimeInputState,
+    request_focus: bool,
+) {
+    ui.horizontal(|ui| {
+        // Text input field
+        let mut input = state.input_text.clone();
+        let text_response = ui.add(
+            egui::TextEdit::singleline(&mut input)
+                .desired_width(100.0)
+                .hint_text("e.g., 1.5ms"),
+        );
+
+        if request_focus && !text_response.has_focus() {
+            text_response.request_focus();
+            msgs.push(Message::SetRequestTimeEditFocus(false));
+        }
+
+        if text_response.changed() {
+            state.update_input(input);
+        }
+
+        // Unit dropdown (only enabled if no unit in input)
+        let dropdown_enabled = state.input_unit.is_none();
+
+        if dropdown_enabled {
+            egui::ComboBox::new("Unit", "")
+                .width(32.0)
+                .selected_text(state.selected_unit.to_string())
+                .show_ui(ui, |ui| {
+                    for unit in enum_iterator::all::<TimeUnit>() {
+                        // Filter out Auto and None units from the dropdown
+                        if !matches!(unit, TimeUnit::Auto | TimeUnit::None) {
+                            ui.selectable_value(&mut state.selected_unit, unit, unit.to_string());
+                        }
+                    }
+                });
+        }
+
+        // Handle focus
+        if text_response.gained_focus() {
+            msgs.push(Message::SetTimeEditFocused(true));
+        }
+        if text_response.lost_focus() {
+            if text_response.ctx.input(|i| i.key_pressed(Key::Enter)) {
+                // Enter pressed - trigger action if input is valid
+                if let Some(time_stamp) =
+                    state.to_timescale_ticks(&waves.inner.metadata().timescale)
+                {
+                    msgs.push(Message::GoToTime(Some(time_stamp), 0));
+                }
+            }
+            msgs.push(Message::SetTimeEditFocused(false));
+        }
+
+        // Buttons
+        let button_enabled = state.parsed_value.is_some();
+        let goto_button = Button::new(RichText::new(icons::TARGET_FILL).heading()).frame(false);
+        if ui
+            .add_enabled(button_enabled, goto_button)
+            .on_hover_text("Go to time")
+            .clicked()
+            && let Some(time_stamp) = state.to_timescale_ticks(&waves.inner.metadata().timescale)
+        {
+            msgs.push(Message::GoToTime(Some(time_stamp), 0));
+        }
+        let cursor_button = Button::new(RichText::new(icons::CURSOR_FILL).heading()).frame(false);
+        if ui
+            .add_enabled(button_enabled, cursor_button)
+            .on_hover_text("Set cursor at time")
+            .clicked()
+            && let Some(time_stamp) = state.to_timescale_ticks(&waves.inner.metadata().timescale)
+        {
+            msgs.push(Message::CursorSet(time_stamp));
+        }
+    });
+}
+
 impl WaveData {
     pub fn draw_tick_line(&self, x: f32, ctx: &mut DrawingContext, stroke: &Stroke) {
         let Pos2 {
@@ -471,7 +806,6 @@ impl WaveData {
             *stroke,
         );
     }
-
     /// Draw the text for each tick location.
     pub fn draw_ticks(
         &self,
@@ -1079,7 +1413,7 @@ mod test {
                     show_unit: false
                 }
             ),
-            "123456 "
+            "123456"
         );
 
         assert_eq!(
@@ -1468,5 +1802,265 @@ mod get_ticks_tests {
         }
         let unique_labels = labels.iter().unique().count();
         assert_eq!(labels.len(), unique_labels, "duplicate tick labels found");
+    }
+}
+
+#[cfg(test)]
+mod time_input_tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_time_input_simple() {
+        let (num, unit) = parse_time_input("100");
+        assert_eq!(num, "100");
+        assert_eq!(unit, None);
+    }
+
+    #[test]
+    fn test_parse_time_input_unit_only_no_panic() {
+        // Unit-only input should not panic and should be treated as plain text.
+        let (num, unit) = parse_time_input("ns");
+        assert_eq!(num, "ns");
+        assert_eq!(unit, None);
+    }
+
+    #[test]
+    fn test_parse_time_input_with_unit_no_space() {
+        let (num, unit) = parse_time_input("100ns");
+        assert_eq!(num, "100");
+        assert_eq!(unit, Some(TimeUnit::NanoSeconds));
+
+        let (num, unit) = parse_time_input("50ps");
+        assert_eq!(num, "50");
+        assert_eq!(unit, Some(TimeUnit::PicoSeconds));
+
+        let (num, unit) = parse_time_input("1.5ms");
+        assert_eq!(num, "1.5");
+        assert_eq!(unit, Some(TimeUnit::MilliSeconds));
+    }
+
+    #[test]
+    fn test_parse_time_input_with_unit_space() {
+        let (num, unit) = parse_time_input("100 ns");
+        assert_eq!(num, "100");
+        assert_eq!(unit, Some(TimeUnit::NanoSeconds));
+
+        let (num, unit) = parse_time_input("1.5 ms");
+        assert_eq!(num, "1.5");
+        assert_eq!(unit, Some(TimeUnit::MilliSeconds));
+
+        let (num, unit) = parse_time_input("100\tms");
+        assert_eq!(num, "100");
+        assert_eq!(unit, Some(TimeUnit::MilliSeconds));
+
+        let (num, unit) = parse_time_input("100    ns");
+        assert_eq!(num, "100");
+        assert_eq!(unit, Some(TimeUnit::NanoSeconds));
+    }
+
+    #[test]
+    fn test_parse_time_input_microseconds_unicode() {
+        let (num, unit) = parse_time_input("100μs");
+        assert_eq!(num, "100");
+        assert_eq!(unit, Some(TimeUnit::MicroSeconds));
+
+        let (num, unit) = parse_time_input("50 μs");
+        assert_eq!(num, "50");
+        assert_eq!(unit, Some(TimeUnit::MicroSeconds));
+    }
+
+    #[test]
+    fn test_parse_time_input_microseconds_ascii() {
+        // Support "us" as alternative to "μs"
+        let (num, unit) = parse_time_input("100us");
+        assert_eq!(num, "100");
+        assert_eq!(unit, Some(TimeUnit::MicroSeconds));
+    }
+
+    #[test]
+    fn test_parse_time_input_seconds() {
+        let (num, unit) = parse_time_input("10s");
+        assert_eq!(num, "10");
+        assert_eq!(unit, Some(TimeUnit::Seconds));
+
+        let (num, unit) = parse_time_input("0.5s");
+        assert_eq!(num, "0.5");
+        assert_eq!(unit, Some(TimeUnit::Seconds));
+    }
+
+    #[test]
+    fn test_parse_time_input_femtoseconds() {
+        let (num, unit) = parse_time_input("1000000fs");
+        assert_eq!(num, "1000000");
+        assert_eq!(unit, Some(TimeUnit::FemtoSeconds));
+    }
+
+    #[test]
+    fn test_parse_time_input_with_whitespace() {
+        let (num, unit) = parse_time_input("  100ns  ");
+        assert_eq!(num, "100");
+        assert_eq!(unit, Some(TimeUnit::NanoSeconds));
+    }
+
+    #[test]
+    fn test_split_numeric_parts() {
+        assert_eq!(
+            split_numeric_parts("100").ok(),
+            Some(("100".to_string(), "".to_string()))
+        );
+        assert_eq!(
+            split_numeric_parts("100.").ok(),
+            Some(("100".to_string(), "".to_string()))
+        );
+        assert_eq!(
+            split_numeric_parts(".5").ok(),
+            Some(("0".to_string(), "5".to_string()))
+        );
+        assert_eq!(
+            split_numeric_parts("1.5").ok(),
+            Some(("1".to_string(), "5".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_split_numeric_parts_invalid() {
+        assert!(split_numeric_parts("").is_err());
+        assert!(split_numeric_parts("abc").is_err());
+        assert!(split_numeric_parts("12.34.56").is_err());
+        assert!(split_numeric_parts("-1").is_err());
+    }
+
+    #[test]
+    fn test_normalize_numeric_with_unit_integer() {
+        let (val, unit) = normalize_numeric_with_unit("100", TimeUnit::NanoSeconds).unwrap();
+        assert_eq!(val, BigInt::from(100));
+        assert_eq!(unit, TimeUnit::NanoSeconds);
+    }
+
+    #[test]
+    fn test_normalize_numeric_with_unit_decimal_single_step() {
+        let (val, unit) = normalize_numeric_with_unit("1.5", TimeUnit::NanoSeconds).unwrap();
+        assert_eq!(val, BigInt::from(1500));
+        assert_eq!(unit, TimeUnit::PicoSeconds);
+    }
+
+    #[test]
+    fn test_normalize_numeric_with_unit_decimal_multi_step() {
+        let (val, unit) = normalize_numeric_with_unit("1.2345", TimeUnit::NanoSeconds).unwrap();
+        assert_eq!(val, BigInt::from(1_234_500));
+        assert_eq!(unit, TimeUnit::FemtoSeconds);
+    }
+
+    #[test]
+    fn test_time_input_state_default() {
+        let state = TimeInputState::default();
+        assert_eq!(state.input_text, "");
+        assert_eq!(state.parsed_value, None);
+        assert_eq!(state.input_unit, None);
+        assert_eq!(state.normalized_unit, None);
+        assert_eq!(state.selected_unit, TimeUnit::NanoSeconds);
+        assert_eq!(state.error, None);
+    }
+
+    #[test]
+    fn test_time_input_state_update_valid() {
+        let mut state = TimeInputState::new();
+        state.update_input("100ns".to_string());
+
+        assert_eq!(state.input_text, "100ns");
+        assert_eq!(state.parsed_value, Some(BigInt::from(100)));
+        assert_eq!(state.input_unit, Some(TimeUnit::NanoSeconds));
+        assert_eq!(state.normalized_unit, Some(TimeUnit::NanoSeconds));
+        assert_eq!(state.error, None);
+    }
+
+    #[test]
+    fn test_time_input_state_update_invalid() {
+        let mut state = TimeInputState::new();
+        state.update_input("abc".to_string());
+
+        assert_eq!(state.parsed_value, None);
+        assert!(state.error.is_some());
+    }
+
+    #[test]
+    fn test_time_input_state_update_decimal_unit_normalization() {
+        let mut state = TimeInputState::new();
+        state.update_input("1.5ns".to_string());
+
+        assert_eq!(state.parsed_value, Some(BigInt::from(1500)));
+        assert_eq!(state.input_unit, Some(TimeUnit::NanoSeconds));
+        assert_eq!(state.normalized_unit, Some(TimeUnit::PicoSeconds));
+        assert_eq!(state.effective_unit(), TimeUnit::PicoSeconds);
+        assert_eq!(state.error, None);
+    }
+
+    #[test]
+    fn test_time_input_state_to_timescale_ticks_invalid() {
+        let state = TimeInputState::new();
+        let timescale = TimeScale {
+            unit: TimeUnit::NanoSeconds,
+            multiplier: None,
+        };
+
+        assert_eq!(state.to_timescale_ticks(&timescale), None);
+    }
+
+    #[test]
+    fn test_time_input_comprehensive_example() {
+        // User types "2.5 ms"
+        let mut state = TimeInputState::new();
+        state.update_input("2.5 ms".to_string());
+
+        // Parse should succeed
+        assert_eq!(state.parsed_value, Some(BigInt::from(2500)));
+        assert_eq!(state.input_unit, Some(TimeUnit::MilliSeconds));
+        assert_eq!(state.effective_unit(), TimeUnit::MicroSeconds);
+        assert_eq!(state.error, None);
+
+        // Should be able to convert to timescale ticks
+        let timescale = TimeScale {
+            unit: TimeUnit::MicroSeconds,
+            multiplier: None,
+        };
+        assert_eq!(
+            state.to_timescale_ticks(&timescale),
+            Some(BigInt::from(2500))
+        );
+    }
+
+    #[test]
+    fn test_parse_time_longest_match_first() {
+        // "ms" should match before "s"
+        let (num, unit) = parse_time_input("100ms");
+        assert_eq!(num, "100");
+        assert_eq!(unit, Some(TimeUnit::MilliSeconds));
+
+        // Not just the "s"
+        let (_, unit) = parse_time_input("100s");
+        assert_ne!(unit, Some(TimeUnit::MilliSeconds));
+    }
+
+    #[test]
+    fn test_parse_time_no_false_positives() {
+        // These should not match units
+        let (num, unit) = parse_time_input("mass");
+        assert_eq!(num, "mass");
+        assert_eq!(unit, None);
+
+        let (num, unit) = parse_time_input("uses");
+        assert_eq!(num, "uses");
+        assert_eq!(unit, None);
+    }
+
+    #[test]
+    fn test_time_input_state_clear() {
+        let mut state = TimeInputState::new();
+        state.update_input("100ns".to_string());
+        assert!(state.parsed_value.is_some());
+
+        // Clear by updating with empty string
+        state.update_input(String::new());
+        assert!(state.error.is_some());
     }
 }

@@ -4,6 +4,7 @@ use egui_remixicon::icons;
 use emath::{Align, Vec2};
 
 use crate::message::MessageTarget;
+use crate::time::time_input_widget;
 use crate::wave_container::SimulationStatus;
 use crate::wave_source::LoadOptions;
 use crate::{
@@ -360,6 +361,17 @@ impl SystemState {
             );
 
             self.simulation_status_toolbar(ui, msgs);
+            if let Some(waves) = &self.user.waves {
+                ui.separator();
+
+                time_input_widget(
+                    ui,
+                    waves,
+                    msgs,
+                    &mut self.time_widget.borrow_mut(),
+                    self.request_time_edit_focus,
+                );
+            }
         });
     }
 }

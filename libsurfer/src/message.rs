@@ -306,6 +306,8 @@ pub enum Message {
     ),
     SetLicenseVisible(bool),
     SetLogsVisible(bool),
+    SetFrameBufferVisible(bool),
+    SetFrameBufferVariable(VisibleItemIndex),
     SetMouseGestureDragStart(Option<Pos2>),
     SetMeasureDragStart(Option<Pos2>),
     SetFilterFocused(bool),

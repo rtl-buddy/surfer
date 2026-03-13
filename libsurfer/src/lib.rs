@@ -20,6 +20,7 @@ pub mod displayed_item_tree;
 pub mod drawing_canvas;
 pub mod file_dialog;
 pub mod file_watcher;
+pub mod frame_buffer;
 pub mod fzcmd;
 pub mod graphics;
 pub mod help;
@@ -482,6 +483,20 @@ impl SystemState {
                 waves.scroll_offset = offset;
             }
             Message::SetLogsVisible(visibility) => self.user.show_logs = visibility,
+            Message::SetFrameBufferVisible(visibility) => {
+                self.show_frame_buffer = visibility;
+            }
+            Message::SetFrameBufferVariable(vidx) => {
+                let waves = self.user.waves.as_ref()?;
+                self.frame_buffer_variable = waves
+                    .items_tree
+                    .get_visible(vidx)
+                    .and_then(|node| waves.displayed_items.get(&node.item_ref))
+                    .and_then(|item| match item {
+                        DisplayedItem::Variable(variable) => Some(variable.variable_ref.clone()),
+                        _ => None,
+                    });
+            }
             Message::SetCursorWindowVisible(visibility) => {
                 self.user.show_cursor_window = visibility;
             }

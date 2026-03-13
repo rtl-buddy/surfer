@@ -87,6 +87,15 @@ pub struct SystemState {
     pub(crate) time_widget: RefCell<TimeInputState>,
     pub(crate) time_edit_focused: bool,
     pub(crate) request_time_edit_focus: bool,
+    pub(crate) show_frame_buffer: bool,
+    pub(crate) frame_buffer_pixels_per_row: usize,
+    pub(crate) frame_buffer_square_pixels: bool,
+    pub(crate) frame_buffer_rgb_mode: bool,
+    pub(crate) frame_buffer_grayscale_bits: u8,
+    pub(crate) frame_buffer_r_bits: u8,
+    pub(crate) frame_buffer_g_bits: u8,
+    pub(crate) frame_buffer_b_bits: u8,
+    pub(crate) frame_buffer_variable: Option<VariableRef>,
 
     // Benchmarking stuff
     /// Invalidate draw commands every frame to make performance comparison easier
@@ -154,6 +163,15 @@ impl SystemState {
             time_widget: RefCell::new(TimeInputState::default()),
             time_edit_focused: false,
             request_time_edit_focus: false,
+            show_frame_buffer: false,
+            frame_buffer_pixels_per_row: 16,
+            frame_buffer_square_pixels: true,
+            frame_buffer_rgb_mode: false,
+            frame_buffer_grayscale_bits: 1,
+            frame_buffer_r_bits: 3,
+            frame_buffer_g_bits: 3,
+            frame_buffer_b_bits: 2,
+            frame_buffer_variable: None,
 
             url_callback: None,
             continuous_redraw: false,

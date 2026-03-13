@@ -319,6 +319,10 @@ impl SystemState {
             self.draw_log_window(ctx, &mut msgs);
         }
 
+        if self.show_frame_buffer {
+            self.draw_frame_buffer_window(ctx, &mut msgs);
+        }
+
         if let Some(dialog) = self.user.show_reload_suggestion {
             draw_reload_waveform_dialog(ctx, dialog, &mut msgs);
         }

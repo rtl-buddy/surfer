@@ -87,6 +87,8 @@ pub struct SystemState {
     pub(crate) time_widget: RefCell<TimeInputState>,
     pub(crate) time_edit_focused: bool,
     pub(crate) request_time_edit_focus: bool,
+    pub(crate) show_frame_buffer: bool,
+    pub(crate) frame_buffer_variable: Option<VariableRef>,
 
     // Benchmarking stuff
     /// Invalidate draw commands every frame to make performance comparison easier
@@ -154,6 +156,8 @@ impl SystemState {
             time_widget: RefCell::new(TimeInputState::default()),
             time_edit_focused: false,
             request_time_edit_focus: false,
+            show_frame_buffer: false,
+            frame_buffer_variable: None,
 
             url_callback: None,
             continuous_redraw: false,

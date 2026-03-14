@@ -31,13 +31,6 @@ impl Default for FrameBufferSettings {
     }
 }
 
-struct FrameBufferSample {
-    value: VariableValue,
-    word_length: u32,
-    variable_name: String,
-    cursor: String,
-}
-
 impl SystemState {
     pub fn draw_frame_buffer_window(&mut self, ctx: &egui::Context, msgs: &mut Vec<Message>) {
         let frame_buffer_value = self.selected_variable_for_frame_buffer();
@@ -46,20 +39,14 @@ impl SystemState {
             .open(&mut open)
             .resizable(true)
             .show(ctx, |ui| {
-                let Some(sample) = frame_buffer_value.as_ref() else {
-                    ui.label(
-                        "Select a variable with context menu \"Show frame buffer\" and place the cursor.",
-                    );
+                let Some((value, word_length, variable_name)) = frame_buffer_value.as_ref() else {
+                    ui.label("Place the cursor.");
                     return;
                 };
 
                 let settings = &mut self.user.frame_buffer;
 
-                ui.checkbox(
-                    &mut settings.square_pixels,
-                    "Square pixels",
-                );
-
+                ui.checkbox(&mut settings.square_pixels, "Square pixels");
                 ui.checkbox(&mut settings.rgb_mode, "RGB mode");
 
                 if settings.rgb_mode {
@@ -80,13 +67,13 @@ impl SystemState {
 
                 ui.separator();
 
-                let bits = frame_buffer_bits(&sample.value, sample.word_length as usize);
+                let bits = frame_buffer_bits(value, *word_length as usize);
                 if bits.is_empty() {
                     ui.label("No bits available");
                     return;
                 }
 
-                let (pixel_colors, bits_per_pixel) = if settings.rgb_mode {
+                let pixel_colors = if settings.rgb_mode {
                     let r_bits = settings.r_bits as usize;
                     let g_bits = settings.g_bits as usize;
                     let b_bits = settings.b_bits as usize;
@@ -95,10 +82,10 @@ impl SystemState {
                         ui.label("Set at least one RGB channel bit count above zero.");
                         return;
                     }
-                    (decode_rgb_pixels(&bits, r_bits, g_bits, b_bits), bits_per_pixel)
+                    decode_rgb_pixels(&bits, r_bits, g_bits, b_bits)
                 } else {
                     let gray_bits = settings.grayscale_bits as usize;
-                    (decode_grayscale_pixels(&bits, gray_bits), gray_bits)
+                    decode_grayscale_pixels(&bits, gray_bits)
                 };
 
                 if pixel_colors.is_empty() {
@@ -106,30 +93,34 @@ impl SystemState {
                     return;
                 }
 
-                ui.label(format!(
-                    "Var: {} | Cursor: {} | Bits: {} | Bits/px: {} | Pixels: {}",
-                    sample.variable_name,
-                    sample.cursor,
-                    bits.len(),
-                    bits_per_pixel,
-                    pixel_colors.len()
-                ));
+                let columns = settings.pixels_per_row.min(pixel_colors.len()).max(1);
+                let rows = pixel_colors.len().div_ceil(columns);
+                ui.horizontal(|ui| {
+                    ui.label(format!("Var: {variable_name} | {columns}×{rows}"));
 
+                    if ui.button("Copy image").clicked() {
+                        let total = columns * rows;
+                        let mut padded = pixel_colors.to_vec();
+                        padded.resize(total, Color32::BLACK);
+                        ui.ctx().copy_image(egui::ColorImage {
+                            size: [columns, rows],
+                            pixels: padded,
+                            source_size: egui::vec2(columns as f32, rows as f32),
+                        });
+                    }
+                });
                 let max_columns = pixel_colors.len().max(1);
                 settings.pixels_per_row = settings.pixels_per_row.clamp(1, max_columns);
 
                 ui.horizontal(|ui| {
                     ui.label("Pixels in x-direction");
                     ui.add(
-                        egui::Slider::new(&mut settings.pixels_per_row, 1..=max_columns)
-                            .integer(),
+                        egui::Slider::new(&mut settings.pixels_per_row, 1..=max_columns).integer(),
                     );
                 });
 
                 ui.separator();
 
-                let columns = settings.pixels_per_row.min(pixel_colors.len()).max(1);
-                let rows = pixel_colors.len().div_ceil(columns);
                 let available = ui.available_size_before_wrap();
 
                 if available.x <= 0.0 || available.y <= 0.0 {
@@ -161,11 +152,7 @@ impl SystemState {
                         y: min.y + pixel_height,
                     };
 
-                    painter.rect_filled(
-                        Rect { min, max },
-                        CornerRadius::ZERO,
-                        color,
-                    );
+                    painter.rect_filled(Rect { min, max }, CornerRadius::ZERO, color);
                 }
 
                 painter.rect_stroke(
@@ -177,15 +164,14 @@ impl SystemState {
             });
 
         if !open {
-            msgs.push(Message::SetFrameBufferVisible(false));
+            msgs.push(Message::SetFrameBufferVariable(None));
         }
     }
 
-    fn selected_variable_for_frame_buffer(&self) -> Option<FrameBufferSample> {
+    fn selected_variable_for_frame_buffer(&self) -> Option<(VariableValue, u32, String)> {
         let waves = self.user.waves.as_ref()?;
         let variable_ref = self.frame_buffer_variable.as_ref()?;
         let variable_name = variable_ref.full_path_string_no_index();
-        let cursor_text = waves.cursor.as_ref()?.to_string();
 
         let cursor = waves.cursor.as_ref()?.to_biguint()?;
         let wave_container = waves.inner.as_waves()?;
@@ -197,12 +183,7 @@ impl SystemState {
             .flatten()?;
 
         let (_, value) = query_result.current?;
-        Some(FrameBufferSample {
-            value,
-            word_length,
-            variable_name,
-            cursor: cursor_text,
-        })
+        Some((value, word_length, variable_name))
     }
 }
 

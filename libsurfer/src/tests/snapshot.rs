@@ -1114,6 +1114,17 @@ snapshot_ui_with_file_and_msgs! {selection_extend_change_color, "examples/counte
     Message::ItemColorChange(MessageTarget::CurrentSelection, Some("Blue".to_string())),
 ]}
 
+snapshot_ui_with_file_and_msgs! {framebuffer_no_cursor, "examples/counter.vcd", [
+    Message::AddScope(ScopeRef::from_strs(&["tb"]), false),
+    Message::SetFrameBufferVariable(Some(VisibleItemIndex(1)))
+]}
+
+snapshot_ui_with_file_and_msgs! {framebuffer_cursor, "examples/picorv32.vcd", [
+    Message::AddScope(ScopeRef::from_strs(&["testbench"]), false),
+    Message::SetFrameBufferVariable(Some(VisibleItemIndex(2))),
+    Message::CursorSet(BigInt::from(4700000))
+]}
+
 snapshot_ui!(regex_error_indication, || {
     let mut state = SystemState::new_default_config()
         .unwrap()

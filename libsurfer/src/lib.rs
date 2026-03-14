@@ -483,10 +483,10 @@ impl SystemState {
                 waves.scroll_offset = offset;
             }
             Message::SetLogsVisible(visibility) => self.user.show_logs = visibility,
-            Message::SetFrameBufferVisible(visibility) => {
-                self.show_frame_buffer = visibility;
+            Message::SetFrameBufferVariable(None) => {
+                self.frame_buffer_variable = None;
             }
-            Message::SetFrameBufferVariable(vidx) => {
+            Message::SetFrameBufferVariable(Some(vidx)) => {
                 let waves = self.user.waves.as_ref()?;
                 self.frame_buffer_variable = waves
                     .items_tree

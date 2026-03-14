@@ -319,7 +319,7 @@ impl SystemState {
             self.draw_log_window(ctx, &mut msgs);
         }
 
-        if self.show_frame_buffer {
+        if self.frame_buffer_variable.is_some() {
             self.draw_frame_buffer_window(ctx, &mut msgs);
         }
 

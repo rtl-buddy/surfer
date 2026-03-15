@@ -1786,7 +1786,7 @@ impl SystemState {
             Message::SetViewportStrategy(s) => {
                 if let Some(waves) = &mut self.user.waves {
                     for vp in &mut waves.viewports {
-                        vp.move_strategy = s;
+                        vp.move_strategy = s.clone();
                     }
                 }
             }

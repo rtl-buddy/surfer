@@ -806,6 +806,25 @@ impl WaveData {
             *stroke,
         );
     }
+
+    pub fn draw_fold_marker(&self, x: f32, ctx: &mut DrawingContext) {
+        let Pos2 {
+            x: x_pos,
+            y: y_start,
+        } = (ctx.to_screen)(x, 0.);
+
+        ctx.painter.text(
+            Pos2 {
+                x: x_pos,
+                y: y_start + 10.0,
+            },
+            Align2::CENTER_CENTER,
+            "||",
+            FontId::proportional(ctx.cfg.text_size),
+            Color32::LIGHT_GRAY,
+        );
+    }
+
     /// Draw the text for each tick location.
     pub fn draw_ticks(
         &self,
@@ -922,6 +941,7 @@ fn get_ticks_internal(
                 .map(|v| {
                     BigInt::from((f64::from(v) * scaled_step + rounded_min_label_time) as i128)
                 })
+                .filter(|tick| !viewport.is_time_hidden(tick))
                 .unique()
                 .map(|tick| {
                     (

@@ -100,10 +100,12 @@ fn default_min_width() -> Absolute {
     Absolute(0.5)
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Viewport {
     pub curr_left: Relative,
     pub curr_right: Relative,
+
+    hidden_ranges: Vec<(Absolute, Absolute)>,
 
     target_left: Relative,
     target_right: Relative,
@@ -126,6 +128,7 @@ impl Default for Viewport {
         Self {
             curr_left: Relative(0.0),
             curr_right: Relative(1.0),
+            hidden_ranges: vec![],
             target_left: Relative(0.0),
             target_right: Relative(1.0),
             move_start_left: Relative(0.0),
@@ -144,11 +147,11 @@ impl Viewport {
         Self::default()
     }
     #[must_use]
-    pub fn left_edge_time(self, num_timestamps: &BigInt) -> BigInt {
+    pub fn left_edge_time(&self, num_timestamps: &BigInt) -> BigInt {
         BigInt::from(self.curr_left.absolute(num_timestamps).0 as i64)
     }
     #[must_use]
-    pub fn right_edge_time(self, num_timestamps: &BigInt) -> BigInt {
+    pub fn right_edge_time(&self, num_timestamps: &BigInt) -> BigInt {
         BigInt::from(self.curr_right.absolute(num_timestamps).0 as i64)
     }
 
@@ -178,13 +181,21 @@ impl Viewport {
         let time = big_left.clone() + (big_right - big_left) / big_width * big_x;
         time.round().to_integer()
     }
+    pub fn is_time_hidden(&self, time: &BigInt) -> bool {
+        let t = time.to_f64().unwrap_or(0.0);
 
+        self.hidden_ranges
+            .iter()
+            .any(|(start, end)| t >= start.0 && t <= end.0)
+    }
     /// Computes which x-pixel corresponds to the specified time adduming the viewport is rendered
     /// into a viewport of `view_width`
     #[must_use]
     pub fn pixel_from_time(&self, time: &BigInt, view_width: f32, num_timestamps: &BigInt) -> f32 {
-        let distance_from_left =
-            Absolute(time.to_f64().unwrap()) - self.curr_left.absolute(num_timestamps);
+        let absolute = Absolute(time.to_f64().unwrap());
+        let compressed = self.compress_time(absolute);
+
+        let distance_from_left = compressed - self.curr_left.absolute(num_timestamps);
 
         (((distance_from_left / self.width_absolute(num_timestamps)).0) * f64::from(view_width))
             as f32
@@ -197,7 +208,9 @@ impl Viewport {
         view_width: f32,
         num_timestamps: &BigInt,
     ) -> f32 {
-        let distance_from_left = time - self.curr_left.absolute(num_timestamps);
+        let compressed = self.compress_time(time);
+
+        let distance_from_left = compressed - self.curr_left.absolute(num_timestamps);
 
         (((distance_from_left / self.width_absolute(num_timestamps)).0) * f64::from(view_width))
             as f32
@@ -246,12 +259,13 @@ impl Viewport {
         Viewport {
             curr_left: left,
             curr_right: right,
+            hidden_ranges: self.hidden_ranges.clone(),
             target_left: left,
             target_right: right,
             move_start_left: left,
             move_start_right: right,
             move_duration: None,
-            move_strategy: self.move_strategy,
+            move_strategy: self.move_strategy.clone(),
             edge_space: self.edge_space,
             min_width: self.min_width,
         }
@@ -264,7 +278,35 @@ impl Viewport {
 
     #[inline]
     fn width_absolute(&self, num_timestamps: &BigInt) -> Absolute {
-        self.width().absolute(num_timestamps)
+        let left = self.curr_left.absolute(num_timestamps).0;
+        let right = self.curr_right.absolute(num_timestamps).0;
+
+        let mut width = right - left;
+
+        for (start, end) in &self.hidden_ranges {
+            let overlap_start = left.max(start.0);
+            let overlap_end = right.min(end.0);
+
+            if overlap_end > overlap_start {
+                width -= overlap_end - overlap_start;
+            }
+        }
+
+        Absolute(width)
+    }
+
+    fn compress_time(&self, time: Absolute) -> Absolute {
+        let mut adjusted = time;
+
+        for (start, end) in &self.hidden_ranges {
+            if adjusted > *end {
+                adjusted = Absolute(adjusted.0 - (end.0 - start.0));
+            } else if adjusted > *start {
+                adjusted = *start;
+            }
+        }
+
+        adjusted
     }
 
     pub fn go_to_time(&mut self, center: &BigInt, num_timestamps: &BigInt) {
@@ -490,7 +532,7 @@ pub fn ease_in_out_size(r: RangeInclusive<f64>, t: f64) -> f64 {
     r.start() + ((r.end() - r.start()) * -((std::f64::consts::PI * t).cos() - 1.) / 2.)
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ViewportStrategy {
     Instant,
     EaseInOut { duration: f32 },

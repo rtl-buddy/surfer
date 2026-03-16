@@ -638,6 +638,14 @@ impl SystemState {
                     use crate::displayed_item::AnalogSettings;
                     let current = variable.analog.as_ref().map(|a| a.settings);
 
+                    let displayed_field_ref: crate::displayed_item::DisplayedFieldRef =
+                        clicked_item_ref.into();
+                    let translator =
+                        waves.variable_translator(&displayed_field_ref, &self.translators);
+                    let type_limits_available = meta
+                        .as_ref()
+                        .is_some_and(|m| translator.numeric_range(m).is_some());
+
                     let options = [
                         ("Off", None),
                         ("Step (Viewport)", Some(AnalogSettings::step_viewport())),
@@ -654,6 +662,31 @@ impl SystemState {
 
                     for (label, config) in options {
                         if ui.radio(current == config, label).clicked() && current != config {
+                            msgs.push(Message::SetAnalogSettings(group_target, config));
+                        }
+                    }
+
+                    let type_limit_options = [
+                        (
+                            "Step (Type Limits)",
+                            Some(AnalogSettings::step_type_limits()),
+                        ),
+                        (
+                            "Interpolated (Type Limits)",
+                            Some(AnalogSettings::interpolated_type_limits()),
+                        ),
+                    ];
+
+                    for (label, config) in type_limit_options {
+                        let response = ui.add_enabled(
+                            type_limits_available,
+                            egui::RadioButton::new(current == config, label),
+                        );
+                        if !type_limits_available {
+                            response.on_disabled_hover_text(
+                                "Type range not available for this translator",
+                            );
+                        } else if response.clicked() && current != config {
                             msgs.push(Message::SetAnalogSettings(group_target, config));
                         }
                     }

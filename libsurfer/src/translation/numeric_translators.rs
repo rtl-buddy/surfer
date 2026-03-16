@@ -7,11 +7,12 @@ use half::{bf16, f16};
 use num::{BigUint, One};
 use softposit::{P8E0, P16E1, P32E2, Q8E0, Q16E1};
 use surfer_translation_types::{
-    BasicTranslator, TranslationResult, Translator, ValueKind, ValueRepr, VariableInfo,
-    VariableMeta, VariableValue, biguint_to_f64, parse_value_to_numeric, translates_all_bit_types,
+    BasicTranslator, NumericRange, TranslationResult, Translator, ValueKind, ValueRepr,
+    VariableInfo, VariableMeta, VariableValue, biguint_to_f64, parse_value_to_numeric,
+    translates_all_bit_types,
 };
 
-use super::{TranslationPreference, check_single_wordlength};
+use super::{TranslationPreference, check_single_wordlength, integer_numeric_range};
 
 #[inline]
 fn shortest_float_representation<T: std::fmt::LowerExp + std::fmt::Display>(v: T) -> String {
@@ -55,6 +56,10 @@ impl BasicTranslator<VarId, ScopeId> for UnsignedTranslator {
             translates_all_bit_types(variable)
         }
     }
+
+    fn basic_numeric_range(&self, num_bits: u32) -> Option<NumericRange> {
+        integer_numeric_range(num_bits, false)
+    }
 }
 
 pub struct SignedTranslator {}
@@ -86,6 +91,10 @@ impl BasicTranslator<VarId, ScopeId> for SignedTranslator {
         } else {
             translates_all_bit_types(variable)
         }
+    }
+
+    fn basic_numeric_range(&self, num_bits: u32) -> Option<NumericRange> {
+        integer_numeric_range(num_bits, true)
     }
 }
 
@@ -214,6 +223,13 @@ impl BasicTranslator<VarId, ScopeId> for HalfPrecisionTranslator {
     fn translates(&self, variable: &VariableMeta<VarId, ScopeId>) -> Result<TranslationPreference> {
         check_single_wordlength(variable.num_bits, 16)
     }
+
+    fn basic_numeric_range(&self, _num_bits: u32) -> Option<NumericRange> {
+        Some(NumericRange {
+            min: f64::from(f16::MIN),
+            max: f64::from(f16::MAX),
+        })
+    }
 }
 
 pub struct BFloat16Translator {}
@@ -241,6 +257,13 @@ impl BasicTranslator<VarId, ScopeId> for BFloat16Translator {
     }
     fn translates(&self, variable: &VariableMeta<VarId, ScopeId>) -> Result<TranslationPreference> {
         check_single_wordlength(variable.num_bits, 16)
+    }
+
+    fn basic_numeric_range(&self, _num_bits: u32) -> Option<NumericRange> {
+        Some(NumericRange {
+            min: f64::from(bf16::MIN),
+            max: f64::from(bf16::MAX),
+        })
     }
 }
 
@@ -480,6 +503,13 @@ impl BasicTranslator<VarId, ScopeId> for E5M2Translator {
     fn translates(&self, variable: &VariableMeta<VarId, ScopeId>) -> Result<TranslationPreference> {
         check_single_wordlength(variable.num_bits, 8)
     }
+
+    fn basic_numeric_range(&self, _num_bits: u32) -> Option<NumericRange> {
+        Some(NumericRange {
+            min: -57344.0,
+            max: 57344.0,
+        })
+    }
 }
 
 /// Decode u8 as 8-bit float with four exponent bits and three mantissa bits.
@@ -509,6 +539,13 @@ impl BasicTranslator<VarId, ScopeId> for E4M3Translator {
 
     fn translates(&self, variable: &VariableMeta<VarId, ScopeId>) -> Result<TranslationPreference> {
         check_single_wordlength(variable.num_bits, 8)
+    }
+
+    fn basic_numeric_range(&self, _num_bits: u32) -> Option<NumericRange> {
+        Some(NumericRange {
+            min: -448.0,
+            max: 448.0,
+        })
     }
 }
 

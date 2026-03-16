@@ -3193,3 +3193,66 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_reg1024, "examples/analog.vcd",
         viewport_idx: 0
     },
 ]}
+
+snapshot_ui_with_file_and_msgs! {analog_waveform_type_limits, "examples/analog.vcd", [
+    Message::AddVariables(vec![
+        VariableRef::from_hierarchy_string("top.counter8"),
+        VariableRef::from_hierarchy_string("top.counter8"),
+        VariableRef::from_hierarchy_string("top.counter8"),
+    ]),
+
+    // First copy: Unsigned translator + step type limits
+    Message::VariableFormatChange(
+        MessageTarget::Explicit(DisplayedFieldRef {
+            item: DisplayedItemRef(1),
+            field: vec![],
+        }),
+        String::from("Unsigned"),
+    ),
+
+    // Second copy: Signed translator + interpolated type limits
+    Message::VariableFormatChange(
+        MessageTarget::Explicit(DisplayedFieldRef {
+            item: DisplayedItemRef(2),
+            field: vec![],
+        }),
+        String::from("Signed"),
+    ),
+
+    // Third copy: Unsigned translator + step global (for comparison)
+    Message::VariableFormatChange(
+        MessageTarget::Explicit(DisplayedFieldRef {
+            item: DisplayedItemRef(3),
+            field: vec![],
+        }),
+        String::from("Unsigned"),
+    ),
+
+    Message::SetAnalogSettings(
+        MessageTarget::Explicit(VisibleItemIndex(0)),
+        Some(crate::displayed_item::AnalogSettings::step_type_limits()),
+    ),
+
+    Message::SetAnalogSettings(
+        MessageTarget::Explicit(VisibleItemIndex(1)),
+        Some(crate::displayed_item::AnalogSettings::interpolated_type_limits()),
+    ),
+
+    Message::SetAnalogSettings(
+        MessageTarget::Explicit(VisibleItemIndex(2)),
+        Some(crate::displayed_item::AnalogSettings::step_global()),
+    ),
+
+    Message::ItemHeightScalingFactorChange(
+        MessageTarget::Explicit(VisibleItemIndex(0)),
+        5.0,
+    ),
+    Message::ItemHeightScalingFactorChange(
+        MessageTarget::Explicit(VisibleItemIndex(1)),
+        5.0,
+    ),
+    Message::ItemHeightScalingFactorChange(
+        MessageTarget::Explicit(VisibleItemIndex(2)),
+        5.0,
+    ),
+]}

@@ -81,6 +81,16 @@ pub enum AnalogRenderStyle {
     Interpolated,
 }
 
+impl AnalogRenderStyle {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Step => "Step",
+            Self::Interpolated => "Interpolated",
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Default)]
 pub enum AnalogYAxisScale {
     #[default]
@@ -89,61 +99,24 @@ pub enum AnalogYAxisScale {
     TypeLimits,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+impl AnalogYAxisScale {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Viewport => "Viewport",
+            Self::Global => "Global",
+            Self::TypeLimits => "Type Limits",
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Default)]
 pub struct AnalogSettings {
     pub render_style: AnalogRenderStyle,
     pub y_axis_scale: AnalogYAxisScale,
 }
 
 impl AnalogSettings {
-    #[must_use]
-    pub fn step_viewport() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Step,
-            y_axis_scale: AnalogYAxisScale::Viewport,
-        }
-    }
-
-    #[must_use]
-    pub fn step_global() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Step,
-            y_axis_scale: AnalogYAxisScale::Global,
-        }
-    }
-
-    #[must_use]
-    pub fn interpolated_viewport() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Interpolated,
-            y_axis_scale: AnalogYAxisScale::Viewport,
-        }
-    }
-
-    #[must_use]
-    pub fn interpolated_global() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Interpolated,
-            y_axis_scale: AnalogYAxisScale::Global,
-        }
-    }
-
-    #[must_use]
-    pub fn step_type_limits() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Step,
-            y_axis_scale: AnalogYAxisScale::TypeLimits,
-        }
-    }
-
-    #[must_use]
-    pub fn interpolated_type_limits() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Interpolated,
-            y_axis_scale: AnalogYAxisScale::TypeLimits,
-        }
-    }
-
     /// Downgrade `TypeLimits` to `Global` when the translator doesn't support numeric ranges.
     pub fn downgrade_type_limits(&mut self) {
         if self.y_axis_scale == AnalogYAxisScale::TypeLimits {
@@ -191,36 +164,6 @@ impl AnalogVarState {
             settings,
             cache: None,
         }
-    }
-
-    #[must_use]
-    pub fn step_viewport() -> Self {
-        Self::new(AnalogSettings::step_viewport())
-    }
-
-    #[must_use]
-    pub fn step_global() -> Self {
-        Self::new(AnalogSettings::step_global())
-    }
-
-    #[must_use]
-    pub fn interpolated_viewport() -> Self {
-        Self::new(AnalogSettings::interpolated_viewport())
-    }
-
-    #[must_use]
-    pub fn interpolated_global() -> Self {
-        Self::new(AnalogSettings::interpolated_global())
-    }
-
-    #[must_use]
-    pub fn step_type_limits() -> Self {
-        Self::new(AnalogSettings::step_type_limits())
-    }
-
-    #[must_use]
-    pub fn interpolated_type_limits() -> Self {
-        Self::new(AnalogSettings::interpolated_type_limits())
     }
 }
 

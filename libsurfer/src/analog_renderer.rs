@@ -221,11 +221,11 @@ fn select_value_range(
     };
 
     // Handle all-NaN case: min=INFINITY, max=NEG_INFINITY
-    if !min.is_finite() || !max.is_finite() {
+    if !min.is_finite() || !max.is_finite() || min > max {
         return (-0.5, 0.5);
     }
 
-    // Avoid division by zero when all values are equal
+    // Avoid division by zero
     if (max - min).abs() < f64::EPSILON {
         (min - 0.5, max + 0.5)
     } else {

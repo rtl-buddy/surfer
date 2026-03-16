@@ -9,6 +9,9 @@ use std::sync::Arc;
 use crate::analog_signal_cache::AnalogCacheEntry;
 use surfer_translation_types::VariableInfo;
 
+use crate::translation::DynTranslator;
+use crate::wave_container::VariableMeta;
+
 use crate::config::SurferConfig;
 use crate::transaction_container::TransactionStreamRef;
 use crate::wave_container::{FieldRef, VariableRef, VariableRefExt, WaveContainer};
@@ -83,6 +86,7 @@ pub enum AnalogYAxisScale {
     #[default]
     Viewport,
     Global,
+    TypeLimits,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
@@ -121,6 +125,29 @@ impl AnalogSettings {
         Self {
             render_style: AnalogRenderStyle::Interpolated,
             y_axis_scale: AnalogYAxisScale::Global,
+        }
+    }
+
+    #[must_use]
+    pub fn step_type_limits() -> Self {
+        Self {
+            render_style: AnalogRenderStyle::Step,
+            y_axis_scale: AnalogYAxisScale::TypeLimits,
+        }
+    }
+
+    #[must_use]
+    pub fn interpolated_type_limits() -> Self {
+        Self {
+            render_style: AnalogRenderStyle::Interpolated,
+            y_axis_scale: AnalogYAxisScale::TypeLimits,
+        }
+    }
+
+    /// Downgrade `TypeLimits` to `Global` when the translator doesn't support numeric ranges.
+    pub fn downgrade_type_limits(&mut self) {
+        if self.y_axis_scale == AnalogYAxisScale::TypeLimits {
+            self.y_axis_scale = AnalogYAxisScale::Global;
         }
     }
 }
@@ -185,6 +212,16 @@ impl AnalogVarState {
     pub fn interpolated_global() -> Self {
         Self::new(AnalogSettings::interpolated_global())
     }
+
+    #[must_use]
+    pub fn step_type_limits() -> Self {
+        Self::new(AnalogSettings::step_type_limits())
+    }
+
+    #[must_use]
+    pub fn interpolated_type_limits() -> Self {
+        Self::new(AnalogSettings::interpolated_type_limits())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -204,6 +241,19 @@ pub struct DisplayedVariable {
 }
 
 impl DisplayedVariable {
+    /// Downgrade `TypeLimits` to `Global` when the translator doesn't support numeric ranges.
+    pub fn downgrade_type_limits_if_unsupported(
+        &mut self,
+        translator: &DynTranslator,
+        meta: &VariableMeta,
+    ) {
+        if let Some(ref mut analog) = self.analog
+            && translator.numeric_range(meta).is_none()
+        {
+            analog.settings.downgrade_type_limits();
+        }
+    }
+
     #[must_use]
     pub fn get_format(&self, field: &[String]) -> Option<&String> {
         if field.is_empty() {

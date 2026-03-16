@@ -24,7 +24,8 @@ pub use crate::result::{
 };
 pub use crate::scope_ref::ScopeRef;
 pub use crate::translator::{
-    BasicTranslator, Translator, VariableNameInfo, WaveSource, translates_all_bit_types,
+    BasicTranslator, NumericRange, Translator, VariableNameInfo, WaveSource,
+    translates_all_bit_types,
 };
 pub use crate::variable_index::VariableIndex;
 pub use crate::variable_meta::VariableMeta;

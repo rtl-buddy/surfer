@@ -327,7 +327,7 @@ fn find_user_mapping_translators_at_path(path: &Path) -> Vec<Arc<DynBasicTransla
         let translator = MappingTranslator::new_from_file(utf8_path);
         match translator {
             Err(e) => {
-                warn!(
+                tracing::error!(
                     "Cannot load mapping translator from file {}: {}",
                     mapping_file.path().display(),
                     e

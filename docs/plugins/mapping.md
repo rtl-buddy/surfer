@@ -77,7 +77,7 @@ The supported kinds and corresponding theme color names are:
 | `weak`     | `variable_weak`     |
 
 For colors, any named [Color32](https://docs.rs/ecolor/latest/ecolor/struct.Color32.html) can be used (case insensitive, so `RED`, `red`, and `Red` will all work).
-It is also possible to specify an RGD hex color, either with or without a leading `#` so both `aa7035`  and `#aa7035` are valid options.
+It is also possible to specify an RGB hex color, either with or without a leading `#` so both `aa7035`  and `#aa7035` are valid options.
 
 If no kind/color is given, the waveform is drawn as a default/normal variable.
 
@@ -89,8 +89,8 @@ A final example including comments, kinds, and colors is:
 # The statemachine in block 2
 Name = Block 2 statemachine
 Bits = 4
-# Make the start state pink
-0[pink] Start
+# Make the start state magenta
+0[magenta] Start
 # Often better to use the kinds as they follow the themes
 # We also want to highlight State 1
 1[error] State 1

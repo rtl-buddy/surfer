@@ -264,6 +264,8 @@ impl WaveData {
                     .retain(|ff| info.has_subpath(&ff.field)),
                 _ => displayed_variable.field_formats.clear(),
             }
+
+            displayed_variable.downgrade_type_limits_if_unsupported(translator, &meta);
         }
     }
 

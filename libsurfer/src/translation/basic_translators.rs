@@ -5,9 +5,11 @@ use eyre::Result;
 use itertools::Itertools;
 use num::{One, Zero};
 use surfer_translation_types::{
-    BasicTranslator, VariableValue, check_vector_variable, extend_string,
+    BasicTranslator, NumericRange, VariableValue, check_vector_variable, extend_string,
     kind_for_binary_representation, parse_value_to_numeric,
 };
+
+use super::integer_numeric_range;
 
 /// Splits a string into groups of `n` characters.
 /// If the string length is not divisible by `n`, the first group will be shorter.
@@ -96,6 +98,10 @@ impl BasicTranslator<VarId, ScopeId> for HexTranslator {
             VariableValue::String(s) => map_to_radix(s, 4, num_bits),
         }
     }
+
+    fn basic_numeric_range(&self, num_bits: u32) -> Option<NumericRange> {
+        integer_numeric_range(num_bits, false)
+    }
 }
 
 pub struct BitTranslator {}
@@ -154,6 +160,10 @@ impl BasicTranslator<VarId, ScopeId> for OctalTranslator {
             VariableValue::String(s) => map_to_radix(s, 3, num_bits),
         }
     }
+
+    fn basic_numeric_range(&self, num_bits: u32) -> Option<NumericRange> {
+        integer_numeric_range(num_bits, false)
+    }
 }
 
 pub struct GroupingBinaryTranslator {}
@@ -177,6 +187,10 @@ impl BasicTranslator<VarId, ScopeId> for GroupingBinaryTranslator {
 
         (group_n_chars(&val, 4).join(" "), color)
     }
+
+    fn basic_numeric_range(&self, num_bits: u32) -> Option<NumericRange> {
+        integer_numeric_range(num_bits, false)
+    }
 }
 
 pub struct BinaryTranslator {}
@@ -197,6 +211,10 @@ impl BasicTranslator<VarId, ScopeId> for BinaryTranslator {
                 kind_for_binary_representation(s),
             ),
         }
+    }
+
+    fn basic_numeric_range(&self, num_bits: u32) -> Option<NumericRange> {
+        integer_numeric_range(num_bits, false)
     }
 }
 

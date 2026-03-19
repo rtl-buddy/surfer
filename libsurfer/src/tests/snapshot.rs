@@ -2724,15 +2724,15 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_with_4state, "examples/analog.v
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(1)),
-        Some(crate::displayed_item::AnalogSettings::step_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(3)),
-        Some(crate::displayed_item::AnalogSettings::step_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
     Message::ItemHeightScalingFactorChange(
         MessageTarget::Explicit(VisibleItemIndex(0)),
@@ -2757,7 +2757,7 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_interpolate_full, "examples/ana
     // Configure analog interpolated mode
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -2780,7 +2780,7 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_interpolate_nan, "examples/anal
     // Configure analog interpolated mode
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -2803,7 +2803,7 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_interpolate_nan_at_start, "exam
     // Configure analog interpolated mode
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -2828,7 +2828,7 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_interpolate_at_start_range, "ex
     // Configure analog interpolated mode
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -2853,19 +2853,19 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_scroll_negative, "examples/anal
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::step_global()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(1)),
-        Some(crate::displayed_item::AnalogSettings::step_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(2)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_global()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(3)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
     Message::AddTimeLine(None),
 
@@ -2890,7 +2890,7 @@ snapshot_ui_with_file_and_msgs! {analog_pulses_no_aliasing1, "examples/analog_pu
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::step_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
 
     // Make it a bit taller so the analog shape is clear in the snapshot
@@ -2908,7 +2908,7 @@ snapshot_ui_with_file_and_msgs! {analog_pulses_interpolate_to_range, "examples/a
     Message::AddTimeLine(None),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_global()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -2940,7 +2940,7 @@ snapshot_ui_with_file_and_msgs! {analog_pulses_no_aliasing2, "examples/analog_pu
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::step_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -2963,7 +2963,7 @@ snapshot_ui_with_file_and_msgs! {analog_pulses_4state, "examples/analog_pulses.v
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::step_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -2982,11 +2982,11 @@ snapshot_ui_with_file_and_msgs! {analog_pulses_4state_zoom, "examples/analog_pul
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(1)),
-        Some(crate::displayed_item::AnalogSettings::step_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(2)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
 
     Message::SetItemSelected(VisibleItemIndex(1), true),
@@ -3014,20 +3014,20 @@ snapshot_ui_with_file_and_msgs! {analog_pulses_4state_zoom2, "examples/analog_pu
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(1)),
-        Some(crate::displayed_item::AnalogSettings::step_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(2)),
-        Some(crate::displayed_item::AnalogSettings::step_global()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(3)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_global()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
     ),
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(4)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -3063,7 +3063,7 @@ snapshot_ui_with_file_and_msgs! {analog_pulses_4state_scroll_subscale, "examples
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(1)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_global()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -3089,7 +3089,7 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_negive_amplitude, "examples/ana
     // Configure analog modes
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::step_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
     Message::ItemHeightScalingFactorChange(
         MessageTarget::Explicit(VisibleItemIndex(0)),
@@ -3136,11 +3136,11 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_ieee_inf_nan, "examples/analog_
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::step_global()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
     ),
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(2)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_viewport()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Viewport }),
     ),
     Message::ItemHeightScalingFactorChange(
         MessageTarget::Explicit(VisibleItemIndex(0)),
@@ -3169,12 +3169,12 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_reg1024, "examples/analog.vcd",
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(0)),
-        Some(crate::displayed_item::AnalogSettings::interpolated_global()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
     ),
 
     Message::SetAnalogSettings(
         MessageTarget::Explicit(VisibleItemIndex(1)),
-        Some(crate::displayed_item::AnalogSettings::step_global()),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
     ),
 
     Message::ItemHeightScalingFactorChange(
@@ -3192,4 +3192,67 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_reg1024, "examples/analog.vcd",
         end: BigInt::from(11000),
         viewport_idx: 0
     },
+]}
+
+snapshot_ui_with_file_and_msgs! {analog_waveform_type_limits, "examples/analog.vcd", [
+    Message::AddVariables(vec![
+        VariableRef::from_hierarchy_string("top.counter8"),
+        VariableRef::from_hierarchy_string("top.counter8"),
+        VariableRef::from_hierarchy_string("top.counter8"),
+    ]),
+
+    // First copy: Unsigned translator + step type limits
+    Message::VariableFormatChange(
+        MessageTarget::Explicit(DisplayedFieldRef {
+            item: DisplayedItemRef(1),
+            field: vec![],
+        }),
+        String::from("Unsigned"),
+    ),
+
+    // Second copy: Signed translator + interpolated type limits
+    Message::VariableFormatChange(
+        MessageTarget::Explicit(DisplayedFieldRef {
+            item: DisplayedItemRef(2),
+            field: vec![],
+        }),
+        String::from("Signed"),
+    ),
+
+    // Third copy: Unsigned translator + step global (for comparison)
+    Message::VariableFormatChange(
+        MessageTarget::Explicit(DisplayedFieldRef {
+            item: DisplayedItemRef(3),
+            field: vec![],
+        }),
+        String::from("Unsigned"),
+    ),
+
+    Message::SetAnalogSettings(
+        MessageTarget::Explicit(VisibleItemIndex(0)),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::TypeLimits }),
+    ),
+
+    Message::SetAnalogSettings(
+        MessageTarget::Explicit(VisibleItemIndex(1)),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Interpolated, y_axis_scale: crate::displayed_item::AnalogYAxisScale::TypeLimits }),
+    ),
+
+    Message::SetAnalogSettings(
+        MessageTarget::Explicit(VisibleItemIndex(2)),
+        Some(crate::displayed_item::AnalogSettings { render_style: crate::displayed_item::AnalogRenderStyle::Step, y_axis_scale: crate::displayed_item::AnalogYAxisScale::Global }),
+    ),
+
+    Message::ItemHeightScalingFactorChange(
+        MessageTarget::Explicit(VisibleItemIndex(0)),
+        5.0,
+    ),
+    Message::ItemHeightScalingFactorChange(
+        MessageTarget::Explicit(VisibleItemIndex(1)),
+        5.0,
+    ),
+    Message::ItemHeightScalingFactorChange(
+        MessageTarget::Explicit(VisibleItemIndex(2)),
+        5.0,
+    ),
 ]}

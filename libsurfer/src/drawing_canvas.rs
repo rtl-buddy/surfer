@@ -12,7 +12,8 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use surfer_translation_types::{
-    SubFieldFlatTranslationResult, TranslatedValue, ValueKind, VariableInfo, VariableValue,
+    NumericRange, SubFieldFlatTranslationResult, TranslatedValue, ValueKind, VariableInfo,
+    VariableValue,
 };
 use tracing::{error, warn};
 
@@ -83,6 +84,8 @@ pub enum AnalogDrawingCommands {
         /// Global min/max across entire signal (used for global Y-axis scaling)
         global_min: f64,
         global_max: f64,
+        /// Type limits min/max from the translator (used for TypeLimits Y-axis scaling)
+        type_limits: Option<NumericRange>,
         /// Per-pixel drawing commands with flat spans and ranges
         values: Vec<AnalogDrawingCommand>,
         /// Pixel position of timestamp 0 (start of signal data).

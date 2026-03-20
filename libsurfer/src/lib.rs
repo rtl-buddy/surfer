@@ -1397,6 +1397,10 @@ impl SystemState {
                     translator.reload(self.channels.msg_sender.clone());
                 }
                 self.variable_name_info_cache.borrow_mut().clear();
+
+                if let Some(waves) = self.user.waves.as_mut() {
+                    waves.compute_variable_display_names();
+                }
             }
             Message::SuggestReloadWaveform => match self.autoreload_files() {
                 AutoLoad::Always => self.update(Message::ReloadWaveform(true))?,

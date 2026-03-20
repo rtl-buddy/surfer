@@ -911,12 +911,18 @@ impl SystemState {
         };
 
         ui.menu_button("Format", |ui| {
+            ui.set_min_width(180.0);
+
             for name in preferred_translators {
                 menu_entry(ui, name);
             }
+
             if !bad_translators.is_empty() {
                 ui.separator();
+
                 ui.menu_button("Not recommended", |ui| {
+                    ui.set_min_width(180.0);
+
                     for name in bad_translators {
                         menu_entry(ui, name);
                     }

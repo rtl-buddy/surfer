@@ -1,5 +1,6 @@
 //! Menu handling.
-use egui::{Button, Context, TextWrapMode, TopBottomPanel, Ui};
+use egui::containers::menu::{MenuConfig, SubMenuButton};
+use egui::{Button, Context, PopupCloseBehavior, TextWrapMode, TopBottomPanel, Ui};
 use eyre::WrapErr;
 use futures::executor::block_on;
 use itertools::Itertools;
@@ -634,30 +635,25 @@ impl SystemState {
             if let DisplayedItem::Variable(variable) = clicked_item
                 && wave_container.supports_analog()
             {
-                ui.menu_button("Analog", |ui| {
-                    use crate::displayed_item::AnalogSettings;
-                    let current = variable.analog.as_ref().map(|a| a.settings);
+                let displayed_field_ref: DisplayedFieldRef = clicked_item_ref.into();
+                let translator = waves.variable_translator(&displayed_field_ref, &self.translators);
+                let type_limits_available = meta
+                    .as_ref()
+                    .is_some_and(|m| translator.numeric_range(m).is_some());
 
-                    let options = [
-                        ("Off", None),
-                        ("Step (Viewport)", Some(AnalogSettings::step_viewport())),
-                        ("Step (Global)", Some(AnalogSettings::step_global())),
-                        (
-                            "Interpolated (Viewport)",
-                            Some(AnalogSettings::interpolated_viewport()),
-                        ),
-                        (
-                            "Interpolated (Global)",
-                            Some(AnalogSettings::interpolated_global()),
-                        ),
-                    ];
-
-                    for (label, config) in options {
-                        if ui.radio(current == config, label).clicked() && current != config {
-                            msgs.push(Message::SetAnalogSettings(group_target, config));
-                        }
-                    }
-                });
+                SubMenuButton::new("Analog")
+                    .config(
+                        MenuConfig::new().close_behavior(PopupCloseBehavior::CloseOnClickOutside),
+                    )
+                    .ui(ui, |ui| {
+                        Self::analog_submenu(
+                            ui,
+                            msgs,
+                            variable,
+                            group_target,
+                            type_limits_available,
+                        );
+                    });
             }
         }
 
@@ -763,6 +759,75 @@ impl SystemState {
             if ui.button("View markers").clicked() {
                 msgs.push(Message::SetCursorWindowVisible(true));
             }
+        }
+    }
+
+    fn analog_submenu(
+        ui: &mut Ui,
+        msgs: &mut Vec<Message>,
+        variable: &crate::displayed_item::DisplayedVariable,
+        group_target: MessageTarget<VisibleItemIndex>,
+        type_limits_available: bool,
+    ) {
+        use crate::displayed_item::{AnalogRenderStyle, AnalogSettings, AnalogYAxisScale};
+
+        let current = variable.analog.as_ref().map(|a| a.settings);
+        let current_style = current.map(|s| s.render_style);
+        let current_scale = current.map(|s| s.y_axis_scale);
+
+        ui.label("Render style");
+        if ui.radio(current.is_none(), "Off").clicked() && current.is_some() {
+            msgs.push(Message::SetAnalogSettings(group_target, None));
+        }
+        for style in [AnalogRenderStyle::Step, AnalogRenderStyle::Interpolated] {
+            if ui
+                .radio(current_style == Some(style), style.label())
+                .clicked()
+                && current_style != Some(style)
+            {
+                let new = AnalogSettings {
+                    render_style: style,
+                    ..current.unwrap_or_default()
+                };
+                msgs.push(Message::SetAnalogSettings(group_target, Some(new)));
+            }
+        }
+
+        ui.separator();
+
+        ui.label("Y-axis scale");
+        for scale in [AnalogYAxisScale::Viewport, AnalogYAxisScale::Global] {
+            if ui
+                .radio(current_scale == Some(scale), scale.label())
+                .clicked()
+                && current_scale != Some(scale)
+            {
+                let new = AnalogSettings {
+                    y_axis_scale: scale,
+                    ..current.unwrap_or_default()
+                };
+                msgs.push(Message::SetAnalogSettings(group_target, Some(new)));
+            }
+        }
+
+        let scale = AnalogYAxisScale::TypeLimits;
+        let response = ui.add_enabled(
+            type_limits_available,
+            egui::RadioButton::new(current_scale == Some(scale), scale.label()),
+        );
+        if !type_limits_available {
+            response.on_disabled_hover_text("Type range not available for this translator");
+        } else if response.clicked() && current_scale != Some(scale) {
+            let new = AnalogSettings {
+                y_axis_scale: scale,
+                ..current.unwrap_or_default()
+            };
+            msgs.push(Message::SetAnalogSettings(group_target, Some(new)));
+        }
+
+        ui.separator();
+        if ui.button("Done").clicked() {
+            ui.close();
         }
     }
 

@@ -15,6 +15,7 @@ use emath::{Align2, Pos2, Rect, Vec2};
 use epaint::{CornerRadius, PathShape, Stroke};
 use num::{BigInt, ToPrimitive};
 use std::collections::HashMap;
+use surfer_translation_types::NumericRange;
 
 pub enum AnalogDrawingCommand {
     /// Constant value from `start_px` to `end_px`.
@@ -96,12 +97,18 @@ pub(crate) fn variable_analog_draw_commands(
         }
     };
 
+    let meta = wave_container
+        .variable_meta(&displayed_variable.variable_ref)
+        .ok();
+    let type_limits = meta.as_ref().and_then(|m| translator.numeric_range(m));
+
     let analog_commands = CommandBuilder::new(
         cache,
         viewport,
         &num_timestamps,
         view_width,
         render_mode.settings,
+        type_limits,
     )
     .build();
 
@@ -129,6 +136,7 @@ pub fn draw_analog(
         viewport_max,
         global_min,
         global_max,
+        type_limits,
         values,
         min_valid_pixel,
         max_valid_pixel,
@@ -144,6 +152,7 @@ pub fn draw_analog(
         *viewport_max,
         *global_min,
         *global_max,
+        *type_limits,
         analog_settings,
     );
 
@@ -200,11 +209,15 @@ fn select_value_range(
     viewport_max: f64,
     global_min: f64,
     global_max: f64,
+    type_limits: Option<NumericRange>,
     settings: &AnalogSettings,
 ) -> (f64, f64) {
     let (min, max) = match settings.y_axis_scale {
         crate::displayed_item::AnalogYAxisScale::Viewport => (viewport_min, viewport_max),
         crate::displayed_item::AnalogYAxisScale::Global => (global_min, global_max),
+        crate::displayed_item::AnalogYAxisScale::TypeLimits => type_limits
+            .map(|r| (r.min, r.max))
+            .unwrap_or((global_min, global_max)),
     };
 
     // Handle all-NaN case: min=INFINITY, max=NEG_INFINITY
@@ -213,7 +226,7 @@ fn select_value_range(
     }
 
     // Avoid division by zero
-    if (min - max).abs() < f64::EPSILON {
+    if (max - min).abs() < f64::EPSILON {
         (min - 0.5, max + 0.5)
     } else {
         (min, max)
@@ -230,6 +243,7 @@ struct CommandBuilder<'a> {
     max_valid_pixel: f32,
     output: CommandOutput,
     analog_settings: AnalogSettings,
+    type_limits: Option<NumericRange>,
 }
 
 /// Accumulates commands and tracks value bounds.
@@ -315,6 +329,7 @@ impl<'a> CommandBuilder<'a> {
         num_timestamps: &'a BigInt,
         view_width: f32,
         analog_settings: AnalogSettings,
+        type_limits: Option<NumericRange>,
     ) -> Self {
         let min_valid_pixel =
             viewport.pixel_from_time(&BigInt::from(0), view_width, num_timestamps);
@@ -329,6 +344,7 @@ impl<'a> CommandBuilder<'a> {
             max_valid_pixel,
             output: CommandOutput::new(),
             analog_settings,
+            type_limits,
         }
     }
 
@@ -524,6 +540,7 @@ impl<'a> CommandBuilder<'a> {
             viewport_max: self.output.viewport_max,
             global_min: self.cache.global_min,
             global_max: self.cache.global_max,
+            type_limits: self.type_limits,
             values: self.output.commands,
             min_valid_pixel: self.min_valid_pixel,
             max_valid_pixel: self.max_valid_pixel,

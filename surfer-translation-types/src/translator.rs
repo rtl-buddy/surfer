@@ -15,6 +15,16 @@ use crate::{
     VariableInfo, VariableMeta, VariableValue, parse_numeric_string,
 };
 
+/// The numeric range that a translator can represent for a given variable.
+/// Used for Type Limits Y-axis scaling in analog waveform display.
+#[cfg_attr(feature = "wasm_plugins", derive(FromBytes, ToBytes))]
+#[cfg_attr(feature = "wasm_plugins", encoding(Json))]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct NumericRange {
+    pub min: f64,
+    pub max: f64,
+}
+
 #[cfg_attr(feature = "wasm_plugins", derive(FromBytes, ToBytes))]
 #[cfg_attr(feature = "wasm_plugins", encoding(Json))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -139,6 +149,11 @@ pub trait Translator<VarId, ScopeId, Message>: Send + Sync {
         let _ = variable;
         None
     }
+
+    fn numeric_range(&self, variable: &VariableMeta<VarId, ScopeId>) -> Option<NumericRange> {
+        let _ = variable;
+        None
+    }
 }
 
 /// A translator that only produces non-hierarchical values
@@ -183,6 +198,10 @@ pub trait BasicTranslator<VarId, ScopeId>: Send + Sync {
     /// If this is not implemented, it will default to [`VariableInfo::Bits`].
     fn variable_info(&self, _variable: &VariableMeta<VarId, ScopeId>) -> Result<VariableInfo> {
         Ok(VariableInfo::Bits)
+    }
+
+    fn basic_numeric_range(&self, _num_bits: u32) -> Option<NumericRange> {
+        None
     }
 }
 

@@ -35,9 +35,9 @@ pub use instruction_translators::*;
 use itertools::Itertools;
 pub use numeric_translators::*;
 use surfer_translation_types::{
-    BasicTranslator, HierFormatResult, SubFieldFlatTranslationResult, TranslatedValue,
-    TranslationPreference, TranslationResult, Translator, ValueKind, ValueRepr, VariableEncoding,
-    VariableInfo, VariableValue,
+    BasicTranslator, HierFormatResult, NumericRange, SubFieldFlatTranslationResult,
+    TranslatedValue, TranslationPreference, TranslationResult, Translator, ValueKind, ValueRepr,
+    VariableEncoding, VariableInfo, VariableValue,
 };
 
 use crate::config::SurferTheme;
@@ -47,6 +47,20 @@ use crate::{message::Message, wave_container::VariableMeta};
 
 pub type DynTranslator = dyn Translator<VarId, ScopeId, Message>;
 pub type DynBasicTranslator = dyn BasicTranslator<VarId, ScopeId>;
+
+fn integer_numeric_range(num_bits: u32, signed: bool) -> Option<NumericRange> {
+    if num_bits == 0 || num_bits >= f64::MAX_EXP as u32 {
+        return None;
+    }
+    let (min, max) = if signed {
+        let half = 2.0f64.powi((num_bits - 1) as i32);
+        (-half, half - 1.0)
+    } else {
+        (0.0, 2.0f64.powi(num_bits as i32) - 1.0)
+    };
+    // Span must be finite for Y-axis scaling
+    (max - min).is_finite().then_some(NumericRange { min, max })
+}
 
 #[cfg(not(target_arch = "wasm32"))]
 static DECODERS_DIR: &str = "decoders";
@@ -164,6 +178,15 @@ impl Translator<VarId, ScopeId, Message> for AnyTranslator {
             AnyTranslator::Python(t) => {
                 t.basic_translate_numeric(variable.num_bits.unwrap_or(0), value)
             }
+        }
+    }
+
+    fn numeric_range(&self, variable: &VariableMeta) -> Option<NumericRange> {
+        match self {
+            AnyTranslator::Full(t) => t.numeric_range(variable),
+            AnyTranslator::Basic(t) => t.basic_numeric_range(variable.num_bits.unwrap_or(0)),
+            #[cfg(feature = "python")]
+            AnyTranslator::Python(t) => t.basic_numeric_range(variable.num_bits.unwrap_or(0)),
         }
     }
 }

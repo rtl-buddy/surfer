@@ -9,6 +9,9 @@ use std::sync::Arc;
 use crate::analog_signal_cache::AnalogCacheEntry;
 use surfer_translation_types::VariableInfo;
 
+use crate::translation::DynTranslator;
+use crate::wave_container::VariableMeta;
+
 use crate::config::SurferConfig;
 use crate::transaction_container::TransactionStreamRef;
 use crate::wave_container::{FieldRef, VariableRef, VariableRefExt, WaveContainer};
@@ -78,49 +81,46 @@ pub enum AnalogRenderStyle {
     Interpolated,
 }
 
+impl AnalogRenderStyle {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Step => "Step",
+            Self::Interpolated => "Interpolated",
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Default)]
 pub enum AnalogYAxisScale {
     #[default]
     Viewport,
     Global,
+    TypeLimits,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+impl AnalogYAxisScale {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Viewport => "Viewport",
+            Self::Global => "Global",
+            Self::TypeLimits => "Type Limits",
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Default)]
 pub struct AnalogSettings {
     pub render_style: AnalogRenderStyle,
     pub y_axis_scale: AnalogYAxisScale,
 }
 
 impl AnalogSettings {
-    #[must_use]
-    pub fn step_viewport() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Step,
-            y_axis_scale: AnalogYAxisScale::Viewport,
-        }
-    }
-
-    #[must_use]
-    pub fn step_global() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Step,
-            y_axis_scale: AnalogYAxisScale::Global,
-        }
-    }
-
-    #[must_use]
-    pub fn interpolated_viewport() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Interpolated,
-            y_axis_scale: AnalogYAxisScale::Viewport,
-        }
-    }
-
-    #[must_use]
-    pub fn interpolated_global() -> Self {
-        Self {
-            render_style: AnalogRenderStyle::Interpolated,
-            y_axis_scale: AnalogYAxisScale::Global,
+    /// Downgrade `TypeLimits` to `Global` when the translator doesn't support numeric ranges.
+    pub fn downgrade_type_limits(&mut self) {
+        if self.y_axis_scale == AnalogYAxisScale::TypeLimits {
+            self.y_axis_scale = AnalogYAxisScale::Global;
         }
     }
 }
@@ -165,26 +165,6 @@ impl AnalogVarState {
             cache: None,
         }
     }
-
-    #[must_use]
-    pub fn step_viewport() -> Self {
-        Self::new(AnalogSettings::step_viewport())
-    }
-
-    #[must_use]
-    pub fn step_global() -> Self {
-        Self::new(AnalogSettings::step_global())
-    }
-
-    #[must_use]
-    pub fn interpolated_viewport() -> Self {
-        Self::new(AnalogSettings::interpolated_viewport())
-    }
-
-    #[must_use]
-    pub fn interpolated_global() -> Self {
-        Self::new(AnalogSettings::interpolated_global())
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -204,6 +184,19 @@ pub struct DisplayedVariable {
 }
 
 impl DisplayedVariable {
+    /// Downgrade `TypeLimits` to `Global` when the translator doesn't support numeric ranges.
+    pub fn downgrade_type_limits_if_unsupported(
+        &mut self,
+        translator: &DynTranslator,
+        meta: &VariableMeta,
+    ) {
+        if let Some(ref mut analog) = self.analog
+            && translator.numeric_range(meta).is_none()
+        {
+            analog.settings.downgrade_type_limits();
+        }
+    }
+
     #[must_use]
     pub fn get_format(&self, field: &[String]) -> Option<&String> {
         if field.is_empty() {

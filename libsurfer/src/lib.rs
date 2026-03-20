@@ -741,6 +741,8 @@ impl SystemState {
 
                             variable.format = Some(format.clone());
                             variable.info = new_info;
+
+                            variable.downgrade_type_limits_if_unsupported(translator, &meta);
                         } else {
                             variable
                                 .field_formats

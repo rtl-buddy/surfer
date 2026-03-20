@@ -318,6 +318,7 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
             "transaction_prev",
             "copy_value",
             "copy_wavedrom_json",
+            "copy_viewport_png",
             "pause_simulation",
             "unpause_simulation",
             "undo",
@@ -712,6 +713,9 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
                 ),
                 "copy_wavedrom_json" => Some(Command::Terminal(
                     Message::SelectedSignalsToClipboardAsWavedromJson,
+                )),
+                "copy_viewport_png" => Some(Command::Terminal(
+                    Message::CopyViewportAsPng,
                 )),
                 "preference_set_clock_highlight" => single_word(
                     ["Line", "Cycle", "None"]

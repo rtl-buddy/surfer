@@ -53,6 +53,7 @@ pub mod variable_filter;
 mod variable_index;
 pub mod variable_meta;
 pub mod variable_name_type;
+pub mod screenshot;
 pub mod view;
 pub mod viewport;
 #[cfg(target_arch = "wasm32")]
@@ -1766,6 +1767,9 @@ impl SystemState {
                         }
                     },
                 );
+            }
+            Message::CopyViewportAsPng => {
+                crate::screenshot::copy_viewport_as_png(self);
             }
             Message::SelectedSignalsToClipboardAsWavedromJson => {
                 if let Some(waves) = &self.user.waves {

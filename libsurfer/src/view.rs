@@ -687,7 +687,7 @@ impl SystemState {
         response
     }
 
-    fn draw_item_list(&mut self, msgs: &mut Vec<Message>, ui: &mut Ui, ctx: &egui::Context) {
+    pub(crate) fn draw_item_list(&mut self, msgs: &mut Vec<Message>, ui: &mut Ui, ctx: &egui::Context) {
         let mut item_offsets = Vec::new();
 
         let any_groups = self
@@ -1406,7 +1406,7 @@ impl SystemState {
         }
     }
 
-    fn draw_var_values(&self, ui: &mut Ui, msgs: &mut Vec<Message>) {
+    pub(crate) fn draw_var_values(&self, ui: &mut Ui, msgs: &mut Vec<Message>) {
         let Some(waves) = &self.user.waves else {
             return;
         };

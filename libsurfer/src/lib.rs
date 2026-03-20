@@ -54,6 +54,7 @@ pub mod variable_filter;
 mod variable_index;
 pub mod variable_meta;
 pub mod variable_name_type;
+pub mod screenshot;
 pub mod view;
 pub mod viewport;
 #[cfg(target_arch = "wasm32")]
@@ -63,6 +64,7 @@ pub mod wasm_panic;
 pub mod wave_container;
 pub mod wave_data;
 pub mod wave_source;
+pub mod wavedrom_export;
 pub mod wcp;
 pub mod wellen;
 
@@ -1782,6 +1784,28 @@ impl SystemState {
                         }
                     },
                 );
+            }
+            Message::CopyViewportAsPng => {
+                crate::screenshot::copy_viewport_as_png(self);
+            }
+            Message::SelectedSignalsToClipboardAsWavedromJson => {
+                if let Some(waves) = &self.user.waves {
+                    match crate::wavedrom_export::generate_wavedrom_json(
+                        waves,
+                        &self.translators,
+                        0,
+                    ) {
+                        Some(json) => {
+                            if let Some(ctx) = &self.context {
+                                ctx.copy_text(json);
+                                info!("WaveDrom JSON copied to clipboard");
+                            }
+                        }
+                        None => {
+                            warn!("No WaveDrom JSON generated. Make sure signals are selected.");
+                        }
+                    }
+                }
             }
             Message::SetViewportStrategy(s) => {
                 if let Some(waves) = &mut self.user.waves {

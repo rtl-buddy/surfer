@@ -22,6 +22,7 @@ repository = "https://gitlab.com/surfer-project/surfer/"
 
 [workspace.dependencies]
 
+arboard = "3.4"
 base64 = "0.22"
 bincode = "1.3.3"
 bytes = "1.11"

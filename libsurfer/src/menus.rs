@@ -706,6 +706,13 @@ impl SystemState {
                         MessageTarget::Explicit(vidx),
                     ));
                 }
+                ui.separator();
+                if ui.button("Selected as WaveDrom JSON").clicked() {
+                    msgs.push(Message::SelectedSignalsToClipboardAsWavedromJson);
+                }
+                if ui.button("Viewport as PNG").clicked() {
+                    msgs.push(Message::CopyViewportAsPng);
+                }
             });
         }
         ui.separator();

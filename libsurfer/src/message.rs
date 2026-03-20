@@ -357,6 +357,8 @@ pub enum Message {
     VariableValueToClipbord(MessageTarget<VisibleItemIndex>),
     VariableNameToClipboard(MessageTarget<VisibleItemIndex>),
     VariableFullNameToClipboard(MessageTarget<VisibleItemIndex>),
+    SelectedSignalsToClipboardAsWavedromJson,
+    CopyViewportAsPng,
     InvalidateDrawCommands,
     AddGraphic(GraphicId, Graphic),
     RemoveGraphic(GraphicId),

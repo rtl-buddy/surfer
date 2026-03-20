@@ -2964,6 +2964,7 @@ dependencies = [
 name = "libsurfer"
 version = "0.7.0-dev"
 dependencies = [
+ "arboard",
  "base64",
  "bincode",
  "bytes",

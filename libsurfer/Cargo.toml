@@ -48,6 +48,7 @@ wasm_plugins = [
 ]
 
 [dependencies]
+arboard.workspace = true
 base64.workspace = true
 bincode.workspace = true
 bytes.workspace = true
@@ -59,6 +60,7 @@ derive_more.workspace = true
 ecolor.workspace = true
 eframe.workspace = true
 egui.workspace = true
+egui_skia_renderer = { git = "https://gitlab.com/oscargus/egui_skia_renderer.git", rev = "279dfddcc8f4982309935d368827019e9736dc89" }
 egui-remixicon.workspace = true
 egui_extras.workspace = true
 egui_plot = { workspace = true, optional = true }
@@ -72,6 +74,7 @@ futures-core.workspace = true
 futures-util.workspace = true
 fuzzy-matcher.workspace = true
 half.workspace = true
+image.workspace = true
 instruction-decoder.workspace = true
 itertools.workspace = true
 leb128.workspace = true
@@ -105,8 +108,6 @@ wellen.workspace = true
 vergen-gitcl = { workspace = true, features = ["build"] }
 
 [dev-dependencies]
-egui_skia_renderer = { git = "https://gitlab.com/oscargus/egui_skia_renderer.git", rev = "279dfddcc8f4982309935d368827019e9736dc89" }
-image.workspace = true
 image-compare.workspace = true
 port_check.workspace = true
 project-root.workspace = true

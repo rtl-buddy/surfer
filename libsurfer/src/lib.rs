@@ -62,6 +62,7 @@ pub mod wasm_panic;
 pub mod wave_container;
 pub mod wave_data;
 pub mod wave_source;
+pub mod wavedrom_export;
 pub mod wcp;
 pub mod wellen;
 
@@ -1765,6 +1766,25 @@ impl SystemState {
                         }
                     },
                 );
+            }
+            Message::SelectedSignalsToClipboardAsWavedromJson => {
+                if let Some(waves) = &self.user.waves {
+                    match crate::wavedrom_export::generate_wavedrom_json(
+                        waves,
+                        &self.translators,
+                        0,
+                    ) {
+                        Some(json) => {
+                            if let Some(ctx) = &self.context {
+                                ctx.copy_text(json);
+                                info!("WaveDrom JSON copied to clipboard");
+                            }
+                        }
+                        None => {
+                            warn!("No WaveDrom JSON generated. Make sure signals are selected.");
+                        }
+                    }
+                }
             }
             Message::SetViewportStrategy(s) => {
                 if let Some(waves) = &mut self.user.waves {

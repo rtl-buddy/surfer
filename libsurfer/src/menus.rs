@@ -703,6 +703,10 @@ impl SystemState {
                         MessageTarget::Explicit(vidx),
                     ));
                 }
+                ui.separator();
+                if ui.button("Selected as WaveDrom JSON").clicked() {
+                    msgs.push(Message::SelectedSignalsToClipboardAsWavedromJson);
+                }
             });
         }
         ui.separator();

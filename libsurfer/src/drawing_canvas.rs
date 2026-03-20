@@ -515,7 +515,7 @@ impl SystemState {
         let (focused_tx_ref, old_focused_tx) = &waves.focused_transaction;
         let mut new_focused_tx: Option<&Transaction> = None;
 
-        let viewport = waves.viewports[viewport_idx];
+        let viewport = &waves.viewports[viewport_idx];
         let num_timestamps = waves.safe_num_timestamps();
 
         let displayed_streams = waves

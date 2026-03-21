@@ -660,6 +660,21 @@ impl WellenContainer {
     }
 
     #[must_use]
+    /// True if the scope represents an array
+    pub fn scope_is_array(&self, scope: &ScopeRef) -> bool {
+        if let Some(scope_ref) = self.lookup_scope(scope) {
+            let h = &self.hierarchy;
+            let scope = &h[scope_ref];
+            matches!(
+                scope.scope_type(),
+                ScopeType::VhdlArray | ScopeType::SvArray
+            )
+        } else {
+            false
+        }
+    }
+
+    #[must_use]
     pub fn get_scope_tooltip_data(&self, scope: &ScopeRef) -> String {
         let mut out = String::new();
         if let Some(scope_ref) = self.lookup_scope(scope) {

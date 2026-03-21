@@ -524,6 +524,16 @@ impl WaveContainer {
         }
     }
 
+    /// Returns the full names of all array scopes in the design.
+    #[must_use]
+    pub fn array_names(&self) -> Vec<String> {
+        match self {
+            WaveContainer::Wellen(f) => f.array_scope_names(),
+            WaveContainer::Empty => vec![],
+            WaveContainer::Cxxrtl(_) => vec![],
+        }
+    }
+
     #[must_use]
     pub fn metadata(&self) -> MetaData {
         match self {

@@ -471,7 +471,7 @@ impl SystemState {
                 .is_some_and(|wc| wc.scope_is_array(scope))
                 && ui.button("Show frame buffer").clicked()
             {
-                msgs.push(Message::SetFrameBufferScope(scope.clone()));
+                msgs.push(Message::SetFrameBufferArray(scope.clone()));
             }
         });
         response.clicked().then(|| {

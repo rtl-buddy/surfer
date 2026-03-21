@@ -484,10 +484,24 @@ impl SystemState {
                 waves.scroll_offset = offset;
             }
             Message::SetLogsVisible(visibility) => self.user.show_logs = visibility,
-            Message::SetFrameBufferVariable(None) => {
+            Message::SetFrameBufferVariable(variable_ref) => {
+                let waves = self.user.waves.as_mut()?;
+                if let Some(cmd) = waves
+                    .inner
+                    .as_waves_mut()?
+                    .load_variables(std::iter::once(&variable_ref))
+                    .map_err(|e| error!("{e:#?}"))
+                    .ok()
+                    .flatten()
+                {
+                    self.load_variables(cmd);
+                }
+                self.frame_buffer_content = Some(FrameBufferContent::Variable(variable_ref));
+            }
+            Message::SetFrameBufferVisibleVariable(None) => {
                 self.frame_buffer_content = None;
             }
-            Message::SetFrameBufferVariable(Some(vidx)) => {
+            Message::SetFrameBufferVisibleVariable(Some(vidx)) => {
                 let waves = self.user.waves.as_ref()?;
                 self.frame_buffer_content = waves
                     .items_tree
@@ -500,10 +514,22 @@ impl SystemState {
                         _ => None,
                     });
             }
-            Message::SetFrameBufferScope(scope_ref) => {
-                let waves = self.user.waves.as_ref()?;
-                let wave_container = waves.inner.as_waves()?;
-                let variables = wave_container.variables_in_scope(&scope_ref);
+            Message::SetFrameBufferArray(scope_ref) => {
+                let waves = self.user.waves.as_mut()?;
+                let variables = {
+                    let wave_container = waves.inner.as_waves()?;
+                    wave_container.variables_in_scope(&scope_ref)
+                };
+                if let Some(cmd) = waves
+                    .inner
+                    .as_waves_mut()?
+                    .load_variables(variables.iter())
+                    .map_err(|e| error!("{e:#?}"))
+                    .ok()
+                    .flatten()
+                {
+                    self.load_variables(cmd);
+                }
                 let mut indices = variables.iter().map(variable_array_index);
                 let first = indices.next()?;
                 let (mut min_index, mut max_index) = (first, first);

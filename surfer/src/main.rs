@@ -1,5 +1,7 @@
 #![cfg_attr(not(target_arch = "wasm32"), deny(unused_crate_dependencies))]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#[cfg(all(feature = "xdg-portal", feature = "gtk-dialog"))]
+compile_error!("features `xdg-portal` and `gtk-dialog` are mutually exclusive");
 
 #[cfg(not(target_arch = "wasm32"))]
 mod main_impl {

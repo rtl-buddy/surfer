@@ -35,7 +35,9 @@ tempfile.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["performance_plot"]
+default = ["performance_plot", "xdg-portal"]
+xdg-portal = ["rfd/xdg-portal"]
+gtk-dialog = ["rfd/gtk3"]
 accesskit = ["eframe/accesskit", "eframe/web_screen_reader"]
 f128 = ["dep:f128"]
 performance_plot = ["dep:egui_plot"]

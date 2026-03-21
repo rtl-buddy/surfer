@@ -11,7 +11,15 @@ pub mod clock_highlighting;
 pub mod command_parser;
 pub mod command_prompt;
 pub mod config;
+pub mod config_dialog;
+pub mod config_dialog_egui;
+pub mod config_dialog_ui;
 pub mod cxxrtl;
+
+// Generated metadata from build.rs
+pub mod config_metadata {
+    include!(concat!(env!("OUT_DIR"), "/config_metadata.rs"));
+}
 pub mod cxxrtl_container;
 pub mod data_container;
 pub mod dialog;

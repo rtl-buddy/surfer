@@ -103,6 +103,7 @@ wellen.workspace = true
 
 [build-dependencies]
 vergen-gitcl = { workspace = true, features = ["build"] }
+syn = { version = "2.0", features = ["full"] }
 
 [dev-dependencies]
 egui_skia_renderer = { git = "https://gitlab.com/oscargus/egui_skia_renderer.git", rev = "c4cb33b99f3d98e8d05d1bd62bdaa550057c2178" }

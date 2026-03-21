@@ -524,6 +524,16 @@ impl WaveContainer {
         }
     }
 
+    /// Returns the full names of all array scopes in the design.
+    #[must_use]
+    pub fn array_names(&self) -> Vec<String> {
+        match self {
+            WaveContainer::Wellen(f) => f.array_scope_names(),
+            WaveContainer::Empty => vec![],
+            WaveContainer::Cxxrtl(_) => vec![],
+        }
+    }
+
     #[must_use]
     pub fn metadata(&self) -> MetaData {
         match self {
@@ -596,6 +606,16 @@ impl WaveContainer {
             WaveContainer::Wellen(f) => f.scope_is_variable(scope),
             WaveContainer::Empty => false,
             WaveContainer::Cxxrtl(_) => false, // TODO: Check if scope is variable
+        }
+    }
+
+    #[must_use]
+    /// True if scope is an array
+    pub fn scope_is_array(&self, scope: &ScopeRef) -> bool {
+        match self {
+            WaveContainer::Wellen(f) => f.scope_is_array(scope),
+            WaveContainer::Empty => false,
+            WaveContainer::Cxxrtl(_) => false, // TODO: Check if scope is array
         }
     }
 

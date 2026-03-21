@@ -661,6 +661,10 @@ snapshot_ui_with_file_and_msgs! {recursive_add_scope, "examples/counter.vcd", [
     Message::AddScope(ScopeRef::from_strs(&["tb"]), true),
 ]}
 
+snapshot_ui_with_file_and_msgs! {recursive_add_scope_with_types, "examples/manytypes2.fst", [
+    Message::AddScope(ScopeRef::from_strs(&["comprehensive2_tb"]), true),
+]}
+
 snapshot_ui_with_file_and_msgs! {add_scope_as_group, "examples/picorv32.vcd", [
     Message::AddScopeAsGroup(ScopeRef::from_strs(&["testbench"]), false),
 ]}
@@ -1116,13 +1120,19 @@ snapshot_ui_with_file_and_msgs! {selection_extend_change_color, "examples/counte
 
 snapshot_ui_with_file_and_msgs! {framebuffer_no_cursor, "examples/counter.vcd", [
     Message::AddScope(ScopeRef::from_strs(&["tb"]), false),
-    Message::SetFrameBufferVariable(Some(VisibleItemIndex(1)))
+    Message::SetFrameBufferVisibleVariable(Some(VisibleItemIndex(1)))
 ]}
 
 snapshot_ui_with_file_and_msgs! {framebuffer_cursor, "examples/picorv32.vcd", [
     Message::AddScope(ScopeRef::from_strs(&["testbench"]), false),
-    Message::SetFrameBufferVariable(Some(VisibleItemIndex(2))),
+    Message::SetFrameBufferVisibleVariable(Some(VisibleItemIndex(2))),
     Message::CursorSet(BigInt::from(4700000))
+]}
+
+snapshot_ui_with_file_and_msgs! {framebuffer_array, "examples/manytypes2.fst", [
+    Message::AddScopeAsGroup(ScopeRef::from_hierarchy_string("comprehensive2_tb.array_signal"), false),
+    Message::CursorSet(BigInt::from(470000000)),
+    Message::SetFrameBufferArray(ScopeRef::from_hierarchy_string("comprehensive2_tb.array_signal"))
 ]}
 
 snapshot_ui!(regex_error_indication, || {

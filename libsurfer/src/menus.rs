@@ -684,7 +684,7 @@ impl SystemState {
         if path.is_some() {
             // Actual signal. Not one of: divider, timeline, marker.
             if ui.button("Show frame buffer").clicked() {
-                msgs.push(Message::SetFrameBufferVariable(Some(vidx)));
+                msgs.push(Message::SetFrameBufferVisibleVariable(Some(vidx)));
             }
             ui.menu_button("Copy", |ui| {
                 if waves.cursor.is_some() && ui.button("Value").clicked() {

@@ -614,6 +614,31 @@ impl WellenContainer {
     }
 
     #[must_use]
+    pub fn array_scope_names(&self) -> Vec<String> {
+        let h = &self.hierarchy;
+
+        fn collect_array_scopes(h: &Hierarchy, scope_id: wellen::ScopeRef, out: &mut Vec<String>) {
+            let scope = &h[scope_id];
+            if matches!(
+                scope.scope_type(),
+                ScopeType::VhdlArray | ScopeType::SvArray
+            ) {
+                out.push(scope.full_name(h));
+            }
+
+            for child in scope.scopes(h) {
+                collect_array_scopes(h, child, out);
+            }
+        }
+
+        let mut out = Vec::new();
+        for root in h.scopes() {
+            collect_array_scopes(h, root, &mut out);
+        }
+        out
+    }
+
+    #[must_use]
     pub fn root_scopes(&self) -> Vec<ScopeRef> {
         let h = &self.hierarchy;
         h.scopes()

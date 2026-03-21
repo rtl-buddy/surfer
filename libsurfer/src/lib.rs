@@ -484,10 +484,13 @@ impl SystemState {
                 waves.scroll_offset = offset;
             }
             Message::SetLogsVisible(visibility) => self.user.show_logs = visibility,
-            Message::SetFrameBufferVariable(None) => {
+            Message::SetFrameBufferVariable(variable_ref) => {
+                self.frame_buffer_content = Some(FrameBufferContent::Variable(variable_ref));
+            }
+            Message::SetFrameBufferVisibleVariable(None) => {
                 self.frame_buffer_content = None;
             }
-            Message::SetFrameBufferVariable(Some(vidx)) => {
+            Message::SetFrameBufferVisibleVariable(Some(vidx)) => {
                 let waves = self.user.waves.as_ref()?;
                 self.frame_buffer_content = waves
                     .items_tree
@@ -500,7 +503,7 @@ impl SystemState {
                         _ => None,
                     });
             }
-            Message::SetFrameBufferScope(scope_ref) => {
+            Message::SetFrameBufferArray(scope_ref) => {
                 let waves = self.user.waves.as_ref()?;
                 let wave_container = waves.inner.as_waves()?;
                 let variables = wave_container.variables_in_scope(&scope_ref);

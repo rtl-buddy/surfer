@@ -75,7 +75,6 @@ impl SystemState {
                         ui.add(DragValue::new(&mut settings.grayscale_bits).range(1..=8));
                     });
                 }
-                self.draw_scope_index_range(ui);
 
                 ui.separator();
 
@@ -85,7 +84,6 @@ impl SystemState {
                     return;
                 }
 
-                let settings = &mut self.user.frame_buffer;
                 let pixel_colors = if settings.rgb_mode {
                     let r_bits = settings.r_bits as usize;
                     let g_bits = settings.g_bits as usize;
@@ -122,6 +120,9 @@ impl SystemState {
                         });
                     }
                 });
+                self.draw_scope_index_range(ui);
+
+                let settings = &mut self.user.frame_buffer;
                 let max_columns = pixel_colors.len().max(1);
                 settings.pixels_per_row = settings.pixels_per_row.clamp(1, max_columns);
 
@@ -177,7 +178,7 @@ impl SystemState {
             });
 
         if !open {
-            msgs.push(Message::SetFrameBufferVariable(None));
+            msgs.push(Message::SetFrameBufferVisibleVariable(None));
         }
     }
 

@@ -599,6 +599,16 @@ impl WaveContainer {
         }
     }
 
+    #[must_use]
+    /// True if scope is an array
+    pub fn scope_is_array(&self, scope: &ScopeRef) -> bool {
+        match self {
+            WaveContainer::Wellen(f) => f.scope_is_array(scope),
+            WaveContainer::Empty => false,
+            WaveContainer::Cxxrtl(_) => false, // TODO: Check if scope is array
+        }
+    }
+
     /// Returns a human readable string with information about a scope.
     /// The scope name itself should not be included, since it will be prepended automatically.
     #[must_use]

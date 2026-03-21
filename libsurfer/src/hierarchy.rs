@@ -465,6 +465,14 @@ impl SystemState {
             if ui.button("Add scope as group recursively").clicked() {
                 msgs.push(Message::AddScopeAsGroup(scope.clone(), true));
             }
+            if wave
+                .inner
+                .as_waves()
+                .is_some_and(|wc| wc.scope_is_array(scope))
+                && ui.button("Show frame buffer").clicked()
+            {
+                msgs.push(Message::SetFrameBufferScope(scope.clone()));
+            }
         });
         response.clicked().then(|| {
             msgs.push(Message::SetActiveScope(if is_selected {

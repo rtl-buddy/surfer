@@ -3,7 +3,7 @@ use egui::{CornerRadius, DragValue, Pos2, Rect, Sense, Stroke};
 use serde::{Deserialize, Serialize};
 use surfer_translation_types::VariableValue;
 
-use crate::wave_container::VariableRefExt;
+use crate::wave_container::{ScopeRef, ScopeRefExt, VariableRef, VariableRefExt};
 use crate::{Message, system_state::SystemState};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -15,6 +15,17 @@ pub struct FrameBufferSettings {
     pub r_bits: u8,
     pub g_bits: u8,
     pub b_bits: u8,
+}
+
+pub enum FrameBufferContent {
+    Scope {
+        scope_ref: ScopeRef,
+        min_index: i64,
+        max_index: i64,
+        first_index: i64,
+        last_index: i64,
+    },
+    Variable(VariableRef),
 }
 
 impl Default for FrameBufferSettings {
@@ -33,12 +44,12 @@ impl Default for FrameBufferSettings {
 
 impl SystemState {
     pub fn draw_frame_buffer_window(&mut self, ctx: &egui::Context, msgs: &mut Vec<Message>) {
-        let frame_buffer_value = self.selected_variable_for_frame_buffer();
         let mut open = true;
         egui::Window::new("Frame Buffer")
             .open(&mut open)
             .resizable(true)
             .show(ctx, |ui| {
+                let frame_buffer_value = self.selected_variable_for_frame_buffer();
                 let Some((value, word_length, variable_name)) = frame_buffer_value.as_ref() else {
                     ui.label("Place the cursor.");
                     return;
@@ -64,6 +75,7 @@ impl SystemState {
                         ui.add(DragValue::new(&mut settings.grayscale_bits).range(1..=8));
                     });
                 }
+                self.draw_scope_index_range(ui);
 
                 ui.separator();
 
@@ -73,6 +85,7 @@ impl SystemState {
                     return;
                 }
 
+                let settings = &mut self.user.frame_buffer;
                 let pixel_colors = if settings.rgb_mode {
                     let r_bits = settings.r_bits as usize;
                     let g_bits = settings.g_bits as usize;
@@ -168,23 +181,128 @@ impl SystemState {
         }
     }
 
+    fn draw_scope_index_range(&mut self, ui: &mut egui::Ui) {
+        let Some(FrameBufferContent::Scope {
+            scope_ref: _,
+            min_index,
+            max_index,
+            first_index,
+            last_index,
+        }) = self.frame_buffer_content.as_mut()
+        else {
+            return;
+        };
+
+        *first_index = (*first_index).clamp(*min_index, *max_index);
+        *last_index = (*last_index).clamp(*min_index, *max_index);
+        if *first_index > *last_index {
+            *last_index = *first_index;
+        }
+
+        ui.horizontal(|ui| {
+            ui.label("First array index");
+            ui.add(DragValue::new(first_index).range(*min_index..=*max_index));
+            ui.label("Last array index");
+            ui.add(DragValue::new(last_index).range(*min_index..=*max_index));
+        });
+        if *first_index > *last_index {
+            *first_index = *last_index;
+        }
+    }
+
     fn selected_variable_for_frame_buffer(&self) -> Option<(VariableValue, u32, String)> {
         let waves = self.user.waves.as_ref()?;
-        let variable_ref = self.frame_buffer_variable.as_ref()?;
-        let variable_name = variable_ref.full_path_string_no_index();
-
         let cursor = waves.cursor.as_ref()?.to_biguint()?;
         let wave_container = waves.inner.as_waves()?;
-        let meta = wave_container.variable_meta(variable_ref).ok()?;
-        let word_length = meta.num_bits?;
-        let query_result = wave_container
-            .query_variable(variable_ref, &cursor)
-            .ok()
-            .flatten()?;
+        match self.frame_buffer_content.as_ref()? {
+            FrameBufferContent::Variable(variable_ref) => {
+                let variable_name = variable_ref.full_path_string_no_index();
+                let meta = wave_container.variable_meta(variable_ref).ok()?;
+                let word_length = meta.num_bits?;
+                let query_result = wave_container
+                    .query_variable(variable_ref, &cursor)
+                    .ok()
+                    .flatten()?;
+                let (_, value) = query_result.current?;
+                Some((value, word_length, variable_name))
+            }
+            FrameBufferContent::Scope {
+                scope_ref,
+                min_index,
+                max_index,
+                first_index,
+                last_index,
+            } => {
+                let variable_name = scope_ref.name();
+                let mut variables = wave_container.variables_in_scope(scope_ref);
+                if variables.is_empty() {
+                    return None;
+                }
+                // Sort array elements in numerical order by index, then by numeric name
+                variables.sort_by(|a, b| {
+                    let a_key = variable_array_index(a);
+                    let b_key = variable_array_index(b);
+                    a_key.cmp(&b_key)
+                });
 
-        let (_, value) = query_result.current?;
-        Some((value, word_length, variable_name))
+                let clamped_first = (*first_index).clamp(*min_index, *max_index);
+                let clamped_last = (*last_index).clamp(*min_index, *max_index);
+                if clamped_first > clamped_last {
+                    return None;
+                }
+
+                let mut concat_bits = String::new();
+                let mut total_bits: u32 = 0;
+                for var_ref in &variables {
+                    let idx = variable_array_index(var_ref);
+                    if idx < clamped_first || idx > clamped_last {
+                        continue;
+                    }
+                    let meta = wave_container.variable_meta(var_ref).ok()?;
+                    let bits = meta.num_bits? as usize;
+                    total_bits += bits as u32;
+                    let query_result = wave_container
+                        .query_variable(var_ref, &cursor)
+                        .ok()
+                        .flatten()?;
+                    let (_, value) = query_result.current?;
+                    let bit_str = match &value {
+                        VariableValue::BigUint(v) => format!("{v:b}"),
+                        VariableValue::String(s) => s.clone(),
+                    };
+                    let padded = if bit_str.len() < bits {
+                        format!("{:0>width$}", bit_str, width = bits)
+                    } else {
+                        bit_str[bit_str.len() - bits..].to_string()
+                    };
+                    concat_bits.push_str(&padded);
+                }
+                if total_bits == 0 {
+                    return None;
+                }
+                Some((
+                    VariableValue::String(concat_bits),
+                    total_bits,
+                    variable_name,
+                ))
+            }
+        }
     }
+}
+
+pub fn variable_array_index(var_ref: &VariableRef) -> i64 {
+    fn parse_index_name(name: &str) -> Option<i64> {
+        name.parse::<i64>().ok().or_else(|| {
+            name.strip_prefix('[')
+                .and_then(|s| s.strip_suffix(']'))
+                .and_then(|s| s.parse::<i64>().ok())
+        })
+    }
+
+    var_ref
+        .index
+        .or_else(|| parse_index_name(&var_ref.name))
+        .unwrap_or(i64::MAX)
 }
 
 fn frame_buffer_bits(value: &VariableValue, word_length: usize) -> Vec<bool> {
@@ -296,5 +414,34 @@ mod tests {
         let pixels = decode_rgb_pixels(&bits, 2, 2, 2);
         assert_eq!(pixels.len(), 1);
         assert_eq!(pixels[0], Color32::from_rgb(170, 85, 170));
+    }
+
+    #[test]
+    fn variable_array_index_parses_bracketed_name() {
+        let var_ref = VariableRef::new(ScopeRef::empty(), "[2]".to_string());
+        assert_eq!(variable_array_index(&var_ref), 2);
+    }
+
+    #[test]
+    fn variable_array_index_parses_plain_numeric_name() {
+        let var_ref = VariableRef::new(ScopeRef::empty(), "7".to_string());
+        assert_eq!(variable_array_index(&var_ref), 7);
+    }
+
+    #[test]
+    fn variable_array_index_prefers_explicit_index() {
+        let var_ref = VariableRef::new_with_id_and_index(
+            ScopeRef::empty(),
+            "[2]".to_string(),
+            Default::default(),
+            Some(9),
+        );
+        assert_eq!(variable_array_index(&var_ref), 9);
+    }
+
+    #[test]
+    fn variable_array_index_falls_back_to_max_for_non_numeric_names() {
+        let var_ref = VariableRef::new(ScopeRef::empty(), "data".to_string());
+        assert_eq!(variable_array_index(&var_ref), i64::MAX);
     }
 }

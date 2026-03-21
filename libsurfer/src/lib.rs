@@ -114,6 +114,7 @@ use crate::displayed_item::{
 };
 use crate::displayed_item_tree::VisibleItemIndex;
 use crate::drawing_canvas::TxDrawingCommands;
+use crate::frame_buffer::{FrameBufferContent, variable_array_index};
 use crate::message::Message;
 use crate::transaction_container::{TransactionRef, TransactionStreamRef};
 use crate::translation::{AnyTranslator, all_translators};
@@ -483,19 +484,66 @@ impl SystemState {
                 waves.scroll_offset = offset;
             }
             Message::SetLogsVisible(visibility) => self.user.show_logs = visibility,
-            Message::SetFrameBufferVariable(None) => {
-                self.frame_buffer_variable = None;
+            Message::SetFrameBufferVariable(variable_ref) => {
+                let waves = self.user.waves.as_mut()?;
+                if let Some(cmd) = waves
+                    .inner
+                    .as_waves_mut()?
+                    .load_variables(std::iter::once(&variable_ref))
+                    .map_err(|e| error!("{e:#?}"))
+                    .ok()
+                    .flatten()
+                {
+                    self.load_variables(cmd);
+                }
+                self.frame_buffer_content = Some(FrameBufferContent::Variable(variable_ref));
             }
-            Message::SetFrameBufferVariable(Some(vidx)) => {
+            Message::SetFrameBufferVisibleVariable(None) => {
+                self.frame_buffer_content = None;
+            }
+            Message::SetFrameBufferVisibleVariable(Some(vidx)) => {
                 let waves = self.user.waves.as_ref()?;
-                self.frame_buffer_variable = waves
+                self.frame_buffer_content = waves
                     .items_tree
                     .get_visible(vidx)
                     .and_then(|node| waves.displayed_items.get(&node.item_ref))
                     .and_then(|item| match item {
-                        DisplayedItem::Variable(variable) => Some(variable.variable_ref.clone()),
+                        DisplayedItem::Variable(variable) => {
+                            Some(FrameBufferContent::Variable(variable.variable_ref.clone()))
+                        }
                         _ => None,
                     });
+            }
+            Message::SetFrameBufferArray(scope_ref) => {
+                let waves = self.user.waves.as_mut()?;
+                let variables = {
+                    let wave_container = waves.inner.as_waves()?;
+                    wave_container.variables_in_scope(&scope_ref)
+                };
+                if let Some(cmd) = waves
+                    .inner
+                    .as_waves_mut()?
+                    .load_variables(variables.iter())
+                    .map_err(|e| error!("{e:#?}"))
+                    .ok()
+                    .flatten()
+                {
+                    self.load_variables(cmd);
+                }
+                let mut indices = variables.iter().map(variable_array_index);
+                let first = indices.next()?;
+                let (mut min_index, mut max_index) = (first, first);
+                for idx in indices {
+                    min_index = min_index.min(idx);
+                    max_index = max_index.max(idx);
+                }
+                self.frame_buffer_content = Some(FrameBufferContent::Scope {
+                    scope_ref,
+                    min_index,
+                    max_index,
+                    first_index: min_index,
+                    last_index: max_index,
+                });
             }
             Message::SetCursorWindowVisible(visibility) => {
                 self.user.show_cursor_window = visibility;

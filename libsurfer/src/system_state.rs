@@ -12,7 +12,7 @@ use surfer_translation_types::translator::VariableNameInfo;
 use crate::{
     CachedDrawData, CanvasState, Channels, WcpClientCapabilities, command_prompt,
     displayed_item::DisplayedItemRef,
-    frame_buffer::FrameBufferContent,
+    frame_buffer::{FrameBufferArrayCache, FrameBufferContent},
     hierarchy::ScopeExpandType,
     message::Message,
     state::UserState,
@@ -89,6 +89,7 @@ pub struct SystemState {
     pub(crate) time_edit_focused: bool,
     pub(crate) request_time_edit_focus: bool,
     pub(crate) frame_buffer_content: Option<FrameBufferContent>,
+    pub(crate) frame_buffer_array_cache: Option<FrameBufferArrayCache>,
 
     // Benchmarking stuff
     /// Invalidate draw commands every frame to make performance comparison easier
@@ -157,6 +158,7 @@ impl SystemState {
             time_edit_focused: false,
             request_time_edit_focus: false,
             frame_buffer_content: None,
+            frame_buffer_array_cache: None,
 
             url_callback: None,
             continuous_redraw: false,

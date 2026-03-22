@@ -3,13 +3,19 @@ use egui::{CornerRadius, DragValue, Pos2, Rect, Sense, Stroke};
 use serde::{Deserialize, Serialize};
 use surfer_translation_types::VariableValue;
 
-use crate::wave_container::{ScopeRef, ScopeRefExt, VariableRef, VariableRefExt};
+use crate::wave_container::{ScopeRef, ScopeRefExt, VariableRef, VariableRefExt, WaveContainer};
 use crate::{Message, system_state::SystemState};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct FrameBufferSettings {
+pub(crate) struct FrameBufferSettings {
     pub pixels_per_row: usize,
     pub square_pixels: bool,
+    #[serde(flatten)]
+    pub color_settings: PixelColorSettings,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub(crate) struct PixelColorSettings {
     pub rgb_mode: bool,
     pub grayscale_bits: u8,
     pub r_bits: u8,
@@ -17,22 +23,9 @@ pub struct FrameBufferSettings {
     pub b_bits: u8,
 }
 
-pub enum FrameBufferContent {
-    Scope {
-        scope_ref: ScopeRef,
-        min_index: i64,
-        max_index: i64,
-        first_index: i64,
-        last_index: i64,
-    },
-    Variable(VariableRef),
-}
-
-impl Default for FrameBufferSettings {
+impl Default for PixelColorSettings {
     fn default() -> Self {
         Self {
-            pixels_per_row: 16,
-            square_pixels: true,
             rgb_mode: false,
             grayscale_bits: 1,
             r_bits: 3,
@@ -40,6 +33,59 @@ impl Default for FrameBufferSettings {
             b_bits: 2,
         }
     }
+}
+
+impl Default for FrameBufferSettings {
+    fn default() -> Self {
+        Self {
+            pixels_per_row: 16,
+            square_pixels: true,
+            color_settings: PixelColorSettings::default(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ArrayLevel {
+    pub min_index: i64,
+    pub max_index: i64,
+    pub first_index: i64,
+    pub last_index: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct FrameBufferContentCacheKey {
+    pub content: FrameBufferContent,
+    pub cursor_position: num::BigUint,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct FrameBufferArrayCache {
+    pub key: FrameBufferContentCacheKey,
+    pub cached_value: Option<(String, u32)>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct FrameBufferPixelCacheKey {
+    pub array_key: FrameBufferContentCacheKey,
+    pub settings: PixelColorSettings,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct FrameBufferPixelCache {
+    pub key: FrameBufferPixelCacheKey,
+    pub pixel_colors: Vec<Color32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum FrameBufferContent {
+    Array {
+        scope_ref: ScopeRef,
+        /// One range-selector per level of array nesting.
+        /// The last level always applies to variables.
+        levels: Vec<ArrayLevel>,
+    },
+    Variable(VariableRef),
 }
 
 impl SystemState {
@@ -55,26 +101,31 @@ impl SystemState {
                     return;
                 };
 
-                let settings = &mut self.user.frame_buffer;
+                let color_settings_key = {
+                    let settings = &mut self.user.frame_buffer;
+                    let color_settings = &mut settings.color_settings;
 
-                ui.checkbox(&mut settings.square_pixels, "Square pixels");
-                ui.checkbox(&mut settings.rgb_mode, "RGB mode");
+                    ui.checkbox(&mut settings.square_pixels, "Square pixels");
+                    ui.checkbox(&mut color_settings.rgb_mode, "RGB mode");
 
-                if settings.rgb_mode {
-                    ui.horizontal(|ui| {
-                        ui.label("R bits");
-                        ui.add(DragValue::new(&mut settings.r_bits).range(0..=8));
-                        ui.label("G bits");
-                        ui.add(DragValue::new(&mut settings.g_bits).range(0..=8));
-                        ui.label("B bits");
-                        ui.add(DragValue::new(&mut settings.b_bits).range(0..=8));
-                    });
-                } else {
-                    ui.horizontal(|ui| {
-                        ui.label("Grayscale bits");
-                        ui.add(DragValue::new(&mut settings.grayscale_bits).range(1..=8));
-                    });
-                }
+                    if color_settings.rgb_mode {
+                        ui.horizontal(|ui| {
+                            ui.label("R bits");
+                            ui.add(DragValue::new(&mut color_settings.r_bits).range(0..=8));
+                            ui.label("G bits");
+                            ui.add(DragValue::new(&mut color_settings.g_bits).range(0..=8));
+                            ui.label("B bits");
+                            ui.add(DragValue::new(&mut color_settings.b_bits).range(0..=8));
+                        });
+                    } else {
+                        ui.horizontal(|ui| {
+                            ui.label("Grayscale bits");
+                            ui.add(DragValue::new(&mut color_settings.grayscale_bits).range(1..=8));
+                        });
+                    }
+
+                    color_settings.clone()
+                };
 
                 ui.separator();
 
@@ -84,19 +135,44 @@ impl SystemState {
                     return;
                 }
 
-                let pixel_colors = if settings.rgb_mode {
-                    let r_bits = settings.r_bits as usize;
-                    let g_bits = settings.g_bits as usize;
-                    let b_bits = settings.b_bits as usize;
-                    let bits_per_pixel = r_bits + g_bits + b_bits;
-                    if bits_per_pixel == 0 {
-                        ui.label("Set at least one RGB channel bit count above zero.");
-                        return;
-                    }
-                    decode_rgb_pixels(&bits, r_bits, g_bits, b_bits)
+                let Some(pixel_cache_key) =
+                    self.current_frame_buffer_array_cache_key()
+                        .map(|array_key| FrameBufferPixelCacheKey {
+                            array_key,
+                            settings: color_settings_key.clone(),
+                        })
+                else {
+                    ui.label("Place the cursor.");
+                    return;
+                };
+
+                let pixel_colors = if let Some(cache) = self
+                    .frame_buffer_pixel_cache
+                    .as_ref()
+                    .filter(|cache| cache.key == pixel_cache_key)
+                {
+                    cache.pixel_colors.clone()
                 } else {
-                    let gray_bits = settings.grayscale_bits as usize;
-                    decode_grayscale_pixels(&bits, gray_bits)
+                    let decoded = if color_settings_key.rgb_mode {
+                        let r_bits = color_settings_key.r_bits as usize;
+                        let g_bits = color_settings_key.g_bits as usize;
+                        let b_bits = color_settings_key.b_bits as usize;
+                        let bits_per_pixel = r_bits + g_bits + b_bits;
+                        if bits_per_pixel == 0 {
+                            ui.label("Set at least one RGB channel bit count above zero.");
+                            return;
+                        }
+                        decode_rgb_pixels(&bits, r_bits, g_bits, b_bits)
+                    } else {
+                        let gray_bits = color_settings_key.grayscale_bits as usize;
+                        decode_grayscale_pixels(&bits, gray_bits)
+                    };
+
+                    self.frame_buffer_pixel_cache = Some(FrameBufferPixelCache {
+                        key: pixel_cache_key,
+                        pixel_colors: decoded.clone(),
+                    });
+                    decoded
                 };
 
                 if pixel_colors.is_empty() {
@@ -104,6 +180,7 @@ impl SystemState {
                     return;
                 }
 
+                let settings = &mut self.user.frame_buffer;
                 let columns = settings.pixels_per_row.min(pixel_colors.len()).max(1);
                 let rows = pixel_colors.len().div_ceil(columns);
                 ui.horizontal(|ui| {
@@ -120,7 +197,7 @@ impl SystemState {
                         });
                     }
                 });
-                self.draw_scope_index_range(ui);
+                self.draw_array_index_range(ui);
 
                 let settings = &mut self.user.frame_buffer;
                 let max_columns = pixel_colors.len().max(1);
@@ -182,116 +259,318 @@ impl SystemState {
         }
     }
 
-    fn draw_scope_index_range(&mut self, ui: &mut egui::Ui) {
-        let Some(FrameBufferContent::Scope {
+    fn draw_array_index_range(&mut self, ui: &mut egui::Ui) {
+        let Some(FrameBufferContent::Array {
             scope_ref: _,
-            min_index,
-            max_index,
-            first_index,
-            last_index,
+            levels,
         }) = self.frame_buffer_content.as_mut()
         else {
             return;
         };
 
-        *first_index = (*first_index).clamp(*min_index, *max_index);
-        *last_index = (*last_index).clamp(*min_index, *max_index);
-        if *first_index > *last_index {
-            *last_index = *first_index;
+        if levels.is_empty() {
+            return;
         }
 
-        ui.horizontal(|ui| {
-            ui.label("First array index");
-            ui.add(DragValue::new(first_index).range(*min_index..=*max_index));
-            ui.label("Last array index");
-            ui.add(DragValue::new(last_index).range(*min_index..=*max_index));
-        });
-        if *first_index > *last_index {
-            *first_index = *last_index;
+        let total_levels = levels.len();
+
+        for (i, level) in levels.iter_mut().enumerate() {
+            let (min, max) = (level.min_index, level.max_index);
+            level.first_index = level.first_index.clamp(min, max);
+            level.last_index = level.last_index.clamp(min, max);
+            if level.first_index > level.last_index {
+                level.last_index = level.first_index;
+            }
+            ui.horizontal(|ui| {
+                if total_levels == 1 {
+                    ui.label("First array index");
+                } else {
+                    ui.label(format!("Level {} first index", i + 1));
+                }
+                ui.add(DragValue::new(&mut level.first_index).range(min..=max));
+                if total_levels == 1 {
+                    ui.label("Last array index");
+                } else {
+                    ui.label(format!("Level {} last index", i + 1));
+                }
+                ui.add(DragValue::new(&mut level.last_index).range(min..=max));
+            });
+            if level.first_index > level.last_index {
+                level.first_index = level.last_index;
+            }
         }
     }
 
-    fn selected_variable_for_frame_buffer(&self) -> Option<(VariableValue, u32, String)> {
+    fn selected_variable_for_frame_buffer(&mut self) -> Option<(VariableValue, u32, String)> {
         let waves = self.user.waves.as_ref()?;
         let cursor = waves.cursor.as_ref()?.to_biguint()?;
         let wave_container = waves.inner.as_waves()?;
-        match self.frame_buffer_content.as_ref()? {
-            FrameBufferContent::Variable(variable_ref) => {
-                let variable_name = variable_ref.full_path_string_no_index();
-                let meta = wave_container.variable_meta(variable_ref).ok()?;
-                let word_length = meta.num_bits?;
-                let query_result = wave_container
-                    .query_variable(variable_ref, &cursor)
-                    .ok()
-                    .flatten()?;
-                let (_, value) = query_result.current?;
-                Some((value, word_length, variable_name))
-            }
-            FrameBufferContent::Scope {
-                scope_ref,
-                min_index,
-                max_index,
-                first_index,
-                last_index,
-            } => {
-                let variable_name = scope_ref.name();
-                let mut variables = wave_container.variables_in_scope(scope_ref);
-                if variables.is_empty() {
-                    return None;
-                }
-                // Sort array elements in numerical order by index, then by numeric name
-                variables.sort_by(|a, b| {
-                    let a_key = variable_array_index(a);
-                    let b_key = variable_array_index(b);
-                    a_key.cmp(&b_key)
-                });
+        let content = self.frame_buffer_content.clone()?;
+        let cache_key = FrameBufferContentCacheKey {
+            content: content.clone(),
+            cursor_position: cursor.clone(),
+        };
+        let cached = self
+            .frame_buffer_array_cache
+            .as_ref()
+            .filter(|cache| cache.key == cache_key)
+            .cloned();
 
-                let clamped_first = (*first_index).clamp(*min_index, *max_index);
-                let clamped_last = (*last_index).clamp(*min_index, *max_index);
-                if clamped_first > clamped_last {
-                    return None;
-                }
-
-                let mut concat_bits = String::new();
-                let mut total_bits: u32 = 0;
-                for var_ref in &variables {
-                    let idx = variable_array_index(var_ref);
-                    if idx < clamped_first || idx > clamped_last {
-                        continue;
+        let cached = if let Some(cached) = cached {
+            cached
+        } else {
+            let cached = match &content {
+                FrameBufferContent::Variable(variable_ref) => build_variable_frame_buffer_cache(
+                    wave_container,
+                    variable_ref,
+                    &cursor,
+                    cache_key,
+                )?,
+                FrameBufferContent::Array { scope_ref, levels } => {
+                    if levels.is_empty() {
+                        return None;
                     }
-                    let meta = wave_container.variable_meta(var_ref).ok()?;
-                    let bits = meta.num_bits? as usize;
-                    total_bits += bits as u32;
-                    let query_result = wave_container
-                        .query_variable(var_ref, &cursor)
-                        .ok()
-                        .flatten()?;
-                    let (_, value) = query_result.current?;
-                    let bit_str = match &value {
-                        VariableValue::BigUint(v) => format!("{v:b}"),
-                        VariableValue::String(s) => s.clone(),
-                    };
-                    let padded = if bit_str.len() < bits {
-                        format!("{:0>width$}", bit_str, width = bits)
-                    } else {
-                        bit_str[bit_str.len() - bits..].to_string()
-                    };
-                    concat_bits.push_str(&padded);
+
+                    let sorted_variables =
+                        resolve_leaf_scopes_and_variables(wave_container, scope_ref, levels)?;
+                    let cached_value =
+                        build_cached_variable_value(wave_container, &sorted_variables, &cursor);
+                    FrameBufferArrayCache {
+                        key: cache_key,
+                        cached_value,
+                    }
                 }
-                if total_bits == 0 {
-                    return None;
-                }
-                Some((
-                    VariableValue::String(concat_bits),
-                    total_bits,
-                    variable_name,
-                ))
-            }
-        }
+            };
+            self.frame_buffer_array_cache = Some(cached.clone());
+            cached
+        };
+
+        let (concat_bits, total_bits) = cached.cached_value.as_ref()?;
+
+        let variable_name = match &content {
+            FrameBufferContent::Variable(variable_ref) => variable_ref.full_path_string_no_index(),
+            FrameBufferContent::Array { scope_ref, .. } => scope_ref.full_name(),
+        };
+
+        Some((
+            VariableValue::String(concat_bits.clone()),
+            *total_bits,
+            variable_name,
+        ))
+    }
+
+    fn current_frame_buffer_array_cache_key(&self) -> Option<FrameBufferContentCacheKey> {
+        let waves = self.user.waves.as_ref()?;
+        let cursor_position = waves.cursor.as_ref()?.to_biguint()?;
+        let content = self.frame_buffer_content.clone()?;
+        Some(FrameBufferContentCacheKey {
+            content,
+            cursor_position,
+        })
     }
 }
 
-pub fn variable_array_index(var_ref: &VariableRef) -> i64 {
+fn build_cached_variable_value(
+    wave_container: &WaveContainer,
+    sorted_variables: &[VariableRef],
+    cursor: &num::BigUint,
+) -> Option<(String, u32)> {
+    let mut concat_bits = String::new();
+    let mut total_bits: u32 = 0;
+    for var_ref in sorted_variables {
+        let meta = wave_container.variable_meta(var_ref).ok()?;
+        let bits = meta.num_bits? as usize;
+        total_bits += bits as u32;
+        let query_result = wave_container
+            .query_variable(var_ref, cursor)
+            .ok()
+            .flatten()?;
+        let (_, value) = query_result.current?;
+        let bit_str = match &value {
+            VariableValue::BigUint(v) => format!("{v:b}"),
+            VariableValue::String(s) => s.clone(),
+        };
+        let padded = if bit_str.len() < bits {
+            format!("{bit_str:0>bits$}")
+        } else {
+            bit_str[bit_str.len() - bits..].to_string()
+        };
+        concat_bits.push_str(&padded);
+    }
+    if total_bits == 0 {
+        None
+    } else {
+        Some((concat_bits, total_bits))
+    }
+}
+
+fn build_variable_frame_buffer_cache(
+    wave_container: &WaveContainer,
+    variable_ref: &VariableRef,
+    cursor: &num::BigUint,
+    key: FrameBufferContentCacheKey,
+) -> Option<FrameBufferArrayCache> {
+    let meta = wave_container.variable_meta(variable_ref).ok()?;
+    let word_length = meta.num_bits? as usize;
+    let query_result = wave_container
+        .query_variable(variable_ref, cursor)
+        .ok()
+        .flatten()?;
+    let (_, value) = query_result.current?;
+    let bits = match value {
+        VariableValue::BigUint(v) => format!("{v:b}"),
+        VariableValue::String(s) => s,
+    };
+    let padded = if bits.len() < word_length {
+        format!("{bits:0>word_length$}")
+    } else {
+        bits[bits.len() - word_length..].to_string()
+    };
+
+    Some(FrameBufferArrayCache {
+        key,
+        cached_value: Some((padded, word_length as u32)),
+    })
+}
+
+fn resolve_leaf_scopes_and_variables(
+    wave_container: &WaveContainer,
+    scope_ref: &ScopeRef,
+    levels: &[ArrayLevel],
+) -> Option<Vec<VariableRef>> {
+    let (scope_levels, var_level) = levels.split_at(levels.len() - 1);
+    let var_level = &var_level[0];
+
+    let mut current_scopes = vec![scope_ref.clone()];
+    for level in scope_levels {
+        let clamped_first = level.first_index.clamp(level.min_index, level.max_index);
+        let clamped_last = level.last_index.clamp(level.min_index, level.max_index);
+        let mut next_scopes = Vec::new();
+        for scope in &current_scopes {
+            let mut selected: Vec<ScopeRef> = wave_container
+                .child_scopes(scope)
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|s| {
+                    let idx = scope_array_index(s);
+                    idx >= clamped_first && idx <= clamped_last
+                })
+                .collect();
+            selected.sort_by_key(scope_array_index);
+            next_scopes.extend(selected);
+        }
+        current_scopes = next_scopes;
+    }
+
+    if current_scopes.is_empty() {
+        return None;
+    }
+
+    let clamped_first = var_level
+        .first_index
+        .clamp(var_level.min_index, var_level.max_index);
+    let clamped_last = var_level
+        .last_index
+        .clamp(var_level.min_index, var_level.max_index);
+    if clamped_first > clamped_last {
+        return None;
+    }
+
+    let mut sorted_variables = Vec::new();
+    for leaf_scope in &current_scopes {
+        let mut variables = wave_container.variables_in_scope(leaf_scope);
+        variables.sort_by_key(variable_array_index);
+        sorted_variables.extend(variables.into_iter().filter(|var_ref| {
+            let idx = variable_array_index(var_ref);
+            idx >= clamped_first && idx <= clamped_last
+        }));
+    }
+
+    Some(sorted_variables)
+}
+
+/// Analyses the scope hierarchy rooted at `scope_ref` and returns:
+/// - `levels`: one `ArrayLevel` per nesting level, where the last level is for variables
+/// - `all_leaf_vars`: every variable reachable from the root (for pre-loading)
+///
+/// Returns `None` when `scope_ref` is not found in the hierarchy.
+pub(crate) fn build_frame_buffer_content(
+    wave_container: &WaveContainer,
+    scope_ref: &ScopeRef,
+) -> Option<(Vec<ArrayLevel>, Vec<VariableRef>)> {
+    // Probe the hierarchy by following the min-index child at each level.
+    // Stop when we reach a leaf scope that has no child scopes.
+    let mut levels: Vec<ArrayLevel> = Vec::new();
+    let mut probe = scope_ref.clone();
+    loop {
+        let children = wave_container.child_scopes(&probe).unwrap_or_default();
+        if children.is_empty() {
+            break;
+        }
+        let indices: Vec<i64> = children.iter().map(scope_array_index).collect();
+        let min_idx = *indices.iter().min().unwrap_or(&0);
+        let max_idx = *indices.iter().max().unwrap_or(&0);
+        levels.push(ArrayLevel {
+            min_index: min_idx,
+            max_index: max_idx,
+            first_index: min_idx,
+            last_index: max_idx,
+        });
+        probe = children.into_iter().min_by_key(scope_array_index).unwrap();
+    }
+
+    // Determine the variable index range from the representative leaf scope.
+    let leaf_vars = wave_container.variables_in_scope(&probe);
+    let var_indices: Vec<i64> = leaf_vars
+        .iter()
+        .map(variable_array_index)
+        .filter(|&i| i != i64::MAX)
+        .collect();
+    let (var_min, var_max) = if var_indices.is_empty() {
+        (0, 0)
+    } else {
+        (
+            *var_indices.iter().min().unwrap(),
+            *var_indices.iter().max().unwrap(),
+        )
+    };
+    levels.push(ArrayLevel {
+        min_index: var_min,
+        max_index: var_max,
+        first_index: var_min,
+        last_index: var_max,
+    });
+
+    // Walk every path to collect all leaf variables for pre-loading.
+    let depth = levels.len().saturating_sub(1);
+    let mut leaf_scopes = vec![scope_ref.clone()];
+    for _ in 0..depth {
+        leaf_scopes = leaf_scopes
+            .iter()
+            .flat_map(|s| wave_container.child_scopes(s).unwrap_or_default())
+            .collect();
+    }
+    let all_leaf_vars: Vec<VariableRef> = leaf_scopes
+        .iter()
+        .flat_map(|s| wave_container.variables_in_scope(s))
+        .collect();
+
+    Some((levels, all_leaf_vars))
+}
+
+fn scope_array_index(scope_ref: &ScopeRef) -> i64 {
+    let name = scope_ref.name();
+    name.parse::<i64>()
+        .ok()
+        .or_else(|| {
+            name.strip_prefix('[')
+                .and_then(|s| s.strip_suffix(']'))
+                .and_then(|s| s.parse::<i64>().ok())
+        })
+        .unwrap_or(i64::MAX)
+}
+
+fn variable_array_index(var_ref: &VariableRef) -> i64 {
     fn parse_index_name(name: &str) -> Option<i64> {
         name.parse::<i64>().ok().or_else(|| {
             name.strip_prefix('[')

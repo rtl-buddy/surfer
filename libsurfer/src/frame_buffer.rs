@@ -3,7 +3,7 @@ use egui::{CornerRadius, DragValue, Pos2, Rect, Sense, Stroke};
 use serde::{Deserialize, Serialize};
 use surfer_translation_types::VariableValue;
 
-use crate::wave_container::{ScopeRef, ScopeRefExt, VariableRef, VariableRefExt};
+use crate::wave_container::{ScopeRef, ScopeRefExt, VariableRef, VariableRefExt, WaveContainer};
 use crate::{Message, system_state::SystemState};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -15,17 +15,6 @@ pub struct FrameBufferSettings {
     pub r_bits: u8,
     pub g_bits: u8,
     pub b_bits: u8,
-}
-
-pub enum FrameBufferContent {
-    Scope {
-        scope_ref: ScopeRef,
-        min_index: i64,
-        max_index: i64,
-        first_index: i64,
-        last_index: i64,
-    },
-    Variable(VariableRef),
 }
 
 impl Default for FrameBufferSettings {
@@ -40,6 +29,24 @@ impl Default for FrameBufferSettings {
             b_bits: 2,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ArrayLevel {
+    pub min_index: i64,
+    pub max_index: i64,
+    pub first_index: i64,
+    pub last_index: i64,
+}
+
+pub enum FrameBufferContent {
+    Array {
+        scope_ref: ScopeRef,
+        /// One range-selector per level of array nesting.
+        /// The last level always applies to variables.
+        levels: Vec<ArrayLevel>,
+    },
+    Variable(VariableRef),
 }
 
 impl SystemState {
@@ -120,7 +127,7 @@ impl SystemState {
                         });
                     }
                 });
-                self.draw_scope_index_range(ui);
+                self.draw_array_index_range(ui);
 
                 let settings = &mut self.user.frame_buffer;
                 let max_columns = pixel_colors.len().max(1);
@@ -182,32 +189,45 @@ impl SystemState {
         }
     }
 
-    fn draw_scope_index_range(&mut self, ui: &mut egui::Ui) {
-        let Some(FrameBufferContent::Scope {
+    fn draw_array_index_range(&mut self, ui: &mut egui::Ui) {
+        let Some(FrameBufferContent::Array {
             scope_ref: _,
-            min_index,
-            max_index,
-            first_index,
-            last_index,
+            levels,
         }) = self.frame_buffer_content.as_mut()
         else {
             return;
         };
 
-        *first_index = (*first_index).clamp(*min_index, *max_index);
-        *last_index = (*last_index).clamp(*min_index, *max_index);
-        if *first_index > *last_index {
-            *last_index = *first_index;
+        if levels.is_empty() {
+            return;
         }
 
-        ui.horizontal(|ui| {
-            ui.label("First array index");
-            ui.add(DragValue::new(first_index).range(*min_index..=*max_index));
-            ui.label("Last array index");
-            ui.add(DragValue::new(last_index).range(*min_index..=*max_index));
-        });
-        if *first_index > *last_index {
-            *first_index = *last_index;
+        let total_levels = levels.len();
+
+        for (i, level) in levels.iter_mut().enumerate() {
+            let (min, max) = (level.min_index, level.max_index);
+            level.first_index = level.first_index.clamp(min, max);
+            level.last_index = level.last_index.clamp(min, max);
+            if level.first_index > level.last_index {
+                level.last_index = level.first_index;
+            }
+            ui.horizontal(|ui| {
+                if total_levels == 1 {
+                    ui.label("First array index");
+                } else {
+                    ui.label(format!("Level {} first index", i + 1));
+                }
+                ui.add(DragValue::new(&mut level.first_index).range(min..=max));
+                if total_levels == 1 {
+                    ui.label("Last array index");
+                } else {
+                    ui.label(format!("Level {} last index", i + 1));
+                }
+                ui.add(DragValue::new(&mut level.last_index).range(min..=max));
+            });
+            if level.first_index > level.last_index {
+                level.first_index = level.last_index;
+            }
         }
     }
 
@@ -227,56 +247,81 @@ impl SystemState {
                 let (_, value) = query_result.current?;
                 Some((value, word_length, variable_name))
             }
-            FrameBufferContent::Scope {
-                scope_ref,
-                min_index,
-                max_index,
-                first_index,
-                last_index,
-            } => {
-                let variable_name = scope_ref.name();
-                let mut variables = wave_container.variables_in_scope(scope_ref);
-                if variables.is_empty() {
+            FrameBufferContent::Array { scope_ref, levels } => {
+                let variable_name = scope_ref.full_name();
+                if levels.is_empty() {
                     return None;
                 }
-                // Sort array elements in numerical order by index, then by numeric name
-                variables.sort_by(|a, b| {
-                    let a_key = variable_array_index(a);
-                    let b_key = variable_array_index(b);
-                    a_key.cmp(&b_key)
-                });
 
-                let clamped_first = (*first_index).clamp(*min_index, *max_index);
-                let clamped_last = (*last_index).clamp(*min_index, *max_index);
+                let (scope_levels, var_level) = levels.split_at(levels.len() - 1);
+                let var_level = &var_level[0];
+
+                // Traverse each scope level, filtering child scopes to the selected range.
+                let mut current_scopes = vec![scope_ref.clone()];
+                for level in scope_levels {
+                    let clamped_first = level.first_index.clamp(level.min_index, level.max_index);
+                    let clamped_last = level.last_index.clamp(level.min_index, level.max_index);
+                    let mut next_scopes = Vec::new();
+                    for scope in &current_scopes {
+                        let mut selected: Vec<ScopeRef> = wave_container
+                            .child_scopes(scope)
+                            .unwrap_or_default()
+                            .into_iter()
+                            .filter(|s| {
+                                let idx = scope_array_index(s);
+                                idx >= clamped_first && idx <= clamped_last
+                            })
+                            .collect();
+                        selected.sort_by_key(|s| scope_array_index(s));
+                        next_scopes.extend(selected);
+                    }
+                    current_scopes = next_scopes;
+                }
+
+                if current_scopes.is_empty() {
+                    return None;
+                }
+
+                let clamped_first = var_level
+                    .first_index
+                    .clamp(var_level.min_index, var_level.max_index);
+                let clamped_last = var_level
+                    .last_index
+                    .clamp(var_level.min_index, var_level.max_index);
                 if clamped_first > clamped_last {
                     return None;
                 }
 
                 let mut concat_bits = String::new();
                 let mut total_bits: u32 = 0;
-                for var_ref in &variables {
-                    let idx = variable_array_index(var_ref);
-                    if idx < clamped_first || idx > clamped_last {
-                        continue;
+                for leaf_scope in &current_scopes {
+                    let mut variables = wave_container.variables_in_scope(leaf_scope);
+                    // Sort array elements in numerical order by index
+                    variables.sort_by(|a, b| variable_array_index(a).cmp(&variable_array_index(b)));
+                    for var_ref in &variables {
+                        let idx = variable_array_index(var_ref);
+                        if idx < clamped_first || idx > clamped_last {
+                            continue;
+                        }
+                        let meta = wave_container.variable_meta(var_ref).ok()?;
+                        let bits = meta.num_bits? as usize;
+                        total_bits += bits as u32;
+                        let query_result = wave_container
+                            .query_variable(var_ref, &cursor)
+                            .ok()
+                            .flatten()?;
+                        let (_, value) = query_result.current?;
+                        let bit_str = match &value {
+                            VariableValue::BigUint(v) => format!("{v:b}"),
+                            VariableValue::String(s) => s.clone(),
+                        };
+                        let padded = if bit_str.len() < bits {
+                            format!("{:0>width$}", bit_str, width = bits)
+                        } else {
+                            bit_str[bit_str.len() - bits..].to_string()
+                        };
+                        concat_bits.push_str(&padded);
                     }
-                    let meta = wave_container.variable_meta(var_ref).ok()?;
-                    let bits = meta.num_bits? as usize;
-                    total_bits += bits as u32;
-                    let query_result = wave_container
-                        .query_variable(var_ref, &cursor)
-                        .ok()
-                        .flatten()?;
-                    let (_, value) = query_result.current?;
-                    let bit_str = match &value {
-                        VariableValue::BigUint(v) => format!("{v:b}"),
-                        VariableValue::String(s) => s.clone(),
-                    };
-                    let padded = if bit_str.len() < bits {
-                        format!("{:0>width$}", bit_str, width = bits)
-                    } else {
-                        bit_str[bit_str.len() - bits..].to_string()
-                    };
-                    concat_bits.push_str(&padded);
                 }
                 if total_bits == 0 {
                     return None;
@@ -291,7 +336,88 @@ impl SystemState {
     }
 }
 
-pub fn variable_array_index(var_ref: &VariableRef) -> i64 {
+/// Analyses the scope hierarchy rooted at `scope_ref` and returns:
+/// - `levels`: one `ArrayLevel` per nesting level, where the last level is for variables
+/// - `all_leaf_vars`: every variable reachable from the root (for pre-loading)
+///
+/// Returns `None` when `scope_ref` is not found in the hierarchy.
+pub fn build_frame_buffer_content(
+    wave_container: &WaveContainer,
+    scope_ref: &ScopeRef,
+) -> Option<(Vec<ArrayLevel>, Vec<VariableRef>)> {
+    // Probe the hierarchy by following the min-index child at each level.
+    // Stop when we reach a leaf scope that has no child scopes.
+    let mut levels: Vec<ArrayLevel> = Vec::new();
+    let mut probe = scope_ref.clone();
+    loop {
+        let children = wave_container.child_scopes(&probe).unwrap_or_default();
+        if children.is_empty() {
+            break;
+        }
+        let indices: Vec<i64> = children.iter().map(scope_array_index).collect();
+        let min_idx = *indices.iter().min().unwrap_or(&0);
+        let max_idx = *indices.iter().max().unwrap_or(&0);
+        levels.push(ArrayLevel {
+            min_index: min_idx,
+            max_index: max_idx,
+            first_index: min_idx,
+            last_index: max_idx,
+        });
+        probe = children.into_iter().min_by_key(scope_array_index).unwrap();
+    }
+
+    // Determine the variable index range from the representative leaf scope.
+    let leaf_vars = wave_container.variables_in_scope(&probe);
+    let var_indices: Vec<i64> = leaf_vars
+        .iter()
+        .map(variable_array_index)
+        .filter(|&i| i != i64::MAX)
+        .collect();
+    let (var_min, var_max) = if var_indices.is_empty() {
+        (0, 0)
+    } else {
+        (
+            *var_indices.iter().min().unwrap(),
+            *var_indices.iter().max().unwrap(),
+        )
+    };
+    levels.push(ArrayLevel {
+        min_index: var_min,
+        max_index: var_max,
+        first_index: var_min,
+        last_index: var_max,
+    });
+
+    // Walk every path to collect all leaf variables for pre-loading.
+    let depth = levels.len().saturating_sub(1);
+    let mut leaf_scopes = vec![scope_ref.clone()];
+    for _ in 0..depth {
+        leaf_scopes = leaf_scopes
+            .iter()
+            .flat_map(|s| wave_container.child_scopes(s).unwrap_or_default())
+            .collect();
+    }
+    let all_leaf_vars: Vec<VariableRef> = leaf_scopes
+        .iter()
+        .flat_map(|s| wave_container.variables_in_scope(s))
+        .collect();
+
+    Some((levels, all_leaf_vars))
+}
+
+fn scope_array_index(scope_ref: &ScopeRef) -> i64 {
+    let name = scope_ref.name();
+    name.parse::<i64>()
+        .ok()
+        .or_else(|| {
+            name.strip_prefix('[')
+                .and_then(|s| s.strip_suffix(']'))
+                .and_then(|s| s.parse::<i64>().ok())
+        })
+        .unwrap_or(i64::MAX)
+}
+
+fn variable_array_index(var_ref: &VariableRef) -> i64 {
     fn parse_index_name(name: &str) -> Option<i64> {
         name.parse::<i64>().ok().or_else(|| {
             name.strip_prefix('[')

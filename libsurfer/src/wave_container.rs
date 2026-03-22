@@ -116,6 +116,10 @@ impl ScopeRefExt for ScopeRef {
         self.strs.last().cloned().unwrap_or_default()
     }
 
+    fn full_name(&self) -> String {
+        self.strs.join(".")
+    }
+
     fn strs(&self) -> &[String] {
         &self.strs
     }

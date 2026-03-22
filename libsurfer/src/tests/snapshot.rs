@@ -1141,6 +1141,12 @@ snapshot_ui_with_file_and_msgs! {framebuffer_array_no_need_to_display, "examples
     Message::SetFrameBufferArray(ScopeRef::from_hierarchy_string("comprehensive2_tb.array_signal"))
 ]}
 
+snapshot_ui_with_file_and_msgs! {framebuffer_multidimensional_array, "examples/arrays_nvc.fst", [
+    Message::AddVariables(vec![VariableRef::from_hierarchy_string("arrays_testbench.arr_1d.[1]")]),
+    Message::CursorSet(BigInt::from(25000000)),
+    Message::SetFrameBufferArray(ScopeRef::from_hierarchy_string("arrays_testbench.arr_1d_2d_as_3d"))
+]}
+
 snapshot_ui!(regex_error_indication, || {
     let mut state = SystemState::new_default_config()
         .unwrap()

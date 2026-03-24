@@ -66,7 +66,7 @@ emath.workspace = true
 enum-iterator.workspace = true
 epaint.workspace = true
 eyre.workspace = true
-f128 = { path = "../f128", optional = true }
+f128 = { git = "https://github.com/jkarns275/f128.git", rev = "e60de395f0d6454c1dc546b87f06a6358425b6b6", optional = true }
 ftr_parser.workspace = true
 futures-core.workspace = true
 futures-util.workspace = true

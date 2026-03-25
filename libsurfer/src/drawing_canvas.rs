@@ -1,22 +1,3 @@
-use ecolor::Color32;
-use egui::{FontId, PointerButton, Response, Sense, Ui};
-use emath::{Align2, Pos2, Rect, RectTransform, Vec2};
-use epaint::{CornerRadius, CubicBezierShape, PathShape, PathStroke, RectShape, Shape, Stroke};
-use eyre::WrapErr;
-use ftr_parser::types::{Transaction, TxGenerator};
-use itertools::Itertools;
-use num::bigint::{ToBigInt, ToBigUint};
-use num::{BigInt, BigUint, ToPrimitive, Zero};
-use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use std::cmp::Ordering;
-use std::collections::HashMap;
-use std::f32::consts::PI;
-use surfer_translation_types::{
-    NumericRange, SubFieldFlatTranslationResult, TranslatedValue, ValueKind, VariableInfo,
-    VariableValue,
-};
-use tracing::{error, warn};
-
 use crate::CachedDrawData::TransactionDrawData;
 use crate::analog_renderer::{AnalogDrawingCommand, variable_analog_draw_commands};
 use crate::clock_highlighting::draw_clock_edge_marks;
@@ -35,6 +16,24 @@ use crate::{
     CachedDrawData, CachedTransactionDrawData, CachedWaveDrawData, Message, SystemState,
     displayed_item::DisplayedItem,
 };
+use ecolor::Color32;
+use egui::{FontId, PointerButton, Response, Sense, Ui};
+use emath::{Align2, Pos2, Rect, RectTransform, Vec2};
+use epaint::{CornerRadius, CubicBezierShape, PathShape, PathStroke, RectShape, Shape, Stroke};
+use eyre::WrapErr;
+use ftr_parser::types::{Transaction, TxGenerator};
+use itertools::Itertools;
+use num::bigint::{ToBigInt, ToBigUint};
+use num::{BigInt, BigUint, ToPrimitive, Zero};
+use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
+use std::cmp::Ordering;
+use std::collections::HashMap;
+
+use std::f32::consts::PI;
+use surfer_translation_types::{
+    SubFieldFlatTranslationResult, TranslatedValue, ValueKind, VariableInfo, VariableValue,
+};
+use tracing::{error, warn};
 
 /// Information about values to mimic dinotrace's special drawing of all-0 and all-1 values
 #[derive(Clone, Copy)]
@@ -159,7 +158,10 @@ fn variable_draw_commands(
     view_width: f32,
     viewport_idx: usize,
     use_dinotrace_style: bool,
+    last_times: &HashMap<DisplayedItemRef, BigUint>,
 ) -> Option<VariableDrawCommands> {
+    let last_time = last_times.get(&display_id);
+
     let wave_container = waves.inner.as_waves()?;
 
     let signal_id = wave_container
@@ -213,6 +215,7 @@ fn variable_draw_commands(
             view_width,
             viewport_idx,
             use_dinotrace_style,
+            last_time.cloned(),
         )
     }
 }
@@ -232,6 +235,7 @@ fn variable_digital_draw_commands(
     view_width: f32,
     viewport_idx: usize,
     use_dinotrace_style: bool,
+    _last_time: Option<BigUint>,
 ) -> Option<VariableDrawCommands> {
     let mut clock_edges = vec![];
     let mut local_msgs = vec![];
@@ -251,7 +255,10 @@ fn variable_digital_draw_commands(
 
     // Iterate over all the time stamps to draw on
     let mut next_change = timestamps.first().map(|t| t.0).unwrap_or_default();
+
     for ((_, prev_time), (pixel, time)) in timestamps.iter().zip(timestamps.iter().skip(1)) {
+        println!("Processing time: {:?}", time);
+
         let is_last_timestep = pixel == &end_pixel;
         let is_first_timestep = pixel == &start_pixel;
 
@@ -441,9 +448,20 @@ impl SystemState {
             })
             .collect::<Vec<_>>();
         timestamps.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
+        let _prev_last_times: HashMap<DisplayedItemRef, BigUint> = self.draw_data.borrow()
+            [viewport_idx]
+            .as_ref()
+            .and_then(|d| match d {
+                CachedDrawData::WaveDrawData(w) => Some(w.last_time.clone()),
+                _ => None,
+            })
+            .unwrap_or_default();
+        // If we fail to render a variable for some reason, keep its previous last_time so
+        // incremental filtering still has stable bounds next redraw.
 
         let use_dinotrace_style = self.use_dinotrace_style();
         let translators = &self.translators;
+
         let commands = waves
             .items_tree
             .iter_visible()
@@ -458,7 +476,16 @@ impl SystemState {
             // Iterate over the variables, generating draw commands for all the
             // subfields
             .filter_map(|(id, displayed_variable)| {
-                variable_draw_commands(
+                // Incremental bounds:
+                // - Only consider timestamps strictly after `last_time` (new data).
+                // - Keep one "lookback" sample just before the first new timestamp so boundary
+                //   transitions at the cut are still computable by the boolean drawing logic.
+                //
+                // Note: the current implementation rebuilds draw commands from scratch each
+                // redraw, so we fall back to the full timestamp set when there are no new
+                // samples for a variable (otherwise that variable would disappear).
+
+                let result = variable_draw_commands(
                     displayed_variable,
                     id,
                     &timestamps,
@@ -467,16 +494,21 @@ impl SystemState {
                     cfg.canvas_width,
                     viewport_idx,
                     use_dinotrace_style,
-                )
+                    &HashMap::new(),
+                );
+                result.map(|cmds| (id, cmds))
             })
             .collect::<Vec<_>>();
 
-        for VariableDrawCommands {
-            clock_edges: mut new_clock_edges,
-            display_id,
-            local_commands,
-            mut local_msgs,
-        } in commands
+        for (
+            _id,
+            VariableDrawCommands {
+                clock_edges: mut new_clock_edges,
+                display_id,
+                local_commands,
+                mut local_msgs,
+            },
+        ) in commands
         {
             msgs.append(&mut local_msgs);
             for (field, val) in local_commands {
@@ -494,6 +526,7 @@ impl SystemState {
         let ticks = self.get_ticks_for_viewport_idx(waves, viewport_idx, cfg);
 
         Some(CachedDrawData::WaveDrawData(CachedWaveDrawData {
+            last_time: HashMap::new(),
             draw_commands,
             clock_edges,
             ticks,

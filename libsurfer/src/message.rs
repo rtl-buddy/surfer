@@ -360,6 +360,7 @@ pub enum Message {
     VariableNameToClipboard(MessageTarget<VisibleItemIndex>),
     VariableFullNameToClipboard(MessageTarget<VisibleItemIndex>),
     InvalidateDrawCommands,
+    AppendDrawCommands,
     AddGraphic(GraphicId, Graphic),
     RemoveGraphic(GraphicId),
 

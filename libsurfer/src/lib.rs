@@ -220,10 +220,13 @@ enum CachedDrawData {
     TransactionDrawData(CachedTransactionDrawData),
 }
 
+use num::BigUint;
+
 struct CachedWaveDrawData {
     pub draw_commands: HashMap<DisplayedFieldRef, drawing_canvas::DrawingCommands>,
     pub clock_edges: Vec<f32>,
     pub ticks: Vec<(String, f32)>,
+    pub last_time: HashMap<DisplayedItemRef, BigUint>,
 }
 
 struct CachedTransactionDrawData {
@@ -1697,6 +1700,12 @@ impl SystemState {
                 self.user.primary_button_drag_behavior = Some(behavior);
             }
             Message::InvalidateDrawCommands => self.invalidate_draw_commands(),
+            Message::AppendDrawCommands => {
+                // incremental update: do NOT clear cache
+                if let Some(ctx) = &self.context {
+                    ctx.request_repaint();
+                }
+            }
             Message::UnpauseSimulation => {
                 let waves = self.user.waves.as_ref()?;
                 waves.inner.as_waves()?.unpause_simulation();

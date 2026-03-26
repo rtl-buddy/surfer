@@ -1,5 +1,4 @@
 use std::future::Future;
-#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -32,7 +31,7 @@ impl SystemState {
         let sender = self.channels.msg_sender.clone();
 
         perform_async_work(async move {
-            if let Some(file) = create_file_dialog(filter, title).pick_file().await {
+            if let Some(file) = create_file_dialog(filter, title, None).pick_file().await {
                 checked_send_many(&sender, messages(file.path().to_path_buf()));
             }
         });
@@ -50,7 +49,7 @@ impl SystemState {
         let sender = self.channels.msg_sender.clone();
 
         perform_async_work(async move {
-            if let Some(file) = create_file_dialog(filter, title).pick_file().await {
+            if let Some(file) = create_file_dialog(filter, title, None).pick_file().await {
                 checked_send_many(&sender, messages(file.read().await));
             }
         });
@@ -69,7 +68,7 @@ impl SystemState {
         let sender = self.channels.msg_sender.clone();
 
         perform_async_work(async move {
-            if let Some(file) = create_file_dialog(filter, title).save_file().await {
+            if let Some(file) = create_file_dialog(filter, title, None).save_file().await {
                 checked_send_many(&sender, messages(file).await);
             }
         });
@@ -88,7 +87,7 @@ impl SystemState {
         let sender = self.channels.msg_sender.clone();
 
         perform_async_work(async move {
-            if let Some(file) = create_file_dialog(filter, title).save_file().await {
+            if let Some(file) = create_file_dialog(filter, title, None).save_file().await {
                 checked_send_many(&sender, messages(file).await);
             }
         });
@@ -170,16 +169,34 @@ impl SystemState {
 }
 
 #[cfg(not(target_os = "macos"))]
-fn create_file_dialog(filter: (String, Vec<String>), title: &'static str) -> AsyncFileDialog {
-    AsyncFileDialog::new()
+fn create_file_dialog(
+    filter: (String, Vec<String>),
+    title: &'static str,
+    default_dir: Option<PathBuf>,
+) -> AsyncFileDialog {
+    let dialog = AsyncFileDialog::new()
         .set_title(title)
-        .add_filter(filter.0, &filter.1)
-        .add_filter("All files", &["*"])
+        .add_filter(filter.0, &filter.1);
+    let dialog = if let Some(dir) = default_dir {
+        dialog.set_directory(dir)
+    } else {
+        dialog
+    };
+    dialog.add_filter("All files", &["*"])
 }
 
 #[cfg(target_os = "macos")]
-fn create_file_dialog(filter: (String, Vec<String>), title: &'static str) -> AsyncFileDialog {
-    AsyncFileDialog::new()
+fn create_file_dialog(
+    filter: (String, Vec<String>),
+    title: &'static str,
+    default_dir: Option<PathBuf>,
+) -> AsyncFileDialog {
+    let dialog = AsyncFileDialog::new()
         .set_title(title)
-        .add_filter(filter.0, &filter.1)
+        .add_filter(filter.0, &filter.1);
+    if let Some(dir) = default_dir {
+        dialog.set_directory(dir)
+    } else {
+        dialog
+    }
 }

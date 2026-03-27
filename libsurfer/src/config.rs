@@ -1196,6 +1196,26 @@ pub fn find_local_configs() -> Vec<PathBuf> {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn write_default_config() -> eyre::Result<()> {
+    use std::fs;
+
+    let default_config = include_str!("../../default_config.toml");
+
+    if let Some(proj_dirs) = &*PROJECT_DIR {
+        let config_dir = proj_dirs.config_dir();
+        let config_path = config_dir.join(CONFIG_FILE);
+
+        // create directory if not exists
+        fs::create_dir_all(config_dir)?;
+
+        // write file
+        fs::write(config_path, default_config)?;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

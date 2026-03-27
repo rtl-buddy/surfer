@@ -293,6 +293,7 @@ impl SystemState {
                 let waves = self.user.waves.as_mut()?;
                 waves.set_active_scope(scope)?;
             }
+
             Message::ExpandScope(scope_ref) => {
                 *self.scope_ref_to_expand.borrow_mut() = Some(scope_ref);
             }
@@ -316,6 +317,12 @@ impl SystemState {
                     }
                 }
             }
+            Message::DownloadDefaultConfig => {
+                if let Err(e) = crate::config::write_default_config() {
+                    tracing::error!("Failed to write default config: {}", e);
+                }
+            }
+
             Message::AddDivider(name, vidx) => {
                 self.save_current_canvas("Add divider".into());
                 let waves = self.user.waves.as_mut()?;

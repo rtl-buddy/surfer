@@ -436,6 +436,7 @@ pub enum Message {
     SetupChannelWCP,
     /// Exit the application. This has no effect on wasm and closes the window
     /// on other platforms
+    DownloadDefaultConfig,
     Exit,
     /// Should only used for tests. Expands the parameter section so that one can test the rendering.
     ExpandParameterSection,

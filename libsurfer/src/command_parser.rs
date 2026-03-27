@@ -262,6 +262,7 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
             "item_rename",
             "zoom_fit",
             "scope_add",
+            "download",
             "scope_add_recursive",
             "scope_add_as_group",
             "scope_add_as_group_recursive",
@@ -352,6 +353,7 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
             "show_mouse_gestures",
             "show_quick_start",
             "show_logs",
+            "download",
             #[cfg(feature = "performance_plot")]
             "show_performance",
             #[cfg(not(target_arch = "wasm32"))]
@@ -390,6 +392,19 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
                         )))
                     }),
                 ),
+
+                "download" => Some(Command::NonTerminal(
+                    ParamGreed::Word,
+                    vec!["config".into()],
+                    Box::new(|query, _| {
+                        if query == "config" {
+                            Some(Command::Terminal(Message::DownloadDefaultConfig))
+                        } else {
+                            None
+                        }
+                    }),
+                )),
+
                 "switch_file" => single_word_delayed_suggestions(
                     Box::new(all_wave_files),
                     Box::new(|word| {

@@ -694,13 +694,7 @@ impl SystemState {
             })
     }
 
-    pub fn draw_items(
-        &mut self,
-        egui_ctx: &egui::Context,
-        msgs: &mut Vec<Message>,
-        ui: &mut Ui,
-        viewport_idx: usize,
-    ) {
+    pub fn draw_items(&mut self, ui: &mut Ui, msgs: &mut Vec<Message>, viewport_idx: usize) {
         let Some(waves) = &self.user.waves else {
             return;
         };
@@ -789,7 +783,7 @@ impl SystemState {
             }
         });
 
-        let modifiers = egui_ctx.input(|i| i.modifiers);
+        let modifiers = ui.input(|i| i.modifiers);
         // Handle cursor
         if !modifiers.command
             && ((response.dragged_by(PointerButton::Primary) && !self.do_measure(&modifiers))
@@ -902,7 +896,7 @@ impl SystemState {
         }
 
         self.draw_mouse_gesture_widget(
-            egui_ctx,
+            ui,
             waves,
             pointer_pos_mouse_gesture,
             &response,
@@ -912,7 +906,7 @@ impl SystemState {
         );
 
         self.draw_measure_widget(
-            egui_ctx,
+            ui,
             waves,
             pointer_pos_mouse_gesture,
             &response,

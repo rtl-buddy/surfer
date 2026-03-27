@@ -2294,7 +2294,7 @@ pub fn dump_tree(waves: &WaveData) {
 
 pub struct StateWrapper(Arc<RwLock<SystemState>>);
 impl App for StateWrapper {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        App::update(&mut *self.0.write().unwrap(), ctx, frame);
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        App::ui(&mut *self.0.write().unwrap(), ui, frame);
     }
 }

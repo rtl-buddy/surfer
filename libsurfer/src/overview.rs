@@ -2,18 +2,18 @@ use crate::message::Message;
 use crate::view::{DrawConfig, DrawingContext};
 use crate::viewport::Viewport;
 use crate::{SystemState, wave_data::WaveData};
-use egui::{Context, Frame, PointerButton, Sense, TopBottomPanel, Ui};
+use egui::{Frame, Panel, PointerButton, Sense, Ui};
 use emath::{Align2, Pos2, Rect, RectTransform};
 use epaint::CornerRadius;
 
 impl SystemState {
-    pub fn add_overview_panel(&self, ctx: &Context, waves: &WaveData, msgs: &mut Vec<Message>) {
-        TopBottomPanel::bottom("overview")
+    pub fn add_overview_panel(&self, ui: &mut Ui, waves: &WaveData, msgs: &mut Vec<Message>) {
+        Panel::bottom("overview")
             .frame(Frame {
                 fill: self.user.config.theme.primary_ui_color.background,
                 ..Default::default()
             })
-            .show(ctx, |ui| {
+            .show_inside(ui, |ui| {
                 self.draw_overview(ui, waves, msgs);
             });
     }

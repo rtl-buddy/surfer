@@ -1,6 +1,6 @@
 //! Menu handling.
 use egui::containers::menu::{MenuConfig, SubMenuButton};
-use egui::{Button, Context, PopupCloseBehavior, TextWrapMode, TopBottomPanel, Ui};
+use egui::{Button, Panel, PopupCloseBehavior, TextWrapMode, Ui};
 use eyre::WrapErr;
 use futures::executor::block_on;
 use itertools::Itertools;
@@ -74,8 +74,8 @@ impl ButtonBuilder {
 }
 
 impl SystemState {
-    pub fn add_menu_panel(&self, ctx: &Context, msgs: &mut Vec<Message>) {
-        TopBottomPanel::top("menu").show(ctx, |ui| {
+    pub fn add_menu_panel(&self, ui: &mut Ui, msgs: &mut Vec<Message>) {
+        Panel::top("menu").show_inside(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 self.menu_contents(ui, msgs);
             });

@@ -13,7 +13,7 @@ use crate::wave_data::{ScopeType, WaveData};
 use derive_more::{Display, FromStr};
 use ecolor::Color32;
 use egui::text::LayoutJob;
-use egui::{CentralPanel, Frame, Layout, ScrollArea, TextStyle, TopBottomPanel, Ui};
+use egui::{CentralPanel, Frame, Layout, Panel, ScrollArea, TextStyle, Ui};
 use egui_remixicon::icons;
 use emath::Align;
 use enum_iterator::Sequence;
@@ -56,10 +56,10 @@ impl SystemState {
             Some(self.user.config.theme.primary_ui_color.foreground);
 
         let total_space = ui.available_height();
-        TopBottomPanel::top("scopes")
+        Panel::top("scopes")
             .resizable(true)
-            .default_height(total_space / 2.0)
-            .max_height(total_space - 64.0)
+            .default_size(total_space / 2.0)
+            .max_size(total_space - 64.0)
             .frame(Frame::new().inner_margin(Margin::same(5)))
             .show_inside(ui, |ui| {
                 ui.horizontal(|ui| {

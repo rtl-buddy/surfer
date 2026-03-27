@@ -24,7 +24,7 @@ pub(crate) fn draw_open_sibling_state_file_dialog(
     egui::Window::new("State file detected")
             .auto_sized()
             .collapsible(false)
-            .fixed_pos(ctx.available_rect().center())
+            .fixed_pos(ctx.content_rect().center())
             .show(ctx, |ui| {
                 let label = ui.label(RichText::new("A state file was detected in the same directory as the loaded file.\nLoad state?").heading());
                 ui.set_width(label.rect.width());
@@ -76,7 +76,7 @@ pub(crate) fn draw_reload_waveform_dialog(
     egui::Window::new("File Change")
         .auto_sized()
         .collapsible(false)
-        .fixed_pos(ctx.available_rect().center())
+        .fixed_pos(ctx.content_rect().center())
         .show(ctx, |ui| {
             let label = ui.label(RichText::new("File on disk has changed. Reload?").heading());
             ui.set_width(label.rect.width());

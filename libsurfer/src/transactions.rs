@@ -1,4 +1,4 @@
-use egui::{Context, Layout, RichText, TextWrapMode, Ui};
+use egui::{Layout, RichText, TextWrapMode, Ui};
 use egui_extras::{Column, TableBody, TableBuilder};
 use emath::Align;
 use ftr_parser::types::Transaction;
@@ -48,7 +48,7 @@ const STREAM_NOT_FOUND_LABEL: &str = "Stream not found";
 impl SystemState {
     pub fn draw_transaction_detail_panel(
         &self,
-        ctx: &Context,
+        ui: &mut Ui,
         max_width: f32,
         msgs: &mut Vec<Message>,
     ) {
@@ -68,10 +68,10 @@ impl SystemState {
             return;
         };
 
-        egui::SidePanel::right("Transaction Details")
-            .default_width(330.)
-            .width_range(10.0..=max_width)
-            .show(ctx, |ui| {
+        egui::Panel::right("Transaction Details")
+            .default_size(330.)
+            .size_range(10.0..=max_width)
+            .show_inside(ui, |ui| {
                 ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                 self.handle_pointer_in_ui(ui, msgs);
                 draw_focused_transaction_details(ui, transactions, focused_transaction);

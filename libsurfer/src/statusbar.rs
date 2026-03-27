@@ -1,4 +1,4 @@
-use egui::{Context, Frame, Layout, Margin, TopBottomPanel, Ui};
+use egui::{Frame, Layout, Margin, Panel, Ui};
 use emath::Align;
 use web_time::{Duration, Instant};
 
@@ -13,11 +13,11 @@ const PROGRESS_DEBOUNCE_MS: u64 = 100;
 impl SystemState {
     pub fn add_statusbar_panel(
         &self,
-        ctx: &Context,
+        ui: &mut Ui,
         waves: Option<&WaveData>,
         msgs: &mut Vec<Message>,
     ) {
-        TopBottomPanel::bottom("statusbar")
+        Panel::bottom("statusbar")
             .frame(Frame {
                 fill: self.user.config.theme.primary_ui_color.background,
                 inner_margin: Margin {
@@ -28,7 +28,7 @@ impl SystemState {
                 },
                 ..Default::default()
             })
-            .show(ctx, |ui| {
+            .show_inside(ui, |ui| {
                 self.draw_statusbar(ui, waves, msgs);
             });
     }

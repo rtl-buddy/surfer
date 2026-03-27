@@ -17,7 +17,7 @@ version = "0.7.0-dev"
 license = "EUPL-1.2"
 categories = ["development-tools::debugging", "science"]
 edition = "2024"
-rust-version = "1.90"
+rust-version = "1.92"
 repository = "https://gitlab.com/surfer-project/surfer/"
 
 [workspace.dependencies]
@@ -28,7 +28,7 @@ bytes = "1.11"
 bytesize = "2.3.1"
 camino = { version = "1.1.6", features = ["serde1"] }
 chrono = { version = "0.4.31", default-features = false }
-clap = { version = "4.5.53", features = ['derive'] }
+clap = { version = "4.6", features = ['derive'] }
 config = { version = "0.15.8", default-features = false, features = ["toml"] }
 derive_more = { version = "2.1", default-features = false, features = [
     "add",
@@ -40,23 +40,23 @@ derive_more = { version = "2.1", default-features = false, features = [
     "debug",
 ] }
 directories = "6.0"
-ecolor = { version = "0.33", features = ["serde"] }
-eframe = { version = "0.33", default-features = false, features = [
+ecolor = { version = "0.34.1", features = ["serde"] }
+eframe = { version = "0.34.1", default-features = false, features = [
     "default_fonts",
     "glow",
     "wayland",
     "x11",
 ] }
-egui = { version = "0.33", default-features = false, features = ["serde"] }
+egui = { version = "0.34.1", default-features = false, features = ["serde"] }
 egui-remixicon = { version = "0.33.1", default-features = false }
-egui_extras = { version = "0.33", default-features = false }
-egui_plot = "0.34"
-emath = "0.33"
+egui_extras = { version = "0.34.1", default-features = false }
+egui_plot = "0.35"
+emath = "0.34.1"
 enum-iterator = "2.1"
-epaint = "0.33"
-extism = { version = "1.20", default-features = false }
-extism-convert = "1.20"
-extism-manifest = "1.20"
+epaint = "0.34.1"
+extism = { version = "1.21", default-features = false }
+extism-convert = "1.21"
+extism-manifest = "1.21"
 eyre = "0.6.12"
 fastrand = "2.3.0"
 fern = { version = "0.7.1", features = ["colored"] }

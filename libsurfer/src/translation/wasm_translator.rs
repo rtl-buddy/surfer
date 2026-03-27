@@ -1,6 +1,6 @@
 use std::ffi::OsString;
 use std::fs::read_dir;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use camino::Utf8PathBuf;
@@ -86,6 +86,7 @@ pub fn discover_wasm_translators() -> Vec<Message> {
 pub struct PluginTranslator {
     plugin: Arc<Mutex<Plugin>>,
     file: PathBuf,
+    max_memory_mib: u64,
 }
 
 impl PluginTranslator {
@@ -93,10 +94,9 @@ impl PluginTranslator {
         let data = std::fs::read(&file)
             .with_context(|| format!("Failed to read {}", file.to_string_lossy()))?;
 
-        let manifest = Manifest::new([Wasm::data(data)])
-            .with_memory_options(
-                MemoryOptions::new().with_max_var_bytes(max_memory_mib * 1024 * 1024),
-            );
+        let manifest = Manifest::new([Wasm::data(data)]).with_memory_options(
+            MemoryOptions::new().with_max_var_bytes(max_memory_mib * 1024 * 1024),
+        );
         let mut plugin = PluginBuilder::new(manifest)
             .with_debug_info()
             .with_function(
@@ -124,25 +124,35 @@ impl PluginTranslator {
             .map_err(|e| anyhow!("Failed to load plugin from {} {e}", file.to_string_lossy()))?;
 
         if plugin.function_exists("new") {
-            plugin.call::<_, ()>("new", ()).map_err(|e| {
-                let mut msg = format!(
-                    "Failed to call `new` on plugin from {}. {e}",
-                    file.to_string_lossy()
-                );
-                if e.to_string().contains("oom") {
-                    msg.push_str(&format!(
-                        "\nPlugin ran out of memory ({max_memory_mib} MiB). \
-                        Increase `plugin.max_memory_mib` in your surfer config."
-                    ));
-                }
-                anyhow!("{msg}")
-            })?;
+            plugin
+                .call::<_, ()>("new", ())
+                .map_err(|e| Self::enrich_error(e, "new", &file, max_memory_mib))?;
         }
 
         Ok(Self {
             plugin: Arc::new(Mutex::new(plugin)),
             file,
+            max_memory_mib,
         })
+    }
+
+    fn enrich_error(
+        e: extism::Error,
+        func: &str,
+        file: &Path,
+        max_memory_mib: u64,
+    ) -> eyre::Report {
+        let mut msg = format!(
+            "Failed to call `{func}` on plugin from {}. {e}",
+            file.to_string_lossy()
+        );
+        if e.to_string().contains("oom") {
+            msg.push_str(&format!(
+                "\nPlugin ran out of memory ({max_memory_mib} MiB). \
+                Increase `plugin.max_memory_mib` in your surfer config."
+            ));
+        }
+        anyhow!("{msg}")
     }
 }
 
@@ -154,8 +164,8 @@ impl Translator<VarId, ScopeId, Message> for PluginTranslator {
             .call::<_, &str>("name", ())
             .map_err(|e| {
                 error!(
-                    "Failed to get translator name from {}. {e}",
-                    self.file.to_string_lossy()
+                    "{:#}",
+                    Self::enrich_error(e, "name", &self.file, self.max_memory_mib)
                 );
             })
             .map(ToString::to_string)
@@ -169,8 +179,8 @@ impl Translator<VarId, ScopeId, Message> for PluginTranslator {
                 .call::<_, ()>("set_wave_source", extism_convert::Json(wave_source))
                 .map_err(|e| {
                     error!(
-                        "Failed to set_wave_source on {}. {e}",
-                        self.file.to_string_lossy()
+                        "{:#}",
+                        Self::enrich_error(e, "set_wave_source", &self.file, self.max_memory_mib)
                     );
                 })
                 .ok();
@@ -193,13 +203,7 @@ impl Translator<VarId, ScopeId, Message> for PluginTranslator {
                     value: value.clone(),
                 },
             )
-            .map_err(|e| {
-                anyhow!(
-                    "Failed to translate {} with {}. {e}",
-                    variable.var.name,
-                    self.file.to_string_lossy()
-                )
-            })?;
+            .map_err(|e| Self::enrich_error(e, "translate", &self.file, self.max_memory_mib))?;
         Ok(result)
     }
 
@@ -209,13 +213,7 @@ impl Translator<VarId, ScopeId, Message> for PluginTranslator {
             .lock()
             .unwrap()
             .call("variable_info", variable.clone().map_ids(|_| (), |_| ()))
-            .map_err(|e| {
-                anyhow!(
-                    "Failed to get variable info for {} with {}. {e}",
-                    variable.var.name,
-                    self.file.to_string_lossy()
-                )
-            })?;
+            .map_err(|e| Self::enrich_error(e, "variable_info", &self.file, self.max_memory_mib))?;
         Ok(result)
     }
 
@@ -223,24 +221,22 @@ impl Translator<VarId, ScopeId, Message> for PluginTranslator {
         &self,
         variable: &VariableMeta<VarId, ScopeId>,
     ) -> eyre::Result<TranslationPreference> {
-        match self
-            .plugin
+        self.plugin
             .lock()
             .unwrap()
             .call("translates", variable.clone().map_ids(|_| (), |_| ()))
-        {
-            Ok(r) => Ok(r),
-            Err(e) => Err(anyhow!(e)),
-        }
+            .map_err(|e| Self::enrich_error(e, "translates", &self.file, self.max_memory_mib))
     }
 
     fn reload(&self, _sender: std::sync::mpsc::Sender<Message>) {
         let mut plugin = self.plugin.lock().unwrap();
-        if plugin.function_exists("reload") {
-            match plugin.call("reload", ()) {
-                Ok(()) => (),
-                Err(e) => error!("{e:#}"),
-            }
+        if plugin.function_exists("reload")
+            && let Err(e) = plugin.call::<_, ()>("reload", ())
+        {
+            error!(
+                "{:#}",
+                Self::enrich_error(e, "reload", &self.file, self.max_memory_mib)
+            );
         }
     }
 
@@ -256,7 +252,15 @@ impl Translator<VarId, ScopeId, Message> for PluginTranslator {
             ) {
                 Ok(result) => result,
                 Err(e) => {
-                    error!("{e:#}");
+                    error!(
+                        "{:#}",
+                        Self::enrich_error(
+                            e,
+                            "variable_name_info",
+                            &self.file,
+                            self.max_memory_mib
+                        )
+                    );
                     None
                 }
             }

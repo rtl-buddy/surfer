@@ -1,10 +1,14 @@
-use extism_pdk::{FnResult, Json, plugin_fn};
+use std::sync::Mutex;
+
+use extism_pdk::{Error, FnResult, Json, plugin_fn};
 pub use surfer_translation_types::plugin_types::TranslateParams;
 use surfer_translation_types::{
     SubFieldTranslationResult, TranslationPreference, TranslationResult, ValueKind, VariableInfo,
     VariableMeta, VariableValue,
-    translator::{TrueName, VariableNameInfo},
+    translator::{TrueName, VariableNameInfo, WaveSource},
 };
+
+static WAVE_FILE_BYTES: Mutex<Option<Vec<u8>>> = Mutex::new(None);
 
 #[plugin_fn]
 pub fn new() -> FnResult<()> {
@@ -20,6 +24,14 @@ pub fn name() -> FnResult<String> {
 pub fn translate(
     TranslateParams { variable, value }: TranslateParams,
 ) -> FnResult<TranslationResult> {
+    let wave_file_bytes = WAVE_FILE_BYTES.lock().unwrap();
+    let wave_file_bytes = wave_file_bytes
+        .as_ref()
+        .ok_or_else(|| Error::msg("wave source file not loaded"))?;
+    if wave_file_bytes.first() != Some(&b'$') {
+        return Err(Error::msg("unexpected wave file contents").into());
+    }
+
     let binary_digits = match value {
         VariableValue::BigUint(big_uint) => {
             let raw = format!("{big_uint:b}");
@@ -68,6 +80,20 @@ pub fn variable_info(variable: VariableMeta<(), ()>) -> FnResult<VariableInfo> {
 #[plugin_fn]
 pub fn translates(_variable: VariableMeta<(), ()>) -> FnResult<TranslationPreference> {
     Ok(TranslationPreference::Yes)
+}
+
+#[plugin_fn]
+pub fn set_wave_source(Json(wave_source): Json<Option<WaveSource>>) -> FnResult<()> {
+    let wave_file_bytes = match wave_source {
+        Some(WaveSource::File(path)) => Some(
+            std::fs::read(&path)
+                .map_err(|e| Error::msg(format!("failed to read wave source {path}: {e}")))?,
+        ),
+        _ => None,
+    };
+
+    *WAVE_FILE_BYTES.lock().unwrap() = wave_file_bytes;
+    Ok(())
 }
 
 #[plugin_fn]

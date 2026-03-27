@@ -290,3 +290,68 @@ host_fn!(read_file(filename: String) -> Vec<u8> {
 host_fn!(file_exists(filename: String) -> bool {
     Ok(Utf8PathBuf::from(&filename).exists())
 });
+
+#[cfg(all(test, feature = "wasm_plugins"))]
+mod tests {
+    use std::collections::HashMap;
+
+    use crate::wave_container::{ScopeId, VarId};
+    use project_root::get_project_root;
+    use surfer_translation_types::{
+        Translator, ValueKind, ValueRepr, VariableEncoding, VariableMeta, VariableValue, WaveSource,
+    };
+
+    use super::PluginTranslator;
+
+    fn test_variable() -> VariableMeta<VarId, ScopeId> {
+        VariableMeta {
+            var: crate::wave_container::VariableRef {
+                path: crate::wave_container::ScopeRef {
+                    strs: vec![
+                        "testbench".to_string(),
+                        "top".to_string(),
+                        "uut".to_string(),
+                    ],
+                    id: ScopeId::default(),
+                },
+                name: "pcpi_insn".to_string(),
+                id: VarId::default(),
+                index: None,
+            },
+            num_bits: Some(32),
+            variable_type: None,
+            variable_type_name: None,
+            index: None,
+            direction: None,
+            enum_map: HashMap::new(),
+            encoding: VariableEncoding::BitVector,
+        }
+    }
+
+    #[test]
+    fn example_plugin_can_read_wave_source_via_wasi() {
+        let root = get_project_root().unwrap();
+        let translator =
+            PluginTranslator::new(root.join("examples/wasm_example_translator.wasm")).unwrap();
+
+        translator.set_wave_source(Some(WaveSource::File(
+            root.join("examples/picorv32.vcd")
+                .to_string_lossy()
+                .into_owned(),
+        )));
+
+        let result = translator
+            .translate(&test_variable(), &VariableValue::String("1010".to_string()))
+            .unwrap();
+
+        assert_eq!(result.kind, ValueKind::Normal);
+        assert_eq!(result.subfields.len(), 1);
+        assert_eq!(result.subfields[0].name, "[0]");
+        assert!(result.subfields[0].result.subfields.is_empty());
+        assert_eq!(result.subfields[0].result.kind, ValueKind::Normal);
+        match &result.subfields[0].result.val {
+            ValueRepr::Bits(4, bits) => assert_eq!(bits, "1010"),
+            _ => panic!("unexpected translation result"),
+        }
+    }
+}

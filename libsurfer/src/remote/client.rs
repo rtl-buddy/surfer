@@ -363,7 +363,10 @@ mod tests {
     fn test_empty_signals_returns_empty() {
         use crate::remote::get_signals;
         // Create a mock async runtime for testing
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
         rt.block_on(async {
             let signals: Vec<wellen::SignalRef> = vec![];
             let result = get_signals("http://localhost:8080".to_string(), &signals, 1000, 0).await;

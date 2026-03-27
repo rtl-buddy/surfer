@@ -95,7 +95,8 @@ impl PluginTranslator {
 
         let manifest = Manifest::new([Wasm::data(data)])
             .with_memory_options(MemoryOptions::new().with_max_var_bytes(1024 * 1024 * 10))
-            .with_allowed_path("ro:/".to_string(), "/");
+            .with_allowed_path("ro:/".to_string(), "/")
+            .disallow_all_hosts();
         let mut plugin = PluginBuilder::new(manifest)
             .with_wasi(true)
             .with_debug_info()

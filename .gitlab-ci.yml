@@ -1,7 +1,7 @@
 image: rust:latest
 
 variables:
-    SURFER_MSRV: "1.90.0"
+    SURFER_MSRV: "1.92.0"
     SURVER_MSRV: "1.90.0"
     CARGO_HOME: $CI_PROJECT_DIR/cargo
     FF_ENABLE_BASH_EXIT_CODE_CHECK: "true"

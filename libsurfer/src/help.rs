@@ -132,8 +132,8 @@ pub fn draw_quickstart_help_window(
         .pivot(Align2::CENTER_CENTER)
         .open(&mut open)
         .default_pos(Pos2::new(
-            ctx.available_rect().size().x / 2.,
-            ctx.available_rect().size().y / 2.,
+            ctx.content_rect().size().x / 2.,
+            ctx.content_rect().size().y / 2.,
         ))
         .show(ctx, |ui| {
             ui.vertical(|ui| {
@@ -358,7 +358,7 @@ pub fn draw_license_window(ctx: &Context, msgs: &mut Vec<Message>) {
         .open(&mut open)
         .collapsible(false)
         .max_height(600.)
-        .default_width(600.)
+        .default_size((600., 600.))
         .show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.label(text);

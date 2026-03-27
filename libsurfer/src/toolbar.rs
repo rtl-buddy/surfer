@@ -1,5 +1,5 @@
 //! Toolbar handling.
-use egui::{Button, Context, Layout, RichText, TopBottomPanel, Ui};
+use egui::{Button, Layout, Panel, RichText, Ui};
 use egui_remixicon::icons;
 use emath::{Align, Vec2};
 
@@ -35,8 +35,8 @@ fn add_toolbar_button(
 
 impl SystemState {
     /// Add panel and draw toolbar.
-    pub fn add_toolbar_panel(&self, ctx: &Context, msgs: &mut Vec<Message>) {
-        TopBottomPanel::top("toolbar").show(ctx, |ui| {
+    pub fn add_toolbar_panel(&self, ui: &mut Ui, msgs: &mut Vec<Message>) {
+        Panel::top("toolbar").show_inside(ui, |ui| {
             self.draw_toolbar(ui, msgs);
         });
     }

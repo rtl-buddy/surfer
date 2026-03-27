@@ -11,7 +11,7 @@ use ecolor::Color32;
 #[cfg(not(target_arch = "wasm32"))]
 use egui::ViewportCommand;
 use egui::{
-    CentralPanel, FontSelection, Frame, Layout, Painter, RichText, ScrollArea, Sense, SidePanel,
+    CentralPanel, FontSelection, Frame, Layout, Painter, Panel, RichText, ScrollArea, Sense,
     TextStyle, Ui, UiBuilder, WidgetText,
 };
 use emath::{Align, GuiRounding, Pos2, Rect, RectTransform, Vec2};
@@ -180,7 +180,7 @@ impl ItemDrawingInfo {
 }
 
 impl eframe::App for SystemState {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         #[cfg(feature = "performance_plot")]
         self.timing.borrow_mut().start_frame();
 
@@ -188,7 +188,7 @@ impl eframe::App for SystemState {
             self.invalidate_draw_commands();
         }
 
-        let (fullscreen, window_size) = ctx.input(|i| {
+        let (fullscreen, window_size) = ui.input(|i| {
             (
                 i.viewport().fullscreen.unwrap_or_default(),
                 Some(i.viewport_rect().size()),
@@ -199,7 +199,7 @@ impl eframe::App for SystemState {
 
         #[cfg(feature = "performance_plot")]
         self.timing.borrow_mut().start("draw");
-        let mut msgs = self.draw(ctx, window_size);
+        let mut msgs = self.draw(ui, window_size);
         #[cfg(feature = "performance_plot")]
         self.timing.borrow_mut().end("draw");
 
@@ -212,8 +212,8 @@ impl eframe::App for SystemState {
         #[cfg(feature = "performance_plot")]
         self.timing.borrow_mut().start("update");
         let ui_zoom_factor = self.ui_zoom_factor();
-        if ctx.zoom_factor() != ui_zoom_factor {
-            ctx.set_zoom_factor(ui_zoom_factor);
+        if ui.zoom_factor() != ui_zoom_factor {
+            ui.set_zoom_factor(ui_zoom_factor);
         }
 
         self.items_to_expand.borrow_mut().clear();
@@ -221,11 +221,11 @@ impl eframe::App for SystemState {
         while let Some(msg) = msgs.pop() {
             #[cfg(not(target_arch = "wasm32"))]
             if let Message::Exit = msg {
-                ctx.send_viewport_cmd(ViewportCommand::Close);
+                ui.send_viewport_cmd(ViewportCommand::Close);
             }
             #[cfg(not(target_arch = "wasm32"))]
             if let Message::ToggleFullscreen = msg {
-                ctx.send_viewport_cmd(ViewportCommand::Fullscreen(!fullscreen));
+                ui.send_viewport_cmd(ViewportCommand::Fullscreen(!fullscreen));
             }
             self.update(msg);
         }
@@ -240,7 +240,7 @@ impl eframe::App for SystemState {
             let mut is_moving = false;
             for vp in &mut waves.viewports {
                 if vp.is_moving() {
-                    vp.move_viewport(ctx.input(|i| i.stable_dt));
+                    vp.move_viewport(ui.input(|i| i.stable_dt));
                     is_moving = true;
                 }
             }
@@ -255,7 +255,7 @@ impl eframe::App for SystemState {
 
         if viewport_is_moving {
             self.invalidate_draw_commands();
-            ctx.request_repaint();
+            ui.request_repaint();
         }
 
         #[cfg(feature = "performance_plot")]
@@ -272,7 +272,7 @@ impl eframe::App for SystemState {
             || self.user.show_performance
             || OUTSTANDING_TRANSACTIONS.load(std::sync::atomic::Ordering::SeqCst) != 0
         {
-            ctx.request_repaint();
+            ui.request_repaint();
         }
 
         #[cfg(feature = "performance_plot")]
@@ -289,57 +289,57 @@ impl eframe::App for SystemState {
 }
 
 impl SystemState {
-    pub(crate) fn draw(&mut self, ctx: &egui::Context, window_size: Option<Vec2>) -> Vec<Message> {
-        let max_width = ctx.available_rect().width();
-        let max_height = ctx.available_rect().height();
+    pub(crate) fn draw(&mut self, ui: &mut Ui, window_size: Option<Vec2>) -> Vec<Message> {
+        let max_width = ui.available_size().x;
+        let max_height = ui.available_size().y;
 
         let mut msgs = vec![];
 
         if self.user.show_about {
-            draw_about_window(ctx, &mut msgs);
+            draw_about_window(ui, &mut msgs);
         }
 
         if self.user.show_license {
-            draw_license_window(ctx, &mut msgs);
+            draw_license_window(ui, &mut msgs);
         }
 
         if self.user.show_keys {
-            draw_control_help_window(ctx, &mut msgs, &self.user.config.shortcuts);
+            draw_control_help_window(ui, &mut msgs, &self.user.config.shortcuts);
         }
 
         if self.user.show_quick_start {
-            draw_quickstart_help_window(ctx, &mut msgs, &self.user.config.shortcuts);
+            draw_quickstart_help_window(ui, &mut msgs, &self.user.config.shortcuts);
         }
 
         if self.user.show_gestures {
-            self.mouse_gesture_help(ctx, &mut msgs);
+            self.mouse_gesture_help(ui, &mut msgs);
         }
 
         if self.user.show_logs {
-            self.draw_log_window(ctx, &mut msgs);
+            self.draw_log_window(ui, &mut msgs);
         }
 
         if self.frame_buffer_variable.is_some() {
-            self.draw_frame_buffer_window(ctx, &mut msgs);
+            self.draw_frame_buffer_window(ui, &mut msgs);
         }
 
         if let Some(dialog) = self.user.show_reload_suggestion {
-            draw_reload_waveform_dialog(ctx, dialog, &mut msgs);
+            draw_reload_waveform_dialog(ui, dialog, &mut msgs);
         }
 
         if let Some(dialog) = self.user.show_open_sibling_state_file_suggestion {
-            draw_open_sibling_state_file_dialog(ctx, dialog, &mut msgs);
+            draw_open_sibling_state_file_dialog(ui, dialog, &mut msgs);
         }
 
         if self.user.show_performance {
             #[cfg(feature = "performance_plot")]
-            self.draw_performance_graph(ctx, &mut msgs);
+            self.draw_performance_graph(ui, &mut msgs);
         }
 
         if self.user.show_cursor_window
             && let Some(waves) = &self.user.waves
         {
-            self.draw_marker_window(waves, ctx, &mut msgs);
+            self.draw_marker_window(waves, ui, &mut msgs);
         }
 
         if self
@@ -347,40 +347,40 @@ impl SystemState {
             .show_menu
             .unwrap_or_else(|| self.user.config.layout.show_menu())
         {
-            self.add_menu_panel(ctx, &mut msgs);
+            self.add_menu_panel(ui, &mut msgs);
         }
 
         if self.show_toolbar() {
-            self.add_toolbar_panel(ctx, &mut msgs);
+            self.add_toolbar_panel(ui, &mut msgs);
         }
 
         if self.user.show_url_entry {
-            self.draw_load_url(ctx, &mut msgs);
+            self.draw_load_url(ui, &mut msgs);
         }
 
         if self.user.show_server_file_window {
-            self.draw_surver_file_window(ctx, &mut msgs);
+            self.draw_surver_file_window(ui, &mut msgs);
         }
 
         if self.show_statusbar() {
-            self.add_statusbar_panel(ctx, self.user.waves.as_ref(), &mut msgs);
+            self.add_statusbar_panel(ui, self.user.waves.as_ref(), &mut msgs);
         }
         if let Some(waves) = &self.user.waves
             && self.show_overview()
             && !waves.items_tree.is_empty()
         {
-            self.add_overview_panel(ctx, waves, &mut msgs);
+            self.add_overview_panel(ui, waves, &mut msgs);
         }
 
         if self.show_hierarchy() {
-            SidePanel::left("variable select left panel")
-                .default_width(300.)
-                .width_range(100.0..=max_width)
+            Panel::left("variable select left panel")
+                .default_size(300.)
+                .size_range(100.0..=max_width)
                 .frame(Frame {
                     fill: self.user.config.theme.primary_ui_color.background,
                     ..Default::default()
                 })
-                .show(ctx, |ui| {
+                .show_inside(ui, |ui| {
                     self.user.sidepanel_width = Some(ui.clip_rect().width());
                     match self.hierarchy_style() {
                         HierarchyStyle::Separate => self.separate(ui, &mut msgs),
@@ -391,7 +391,7 @@ impl SystemState {
         }
 
         if self.command_prompt.visible {
-            show_command_prompt(self, ctx, window_size, &mut msgs);
+            show_command_prompt(self, ui, window_size, &mut msgs);
             if let Some(new_idx) = self.command_prompt.new_selection {
                 self.command_prompt.selected = new_idx;
                 self.command_prompt.new_selection = None;
@@ -406,10 +406,10 @@ impl SystemState {
                         .expanded
                         .starts_with("item_focus");
                 if draw_focus_ids {
-                    SidePanel::left("focus id list")
-                        .default_width(40.)
-                        .width_range(40.0..=max_width)
-                        .show(ctx, |ui| {
+                    Panel::left("focus id list")
+                        .default_size(40.)
+                        .size_range(40.0..=max_width)
+                        .show_inside(ui, |ui| {
                             let response = ScrollArea::both()
                                 .vertical_scroll_offset(scroll_offset)
                                 .show(ui, |ui| {
@@ -425,10 +425,10 @@ impl SystemState {
                         });
                 }
 
-                SidePanel::left("variable list")
-                    .default_width(100.)
-                    .width_range(100.0..=max_width)
-                    .show(ctx, |ui| {
+                Panel::left("variable list")
+                    .default_size(100.)
+                    .size_range(100.0..=max_width)
+                    .show_inside(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                         if self.show_default_timeline() {
                             ui.label(RichText::new("Time").italics());
@@ -438,7 +438,7 @@ impl SystemState {
                             .auto_shrink([false; 2])
                             .vertical_scroll_offset(scroll_offset)
                             .show(ui, |ui| {
-                                self.draw_item_list(&mut msgs, ui, ctx);
+                                self.draw_item_list(&mut msgs, ui);
                             });
                         self.user.waves.as_mut().unwrap().top_item_draw_offset =
                             response.inner_rect.min.y;
@@ -450,18 +450,18 @@ impl SystemState {
                     });
 
                 // Will only draw if a transaction is focused
-                self.draw_transaction_detail_panel(ctx, max_width, &mut msgs);
+                self.draw_transaction_detail_panel(ui, max_width, &mut msgs);
 
-                SidePanel::left("variable values")
+                Panel::left("variable values")
                     .frame(
                         Frame::default()
                             .inner_margin(0)
                             .outer_margin(0)
                             .fill(self.user.config.theme.secondary_ui_color.background),
                     )
-                    .default_width(100.)
-                    .width_range(10.0..=max_width)
-                    .show(ctx, |ui| {
+                    .default_size(100.)
+                    .size_range(10.0..=max_width)
+                    .show_inside(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                         let response = ScrollArea::both()
                             .auto_shrink([false; 2])
@@ -471,26 +471,25 @@ impl SystemState {
                             msgs.push(Message::SetScrollOffset(response.state.offset.y));
                         }
                     });
-                let std_stroke = ctx.style().visuals.widgets.noninteractive.bg_stroke;
-                ctx.style_mut(|style| {
-                    style.visuals.widgets.noninteractive.bg_stroke =
-                        Stroke::from(&self.user.config.theme.viewport_separator);
-                });
+                let std_stroke = ui.style().visuals.widgets.noninteractive.bg_stroke;
+                ui.style_mut().visuals.widgets.noninteractive.bg_stroke =
+                    Stroke::from(&self.user.config.theme.viewport_separator);
+
                 let number_of_viewports = self.user.waves.as_ref().unwrap().viewports.len();
                 if number_of_viewports > 1 {
                     // Draw additional viewports
-                    let max_width = ctx.available_rect().width();
-                    let default_width = max_width / (number_of_viewports as f32);
+                    let max_width = ui.available_width();
+                    let default_size = max_width / (number_of_viewports as f32);
                     for viewport_idx in 1..number_of_viewports {
-                        SidePanel::right(format! {"view port {viewport_idx}"})
-                            .default_width(default_width)
-                            .width_range(30.0..=max_width)
+                        Panel::right(format! {"view port {viewport_idx}"})
+                            .default_size(default_size)
+                            .size_range(30.0..=max_width)
                             .frame(Frame {
                                 inner_margin: Margin::ZERO,
                                 outer_margin: Margin::ZERO,
                                 ..Default::default()
                             })
-                            .show(ctx, |ui| self.draw_items(ctx, &mut msgs, ui, viewport_idx));
+                            .show_inside(ui, |ui| self.draw_items(ui, &mut msgs, viewport_idx));
                     }
                 }
 
@@ -500,12 +499,10 @@ impl SystemState {
                         outer_margin: Margin::ZERO,
                         ..Default::default()
                     })
-                    .show(ctx, |ui| {
-                        self.draw_items(ctx, &mut msgs, ui, 0);
+                    .show_inside(ui, |ui| {
+                        self.draw_items(ui, &mut msgs, 0);
                     });
-                ctx.style_mut(|style| {
-                    style.visuals.widgets.noninteractive.bg_stroke = std_stroke;
-                });
+                ui.style_mut().visuals.widgets.noninteractive.bg_stroke = std_stroke;
             }
         }
 
@@ -518,7 +515,7 @@ impl SystemState {
         {
             CentralPanel::default()
                 .frame(Frame::NONE.fill(self.user.config.theme.canvas_colors.background))
-                .show(ctx, |ui| {
+                .show_inside(ui, |ui| {
                     ui.add_space(max_height * 0.1);
                     ui.vertical_centered(|ui| {
                         ui.label(RichText::new("🏄 Surfer").monospace().size(24.));
@@ -536,7 +533,7 @@ impl SystemState {
                 });
         }
 
-        ctx.input(|i| {
+        ui.input(|i| {
             i.raw.dropped_files.iter().for_each(|file| {
                 info!("Got dropped file");
                 msgs.push(Message::FileDropped(file.clone()));
@@ -545,18 +542,18 @@ impl SystemState {
 
         // If some dialogs are open, skip decoding keypresses
         if !self.user.show_url_entry && self.user.show_reload_suggestion.is_none() {
-            self.handle_pressed_keys(ctx, &mut msgs);
+            self.handle_pressed_keys(ui, &mut msgs);
         }
         msgs
     }
 
-    fn draw_load_url(&self, ctx: &egui::Context, msgs: &mut Vec<Message>) {
+    fn draw_load_url(&self, ui: &mut Ui, msgs: &mut Vec<Message>) {
         let mut open = true;
         egui::Window::new("Load URL")
             .open(&mut open)
             .collapsible(false)
             .resizable(true)
-            .show(ctx, |ui| {
+            .show(ui, |ui| {
                 ui.vertical_centered(|ui| {
                     let url = &mut *self.url.borrow_mut();
                     let response = ui.text_edit_singleline(url);
@@ -691,7 +688,7 @@ impl SystemState {
         response
     }
 
-    fn draw_item_list(&mut self, msgs: &mut Vec<Message>, ui: &mut Ui, ctx: &egui::Context) {
+    fn draw_item_list(&mut self, msgs: &mut Vec<Message>, ui: &mut Ui) {
         let mut item_offsets = Vec::new();
 
         let any_groups = self
@@ -704,7 +701,7 @@ impl SystemState {
             .any(|node| node.level > 0);
         let alignment = self.get_name_alignment();
         ui.with_layout(Layout::top_down(alignment).with_cross_justify(true), |ui| {
-            let available_rect = ui.available_rect_before_wrap();
+            let content_rect = ui.available_rect_before_wrap();
             for crate::displayed_item_tree::Info {
                 node:
                     crate::displayed_item_tree::Node {
@@ -776,7 +773,6 @@ impl SystemState {
                                     &mut item_offsets,
                                     &displayed_variable.info,
                                     ui,
-                                    ctx,
                                     levels_to_force_expand,
                                     alignment,
                                 )
@@ -799,7 +795,6 @@ impl SystemState {
                                             displayed_item,
                                             &mut item_offsets,
                                             ui,
-                                            ctx,
                                         )
                                     },
                                 )
@@ -809,12 +804,12 @@ impl SystemState {
                         // expand to the left, but not over the icon size
                         let mut expanded_rect = item_rect;
                         expanded_rect.set_left(
-                            available_rect.left()
+                            content_rect.left()
                                 + self.user.config.layout.waveforms_text_size
                                 + ui.spacing().item_spacing.x,
                         );
-                        expanded_rect.set_right(available_rect.right());
-                        self.draw_drag_target(msgs, vidx, expanded_rect, available_rect, ui, last);
+                        expanded_rect.set_right(content_rect.right());
+                        self.draw_drag_target(msgs, vidx, expanded_rect, content_rect, ui, last);
                     },
                 );
             }
@@ -881,7 +876,6 @@ impl SystemState {
         field: FieldRef,
         msgs: &mut Vec<Message>,
         ui: &mut Ui,
-        ctx: &egui::Context,
         meta: Option<&VariableMeta>,
     ) -> egui::Response {
         let mut variable_label = self.draw_item_label(
@@ -891,7 +885,6 @@ impl SystemState {
             Some(&field),
             msgs,
             ui,
-            ctx,
             meta,
         );
 
@@ -931,7 +924,6 @@ impl SystemState {
         drawing_infos: &mut Vec<ItemDrawingInfo>,
         info: &VariableInfo,
         ui: &mut Ui,
-        ctx: &egui::Context,
         levels_to_force_expand: Option<usize>,
         alignment: Align,
     ) -> Rect {
@@ -942,7 +934,7 @@ impl SystemState {
         match info {
             VariableInfo::Compound { subfields } => {
                 let mut header = egui::collapsing_header::CollapsingState::load_with_default_open(
-                    ui.ctx(),
+                    ui,
                     egui::Id::new(&field),
                     false,
                 );
@@ -965,7 +957,6 @@ impl SystemState {
                                             field.clone(),
                                             msgs,
                                             ui,
-                                            ctx,
                                             None,
                                         )
                                     },
@@ -987,7 +978,6 @@ impl SystemState {
                                                 drawing_infos,
                                                 info,
                                                 ui,
-                                                ctx,
                                                 levels_to_force_expand.map(|l| l.saturating_sub(1)),
                                                 alignment,
                                             );
@@ -1021,12 +1011,11 @@ impl SystemState {
                             field.clone(),
                             msgs,
                             ui,
-                            ctx,
                             None,
                         )
                     })
                     .inner;
-                self.draw_drag_source(msgs, vidx, &label, ctx.input(|e| e.modifiers));
+                self.draw_drag_source(msgs, vidx, &label, ui.input(|e| e.modifiers));
                 drawing_infos.push(ItemDrawingInfo::Variable(VariableDrawingInfo {
                     displayed_field_ref,
                     field_ref: field.clone(),
@@ -1044,7 +1033,7 @@ impl SystemState {
         msgs: &mut Vec<Message>,
         vidx: VisibleItemIndex,
         expanded_rect: Rect,
-        available_rect: Rect,
+        content_rect: Rect,
         ui: &mut Ui,
         last: bool,
     ) {
@@ -1068,7 +1057,7 @@ impl SystemState {
         // - for the last element, expanded till the bottom
         let before_rect = rect_with_margin
             .with_max_y(rect_with_margin.left_center().y)
-            .with_min_x(available_rect.left())
+            .with_min_x(content_rect.left())
             .round_to_pixels(ui.painter().pixels_per_point());
         let after_rect = if last {
             rect_with_margin.with_max_y(ui.max_rect().max.y)
@@ -1076,7 +1065,7 @@ impl SystemState {
             rect_with_margin
         }
         .with_min_y(rect_with_margin.left_center().y)
-        .with_min_x(available_rect.left())
+        .with_min_x(content_rect.left())
         .round_to_pixels(ui.painter().pixels_per_point());
 
         let (insert_vidx, line_y) = if ui.rect_contains_pointer(before_rect) {
@@ -1099,7 +1088,7 @@ impl SystemState {
             let mut rect = expanded_rect.with_min_x(left_x(level));
             rect.set_width(10.0);
             if level == 0 {
-                rect.set_left(available_rect.left());
+                rect.set_left(content_rect.left());
             }
             ui.rect_contains_pointer(rect)
         }) else {
@@ -1138,7 +1127,6 @@ impl SystemState {
         field: Option<&FieldRef>,
         msgs: &mut Vec<Message>,
         ui: &mut Ui,
-        ctx: &egui::Context,
         meta: Option<&VariableMeta>,
     ) -> egui::Response {
         let color_pair = {
@@ -1259,7 +1247,7 @@ impl SystemState {
                 })
                 .unwrap();
 
-            let modifiers = ctx.input(|i| i.modifiers);
+            let modifiers = ui.input(|i| i.modifiers);
             tracing::trace!(focused_item=?focused_item, is_focused=?is_focused, is_selected=?is_selected, single_selected=?single_selected, modifiers=?modifiers);
 
             // allow us to deselect, but only do so if this is the only selected item
@@ -1323,20 +1311,10 @@ impl SystemState {
         displayed_item: &DisplayedItem,
         drawing_infos: &mut Vec<ItemDrawingInfo>,
         ui: &mut Ui,
-        ctx: &egui::Context,
     ) -> Rect {
-        let label = self.draw_item_label(
-            vidx,
-            displayed_id,
-            displayed_item,
-            None,
-            msgs,
-            ui,
-            ctx,
-            None,
-        );
+        let label = self.draw_item_label(vidx, displayed_id, displayed_item, None, msgs, ui, None);
 
-        self.draw_drag_source(msgs, vidx, &label, ui.ctx().input(|e| e.modifiers));
+        self.draw_drag_source(msgs, vidx, &label, ui.input(|e| e.modifiers));
         match displayed_item {
             DisplayedItem::Divider(_) => {
                 drawing_infos.push(ItemDrawingInfo::Divider(DividerDrawingInfo {

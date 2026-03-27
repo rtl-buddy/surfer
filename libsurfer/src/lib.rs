@@ -318,8 +318,16 @@ impl SystemState {
                 }
             }
             Message::DownloadDefaultConfig => {
-                if let Err(e) = crate::config::write_default_config() {
-                    tracing::error!("Failed to write default config: {}", e);
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    if let Err(e) = crate::config::write_default_config() {
+                        tracing::error!("Failed to write default config: {}", e);
+                    }
+                }
+
+                #[cfg(target_arch = "wasm32")]
+                {
+                    tracing::warn!("Download default config is not supported on WASM");
                 }
             }
 

@@ -89,12 +89,14 @@ pub struct PluginTranslator {
 }
 
 impl PluginTranslator {
-    pub fn new(file: PathBuf) -> eyre::Result<Self> {
+    pub fn new(file: PathBuf, max_memory_mib: u64) -> eyre::Result<Self> {
         let data = std::fs::read(&file)
             .with_context(|| format!("Failed to read {}", file.to_string_lossy()))?;
 
         let manifest = Manifest::new([Wasm::data(data)])
-            .with_memory_options(MemoryOptions::new().with_max_var_bytes(1024 * 1024 * 10));
+            .with_memory_options(
+                MemoryOptions::new().with_max_var_bytes(max_memory_mib * 1024 * 1024),
+            );
         let mut plugin = PluginBuilder::new(manifest)
             .with_debug_info()
             .with_function(
@@ -123,10 +125,17 @@ impl PluginTranslator {
 
         if plugin.function_exists("new") {
             plugin.call::<_, ()>("new", ()).map_err(|e| {
-                anyhow!(
+                let mut msg = format!(
                     "Failed to call `new` on plugin from {}. {e}",
                     file.to_string_lossy()
-                )
+                );
+                if e.to_string().contains("oom") {
+                    msg.push_str(&format!(
+                        "\nPlugin ran out of memory ({max_memory_mib} MiB). \
+                        Increase `plugin.max_memory_mib` in your surfer config."
+                    ));
+                }
+                anyhow!("{msg}")
             })?;
         }
 

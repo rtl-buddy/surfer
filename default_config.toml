@@ -71,6 +71,10 @@ primary_button_drag_behavior= "Cursor"
 autostart = false
 address = "127.0.0.1:54321"
 
+[plugin]
+# Maximum memory in MiB available to each WASM translator plugin
+max_memory_mib = 10
+
 [server]
 bind_address = "127.0.0.1"
 port = 8911

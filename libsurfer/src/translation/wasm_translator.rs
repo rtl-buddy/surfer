@@ -94,8 +94,10 @@ impl PluginTranslator {
             .with_context(|| format!("Failed to read {}", file.to_string_lossy()))?;
 
         let manifest = Manifest::new([Wasm::data(data)])
-            .with_memory_options(MemoryOptions::new().with_max_var_bytes(1024 * 1024 * 10));
+            .with_memory_options(MemoryOptions::new().with_max_var_bytes(1024 * 1024 * 10))
+            .with_allowed_path("ro:/".to_string(), "/");
         let mut plugin = PluginBuilder::new(manifest)
+            .with_wasi(true)
             .with_debug_info()
             .with_function(
                 "read_file",

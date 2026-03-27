@@ -275,9 +275,9 @@ macro_rules! snapshot_ui_with_file_and_msgs {
                 let mut surface = create_surface((SNAPSHOT_WIDTH as i32, SNAPSHOT_HEIGHT as i32));
                 draw_onto_surface(
                     &mut surface,
-                    |ctx| {
-                        setup_custom_font(ctx);
-                        state.draw(ctx, Some(SNAPSHOT_SIZE));
+                    |ui| {
+                        setup_custom_font(ui);
+                        state.draw(ui, Some(SNAPSHOT_SIZE));
                     },
                     None,
                 );

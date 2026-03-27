@@ -173,7 +173,7 @@ impl SystemState {
             .open(&mut open)
             .collapsible(true)
             .resizable(true)
-            .default_width(700.)
+            .default_size((700., 400.))
             .show(ctx, |ui| {
                 let timing = self.timing.borrow_mut();
 

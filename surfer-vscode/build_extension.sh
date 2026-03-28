@@ -15,4 +15,6 @@ cp ../surfer/dist/manifest.json \
   ../surfer/dist/integration.js \
   extension/surfer
 
+cp README.md extension/README.md
+
 python3 prepare.py

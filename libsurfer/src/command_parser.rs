@@ -296,6 +296,7 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
             "preference_set_arrow_key_bindings",
             "goto_cursor",
             "goto_marker",
+            "dump_svg",
             "dump_tree",
             "group_marked",
             "group_dissolve",
@@ -342,6 +343,7 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
             "preference_set_clock_highlight",
             "preference_set_hierarchy_style",
             "preference_set_arrow_key_bindings",
+            "dump_svg",
             "show_controls",
             "show_mouse_gestures",
             "show_quick_start",
@@ -757,6 +759,19 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
                     Box::new(move |name| {
                         parse_marker(name, &markers)
                             .map(|idx| Command::Terminal(Message::GoToMarkerPosition(idx, 0)))
+                    }),
+                ),
+                "dump_svg" => optional_single_word(
+                    vec![],
+                    Box::new(|word| {
+                        let file = if word.trim().is_empty() {
+                            "surfer-screenshot.svg"
+                        } else {
+                            word
+                        };
+                        Some(Command::Terminal(Message::DumpSvg(
+                            std::path::PathBuf::from(file),
+                        )))
                     }),
                 ),
                 "dump_tree" => Some(Command::Terminal(Message::DumpTree)),

@@ -551,7 +551,7 @@ vscode-prepare-publish:
     - npm install -g @vscode/vsce
     - cd extension
     - npm install
-    - vsce package -o extension.vsix
+    - vsce package --no-dependencies -o extension.vsix
   artifacts:
     paths:
         - surfer-vscode/extension/extension.vsix

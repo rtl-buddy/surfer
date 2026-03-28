@@ -546,7 +546,7 @@ mod keyboard_shortcuts_serde {
                 parts.push(*name);
             }
         }
-        let key_name = format!("{:?}", logical_key);
+        let key_name = format!("{logical_key:?}");
         parts.push(&key_name);
         parts.join("+")
     }
@@ -570,7 +570,7 @@ mod keyboard_shortcuts_serde {
         };
 
         let logical_key =
-            Key::from_name(key_str).ok_or_else(|| format!("Unknown key: {}", key_str))?;
+            Key::from_name(key_str).ok_or_else(|| format!("Unknown key: {key_str}"))?;
 
         // Use fold to accumulate modifiers
         let modifiers = modifier_parts
@@ -581,7 +581,7 @@ mod keyboard_shortcuts_serde {
                     .iter()
                     .find(|(name, _)| name == &lower)
                     .map(|(_, mod_bit)| acc | *mod_bit)
-                    .ok_or_else(|| format!("Unknown modifier: {}", modifier_str))
+                    .ok_or_else(|| format!("Unknown modifier: {modifier_str}"))
             })?;
 
         Ok(KeyboardShortcut::new(modifiers, logical_key))

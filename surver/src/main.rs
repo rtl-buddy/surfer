@@ -54,10 +54,10 @@ pub fn start_logging() -> Result<()> {
 /// Load list of file names from a file (one per line)
 fn load_file_list(filename: &str) -> Result<Vec<String>> {
     let file =
-        File::open(filename).with_context(|| format!("Failed to open file list: {}", filename))?;
+        File::open(filename).with_context(|| format!("Failed to open file list: {filename}"))?;
     let buf = BufReader::new(file);
     buf.lines()
-        .map(|l| l.with_context(|| format!("Failed to read line from: {}", filename)))
+        .map(|l| l.with_context(|| format!("Failed to read line from: {filename}")))
         .filter(|result| result.as_ref().map(|s| !s.is_empty()).unwrap_or(true))
         .collect()
 }

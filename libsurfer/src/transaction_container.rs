@@ -211,7 +211,7 @@ pub struct TransactionStreamRef {
 impl Hash for TransactionStreamRef {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.gen_id
-            .unwrap_or_else(|| GeneratorId(self.stream_id.0))
+            .unwrap_or(GeneratorId(self.stream_id.0))
             .hash(state);
         self.name.hash(state);
     }

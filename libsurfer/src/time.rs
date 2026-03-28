@@ -543,7 +543,7 @@ fn split_numeric_parts(numeric_str: &str) -> Result<(String, String), String> {
     let all_valid =
         (integer_part.chars().chain(fractional_part.chars())).all(|c| c.is_ascii_digit());
     if !all_valid {
-        return Err(format!("Failed to parse '{}' as number", numeric_str));
+        return Err(format!("Failed to parse '{numeric_str}' as number"));
     }
 
     let integer = if integer_part.is_empty() {

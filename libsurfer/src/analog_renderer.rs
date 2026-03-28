@@ -215,9 +215,9 @@ fn select_value_range(
     let (min, max) = match settings.y_axis_scale {
         crate::displayed_item::AnalogYAxisScale::Viewport => (viewport_min, viewport_max),
         crate::displayed_item::AnalogYAxisScale::Global => (global_min, global_max),
-        crate::displayed_item::AnalogYAxisScale::TypeLimits => type_limits
-            .map(|r| (r.min, r.max))
-            .unwrap_or((global_min, global_max)),
+        crate::displayed_item::AnalogYAxisScale::TypeLimits => {
+            type_limits.map_or((global_min, global_max), |r| (r.min, r.max))
+        }
     };
 
     // Handle all-NaN case: min=INFINITY, max=NEG_INFINITY

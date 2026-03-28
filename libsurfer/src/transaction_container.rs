@@ -1,6 +1,8 @@
 use crate::time::{TimeScale, TimeUnit};
 use crate::wave_container::MetaData;
-use ftr_parser::types::{FTR, Transaction, TxGenerator, TxStream};
+use ftr_parser::types::{
+    FTR, GeneratorId, StreamId, Transaction, TransactionId, TxGenerator, TxStream,
+};
 use itertools::Itertools;
 use num::BigUint;
 use serde::{Deserialize, Serialize};
@@ -19,7 +21,7 @@ impl TransactionContainer {
     }
 
     #[must_use]
-    pub fn get_stream(&self, stream_id: usize) -> Option<&TxStream> {
+    pub fn get_stream(&self, stream_id: StreamId) -> Option<&TxStream> {
         self.inner.get_stream(stream_id)
     }
 
@@ -43,20 +45,20 @@ impl TransactionContainer {
     }
 
     #[must_use]
-    pub fn get_generator(&self, gen_id: usize) -> Option<&TxGenerator> {
+    pub fn get_generator(&self, gen_id: GeneratorId) -> Option<&TxGenerator> {
         self.inner.get_generator(gen_id)
     }
     #[must_use]
     pub fn get_generator_from_name(
         &self,
-        stream_id: Option<usize>,
+        stream_id: Option<StreamId>,
         gen_name: String,
     ) -> Option<&TxGenerator> {
         self.inner.get_generator_from_name(stream_id, gen_name)
     }
 
     #[must_use]
-    pub fn get_transactions_from_generator(&self, gen_id: usize) -> Vec<usize> {
+    pub fn get_transactions_from_generator(&self, gen_id: GeneratorId) -> Vec<TransactionId> {
         self.get_generator(gen_id)
             .unwrap()
             .transactions
@@ -66,7 +68,7 @@ impl TransactionContainer {
     }
 
     #[must_use]
-    pub fn get_transactions_from_stream(&self, stream_id: usize) -> Vec<usize> {
+    pub fn get_transactions_from_stream(&self, stream_id: StreamId) -> Vec<TransactionId> {
         self.get_stream(stream_id)
             .unwrap()
             .generators
@@ -201,14 +203,16 @@ impl StreamScopeRef {
 /// If `gen_id` is `Some` this `TransactionStreamRef` is a generator, otherwise it's a stream
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TransactionStreamRef {
-    pub stream_id: usize,
-    pub gen_id: Option<usize>,
+    pub stream_id: StreamId,
+    pub gen_id: Option<GeneratorId>,
     pub name: String,
 }
 
 impl Hash for TransactionStreamRef {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.gen_id.unwrap_or(self.stream_id).hash(state);
+        self.gen_id
+            .unwrap_or_else(|| GeneratorId(self.stream_id.0))
+            .hash(state);
         self.name.hash(state);
     }
 }
@@ -231,7 +235,7 @@ impl Display for TransactionStreamRef {
 
 impl TransactionStreamRef {
     #[must_use]
-    pub fn new_stream(stream_id: usize, name: String) -> Self {
+    pub fn new_stream(stream_id: StreamId, name: String) -> Self {
         TransactionStreamRef {
             stream_id,
             gen_id: None,
@@ -239,7 +243,7 @@ impl TransactionStreamRef {
         }
     }
     #[must_use]
-    pub fn new_gen(stream_id: usize, gen_id: usize, name: String) -> Self {
+    pub fn new_gen(stream_id: StreamId, gen_id: GeneratorId, name: String) -> Self {
         TransactionStreamRef {
             stream_id,
             gen_id: Some(gen_id),
@@ -260,5 +264,5 @@ impl TransactionStreamRef {
 
 #[derive(Clone, Debug, Eq, Hash, Serialize, Deserialize, PartialEq)]
 pub struct TransactionRef {
-    pub id: usize,
+    pub id: TransactionId,
 }

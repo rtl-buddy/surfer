@@ -25,7 +25,7 @@ use crate::wave_container::{
 };
 use crate::wave_source::{WaveFormat, WaveSource};
 use crate::wellen::LoadSignalsCmd;
-use ftr_parser::types::Transaction;
+use ftr_parser::types::{StreamId, Transaction};
 use itertools::Itertools;
 use std::fmt::Formatter;
 use std::ops::Not;
@@ -689,7 +689,7 @@ impl WaveData {
     }
 
     pub fn add_all_streams(&mut self) {
-        let mut streams: Vec<(usize, String)> = vec![];
+        let mut streams: Vec<(StreamId, String)> = vec![];
         for stream in self.inner.as_transactions().unwrap().get_streams() {
             streams.push((stream.id, stream.name.clone()));
         }

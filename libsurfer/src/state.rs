@@ -371,12 +371,12 @@ impl SystemState {
         let title = match &filename_for_title {
             WaveSource::File(path) => {
                 if let Some(name) = path.file_name() {
-                    format!("Surfer - {}", name)
+                    format!("Surfer - {name}")
                 } else {
                     "Surfer".to_string()
                 }
             }
-            WaveSource::Url(url) => format!("Surfer - {}", url),
+            WaveSource::Url(url) => format!("Surfer - {url}"),
             _ => "Surfer".to_string(),
         };
         if let Some(ctx) = self.context.as_ref() {

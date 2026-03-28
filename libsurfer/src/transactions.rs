@@ -156,7 +156,7 @@ impl WaveData {
                 }
             })
             .collect_vec();
-        transactions.sort_unstable();
+        transactions.sort_unstable_by(|a, b| a.0.cmp(&b.0));
         let tx = if let Some(focused_tx) = &self.focused_transaction.0 {
             let next_id = transactions
                 .iter()

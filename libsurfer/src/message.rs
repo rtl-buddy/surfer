@@ -410,6 +410,8 @@ pub enum Message {
     Undo(usize),
     /// Redo the last n changes
     Redo(usize),
+    /// Dump the current waveform canvas as SVG.
+    DumpSvg(PathBuf),
     DumpTree,
     GroupNew {
         name: Option<String>,

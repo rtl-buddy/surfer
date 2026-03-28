@@ -39,6 +39,7 @@ pub mod state;
 pub mod state_file_io;
 pub mod state_util;
 pub mod statusbar;
+mod svg_export;
 pub mod system_state;
 #[cfg(test)]
 pub mod tests;
@@ -1833,6 +1834,14 @@ impl SystemState {
             Message::DumpTree => {
                 let waves = self.user.waves.as_ref()?;
                 dump_tree(waves);
+            }
+            Message::DumpSvg(path) => {
+                #[cfg(not(target_arch = "wasm32"))]
+                if let Err(e) = self.dump_svg(path) {
+                    error!("Failed to dump SVG screenshot: {e:#?}");
+                }
+                #[cfg(target_arch = "wasm32")]
+                warn!("DumpSvg is not supported on wasm targets");
             }
             Message::GroupNew {
                 name,

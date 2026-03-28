@@ -94,6 +94,10 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
         Some(v) => v.inner.variable_names(),
         None => vec![],
     };
+    let arrays = match &state.user.waves {
+        Some(v) => v.inner.array_names(),
+        None => vec![],
+    };
     let surver_file_names = state
         .user
         .surver_file_infos
@@ -317,6 +321,8 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
             "transaction_next",
             "transaction_prev",
             "copy_value",
+            "frame_buffer_set_array",
+            "frame_buffer_set_variable",
             "pause_simulation",
             "unpause_simulation",
             "undo",
@@ -757,6 +763,22 @@ pub fn get_parser(state: &SystemState) -> Command<Message> {
                     Box::new(move |name| {
                         parse_marker(name, &markers)
                             .map(|idx| Command::Terminal(Message::GoToMarkerPosition(idx, 0)))
+                    }),
+                ),
+                "frame_buffer_set_array" => single_word(
+                    arrays.clone(),
+                    Box::new(|word| {
+                        Some(Command::Terminal(Message::SetFrameBufferArray(
+                            ScopeRef::from_hierarchy_string(word),
+                        )))
+                    }),
+                ),
+                "frame_buffer_set_variable" => single_word(
+                    variables.clone(),
+                    Box::new(|word| {
+                        Some(Command::Terminal(Message::SetFrameBufferVariable(
+                            VariableRef::from_hierarchy_string(word),
+                        )))
                     }),
                 ),
                 "dump_tree" => Some(Command::Terminal(Message::DumpTree)),

@@ -147,6 +147,15 @@ impl DataContainer {
     }
 
     #[must_use]
+    pub fn array_names(&self) -> Vec<String> {
+        match self {
+            DataContainer::Waves(w) => w.array_names(),
+            DataContainer::Transactions(_) => vec![],
+            DataContainer::Empty => vec![],
+        }
+    }
+
+    #[must_use]
     pub fn variable_names(&self) -> Vec<String> {
         match self {
             DataContainer::Waves(w) => w.variable_names(),

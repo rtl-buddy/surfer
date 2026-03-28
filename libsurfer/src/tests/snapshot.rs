@@ -8,6 +8,7 @@ use std::{
 use base64::{Engine, engine::general_purpose};
 use egui_skia_renderer::{EncodedImageFormat, create_surface, draw_onto_surface};
 use emath::Vec2;
+use ftr_parser::types::{GeneratorId, StreamId, TransactionId};
 use image::{DynamicImage, ImageFormat};
 use num::{BigInt, bigint::ToBigInt};
 use project_root::get_project_root;
@@ -2373,15 +2374,15 @@ snapshot_ui_with_file_and_msgs!(
 );
 
 snapshot_ui_with_file_and_msgs! {simple_ftr_loads, "examples/my_db.ftr", [
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(1, "pipelined_stream".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(2, "addr_stream".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(3, "data_stream".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(StreamId(1), "pipelined_stream".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(StreamId(2), "addr_stream".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(StreamId(3), "data_stream".to_string())),
     Message::AddDivider(Some("Divider".to_string()), None),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(1, 4, "pipelined_stream.read".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(1, 5, "pipelined_stream.write".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(2, 6, "addr_stream.addr".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(3, 7, "data_stream.rdata".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(3, 8, "data_stream.wdata".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(StreamId(1), GeneratorId(4), "pipelined_stream.read".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(StreamId(1), GeneratorId(5), "pipelined_stream.write".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(StreamId(2), GeneratorId(6), "addr_stream.addr".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(StreamId(3), GeneratorId(7), "data_stream.rdata".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(StreamId(3), GeneratorId(8), "data_stream.wdata".to_string())),
 
 ]}
 
@@ -2395,23 +2396,23 @@ snapshot_ui_with_file_and_msgs! {add_stream_from_name, "examples/my_db.ftr", [
 ]}
 
 snapshot_ui_with_file_and_msgs! {focus_transaction, "examples/my_db.ftr", [
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(1, "pipelined_stream".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(1, 4, "pipelined_stream.read".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(1, 5, "pipelined_stream.write".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(2, 6, "addr_stream.addr".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(StreamId(1), "pipelined_stream".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(StreamId(1), GeneratorId(4), "pipelined_stream.read".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(StreamId(1), GeneratorId(5), "pipelined_stream.write".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_gen(StreamId(2), GeneratorId(6), "addr_stream.addr".to_string())),
     Message::FocusTransaction(
-        Some(TransactionRef { id: 4 }),
+        Some(TransactionRef { id: TransactionId(4) }),
         None,
     ),
 ]}
 
 snapshot_ui_with_file_and_msgs! {tx_stream_multiple_viewport_works, "examples/my_db.ftr", [
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(1, "pipelined_stream".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(2, "addr_stream".to_string())),
-    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(3, "data_stream".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(StreamId(1), "pipelined_stream".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(StreamId(2), "addr_stream".to_string())),
+    Message::AddStreamOrGenerator(TransactionStreamRef::new_stream(StreamId(3), "data_stream".to_string())),
     Message::AddViewport,
     Message::CanvasScroll {delta: Vec2::new(-300., 0.),viewport_idx: 1},
-    Message::FocusTransaction(Some(TransactionRef { id: 34 }), None),
+    Message::FocusTransaction(Some(TransactionRef { id: TransactionId(34) }), None),
 ]}
 
 snapshot_ui_with_file_and_msgs! {parameter_in_scopes, "examples/picorv32.vcd", [

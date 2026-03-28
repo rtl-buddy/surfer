@@ -529,19 +529,8 @@ impl CxxrtlContainer {
     }
 
     pub fn variable_meta(&mut self, variable: &VariableRef) -> Result<VariableMeta> {
-        Ok(self
-            .fetch_item(variable)
-            .map(|item| VariableMeta {
-                var: variable.clone(),
-                num_bits: Some(item.width),
-                variable_type: None,
-                variable_type_name: None,
-                index: None,
-                direction: None,
-                enum_map: Default::default(),
-                encoding: VariableEncoding::BitVector,
-            })
-            .unwrap_or_else(|| VariableMeta {
+        Ok(self.fetch_item(variable).map_or_else(
+            || VariableMeta {
                 var: variable.clone(),
                 num_bits: None,
                 variable_type: None,
@@ -550,7 +539,18 @@ impl CxxrtlContainer {
                 direction: None,
                 enum_map: Default::default(),
                 encoding: VariableEncoding::BitVector,
-            }))
+            },
+            |item| VariableMeta {
+                var: variable.clone(),
+                num_bits: Some(item.width),
+                variable_type: None,
+                variable_type_name: None,
+                index: None,
+                direction: None,
+                enum_map: Default::default(),
+                encoding: VariableEncoding::BitVector,
+            },
+        ))
     }
 
     #[must_use]
@@ -662,16 +662,14 @@ impl CxxrtlContainer {
     }
 
     pub fn unpause(&mut self) {
-        let duration = self
-            .raw_simulation_status()
-            .map(|s| {
+        let duration = self.raw_simulation_status().map_or_else(
+            || CxxrtlTimestamp::from_femtoseconds(100_000_000u32.to_biguint().unwrap()),
+            |s| {
                 CxxrtlTimestamp::from_femtoseconds(
                     s.latest_time.as_femtoseconds() + 100_000_000u32.to_biguint().unwrap(),
                 )
-            })
-            .unwrap_or_else(|| {
-                CxxrtlTimestamp::from_femtoseconds(100_000_000u32.to_biguint().unwrap())
-            });
+            },
+        );
 
         let cmd = CxxrtlCommand::run_simulation {
             until_time: Some(duration),

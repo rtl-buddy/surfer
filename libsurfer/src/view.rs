@@ -426,12 +426,22 @@ impl SystemState {
                 }
 
                 Panel::left("variable list")
+                    .frame(
+                        Frame::default()
+                            .inner_margin(0)
+                            .outer_margin(0)
+                            .fill(self.user.config.theme.secondary_ui_color.background),
+                    )
                     .default_size(100.)
                     .size_range(100.0..=max_width)
                     .show_inside(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+                        let text_margin = Self::item_text_margin(ui);
                         if self.show_default_timeline() {
-                            ui.label(RichText::new("Time").italics());
+                            ui.horizontal(|ui| {
+                                ui.add_space(text_margin.x);
+                                ui.label(RichText::new("Time").italics());
+                            });
                         }
 
                         let response = ScrollArea::both()
@@ -606,6 +616,10 @@ impl SystemState {
         }
     }
 
+    fn item_text_margin(ui: &Ui) -> Vec2 {
+        ui.spacing().item_spacing
+    }
+
     fn draw_item_focus_list(&self, ui: &mut Ui) {
         let Some(waves) = self.user.waves.as_ref() else {
             return;
@@ -689,135 +703,159 @@ impl SystemState {
     }
 
     fn draw_item_list(&mut self, msgs: &mut Vec<Message>, ui: &mut Ui) {
+        let Some(waves) = self.user.waves.as_ref() else {
+            return;
+        };
         let mut item_offsets = Vec::new();
+        let text_margin = Self::item_text_margin(ui);
 
-        let any_groups = self
-            .user
-            .waves
-            .as_ref()
-            .unwrap()
-            .items_tree
-            .iter()
-            .any(|node| node.level > 0);
+        let any_groups = waves.items_tree.iter().any(|node| node.level > 0);
         let alignment = self.get_name_alignment();
         ui.with_layout(Layout::top_down(alignment).with_cross_justify(true), |ui| {
-            let content_rect = ui.available_rect_before_wrap();
-            for crate::displayed_item_tree::Info {
-                node:
-                    crate::displayed_item_tree::Node {
-                        item_ref,
-                        level,
-                        unfolded,
+            let background_rect = ui.max_rect();
+
+            // Draw backgrounds using the cached drawing_infos from the previous frame
+            if !waves.drawing_infos.is_empty() {
+                let painter = ui.painter().clone();
+                let gap = ui.spacing().item_spacing.y * 0.5;
+
+                for (item_count, drawing_info) in waves.drawing_infos.iter().enumerate() {
+                    let background_color =
+                        self.get_background_color(waves, drawing_info.vidx(), item_count);
+                    let min = Pos2::new(background_rect.left(), drawing_info.top() - gap);
+                    let max = Pos2::new(background_rect.right(), drawing_info.bottom() + gap);
+                    painter.rect_filled(Rect { min, max }, CornerRadius::ZERO, background_color);
+                }
+            }
+
+            // Add default margin for text/layout while keeping background marginless.
+            let rect_with_margin = Rect {
+                min: background_rect.min + text_margin,
+                max: background_rect.max + Vec2::new(0.0, 40.0),
+            };
+
+            let builder = UiBuilder::new().max_rect(rect_with_margin);
+            ui.scope_builder(builder, |ui| {
+                let content_rect = ui.available_rect_before_wrap();
+                for (
+                    item_count,
+                    crate::displayed_item_tree::Info {
+                        node:
+                            crate::displayed_item_tree::Node {
+                                item_ref,
+                                level,
+                                unfolded,
+                                ..
+                            },
+                        vidx,
+                        has_children,
+                        last,
                         ..
                     },
-                vidx,
-                has_children,
-                last,
-                ..
-            } in self
-                .user
-                .waves
-                .as_ref()
-                .unwrap()
-                .items_tree
-                .iter_visible_extra()
-            {
-                let Some(displayed_item) = self
-                    .user
-                    .waves
-                    .as_ref()
-                    .unwrap()
-                    .displayed_items
-                    .get(item_ref)
-                else {
-                    continue;
-                };
+                ) in waves.items_tree.iter_visible_extra().enumerate()
+                {
+                    let Some(displayed_item) = waves.displayed_items.get(item_ref) else {
+                        continue;
+                    };
 
-                ui.with_layout(
-                    if alignment == Align::LEFT {
-                        Layout::left_to_right(Align::TOP)
-                    } else {
-                        Layout::right_to_left(Align::TOP)
-                    },
-                    |ui| {
-                        ui.add_space(10.0 * f32::from(*level));
-                        if any_groups {
-                            let response =
-                                self.hierarchy_icon(ui, has_children, *unfolded, alignment);
-                            if response.clicked() {
-                                if *unfolded {
-                                    msgs.push(Message::GroupFold(Some(*item_ref)));
-                                } else {
-                                    msgs.push(Message::GroupUnfold(Some(*item_ref)));
+                    // Calculate background color for this item
+                    let background_color = self.get_background_color(waves, vidx, item_count);
+
+                    ui.with_layout(
+                        if alignment == Align::LEFT {
+                            Layout::left_to_right(Align::TOP)
+                        } else {
+                            Layout::right_to_left(Align::TOP)
+                        },
+                        |ui| {
+                            ui.add_space(10.0 * f32::from(*level));
+                            if any_groups {
+                                let response =
+                                    self.hierarchy_icon(ui, has_children, *unfolded, alignment);
+                                if response.clicked() {
+                                    if *unfolded {
+                                        msgs.push(Message::GroupFold(Some(*item_ref)));
+                                    } else {
+                                        msgs.push(Message::GroupUnfold(Some(*item_ref)));
+                                    }
                                 }
                             }
-                        }
 
-                        let item_rect = match displayed_item {
-                            DisplayedItem::Variable(displayed_variable) => {
-                                let levels_to_force_expand =
-                                    self.items_to_expand.borrow().iter().find_map(
-                                        |(id, levels)| {
-                                            if item_ref == id { Some(*levels) } else { None }
+                            let item_rect = match displayed_item {
+                                DisplayedItem::Variable(displayed_variable) => {
+                                    let levels_to_force_expand =
+                                        self.items_to_expand.borrow().iter().find_map(
+                                            |(id, levels)| {
+                                                if item_ref == id { Some(*levels) } else { None }
+                                            },
+                                        );
+
+                                    self.draw_variable(
+                                        msgs,
+                                        vidx,
+                                        displayed_item,
+                                        *item_ref,
+                                        FieldRef::without_fields(
+                                            displayed_variable.variable_ref.clone(),
+                                        ),
+                                        &mut item_offsets,
+                                        &displayed_variable.info,
+                                        ui,
+                                        levels_to_force_expand,
+                                        alignment,
+                                        background_color,
+                                    )
+                                }
+                                DisplayedItem::Divider(_)
+                                | DisplayedItem::Marker(_)
+                                | DisplayedItem::Placeholder(_)
+                                | DisplayedItem::TimeLine(_)
+                                | DisplayedItem::Stream(_)
+                                | DisplayedItem::Group(_) => {
+                                    ui.with_layout(
+                                        ui.layout()
+                                            .with_main_justify(true)
+                                            .with_main_align(alignment),
+                                        |ui| {
+                                            self.draw_plain_item(
+                                                msgs,
+                                                vidx,
+                                                *item_ref,
+                                                displayed_item,
+                                                &mut item_offsets,
+                                                ui,
+                                                background_color,
+                                            )
                                         },
-                                    );
-
-                                self.draw_variable(
-                                    msgs,
-                                    vidx,
-                                    displayed_item,
-                                    *item_ref,
-                                    FieldRef::without_fields(
-                                        displayed_variable.variable_ref.clone(),
-                                    ),
-                                    &mut item_offsets,
-                                    &displayed_variable.info,
-                                    ui,
-                                    levels_to_force_expand,
-                                    alignment,
-                                )
-                            }
-                            DisplayedItem::Divider(_)
-                            | DisplayedItem::Marker(_)
-                            | DisplayedItem::Placeholder(_)
-                            | DisplayedItem::TimeLine(_)
-                            | DisplayedItem::Stream(_)
-                            | DisplayedItem::Group(_) => {
-                                ui.with_layout(
-                                    ui.layout()
-                                        .with_main_justify(true)
-                                        .with_main_align(alignment),
-                                    |ui| {
-                                        self.draw_plain_item(
-                                            msgs,
-                                            vidx,
-                                            *item_ref,
-                                            displayed_item,
-                                            &mut item_offsets,
-                                            ui,
-                                        )
-                                    },
-                                )
-                                .inner
-                            }
-                        };
-                        // expand to the left, but not over the icon size
-                        let mut expanded_rect = item_rect;
-                        expanded_rect.set_left(
-                            content_rect.left()
-                                + self.user.config.layout.waveforms_text_size
-                                + ui.spacing().item_spacing.x,
-                        );
-                        expanded_rect.set_right(content_rect.right());
-                        self.draw_drag_target(msgs, vidx, expanded_rect, content_rect, ui, last);
-                    },
+                                    )
+                                    .inner
+                                }
+                            };
+                            // expand to the left, but not over the icon size
+                            let mut expanded_rect = item_rect;
+                            expanded_rect.set_left(
+                                content_rect.left()
+                                    + self.user.config.layout.waveforms_text_size
+                                    + text_margin.x,
+                            );
+                            expanded_rect.set_right(content_rect.right());
+                            self.draw_drag_target(
+                                msgs,
+                                vidx,
+                                expanded_rect,
+                                content_rect,
+                                ui,
+                                last,
+                            );
+                        },
+                    );
+                }
+                Self::add_padding_for_last_item(
+                    ui,
+                    item_offsets.last(),
+                    self.user.config.layout.waveforms_line_height,
                 );
-            }
-            Self::add_padding_for_last_item(
-                ui,
-                item_offsets.last(),
-                self.user.config.layout.waveforms_line_height,
-            );
+            });
         });
 
         self.user.waves.as_mut().unwrap().drawing_infos = item_offsets;
@@ -877,6 +915,7 @@ impl SystemState {
         msgs: &mut Vec<Message>,
         ui: &mut Ui,
         meta: Option<&VariableMeta>,
+        background_color: Color32,
     ) -> egui::Response {
         let mut variable_label = self.draw_item_label(
             vidx,
@@ -886,6 +925,7 @@ impl SystemState {
             msgs,
             ui,
             meta,
+            background_color,
         );
 
         if self.show_tooltip() {
@@ -926,6 +966,7 @@ impl SystemState {
         ui: &mut Ui,
         levels_to_force_expand: Option<usize>,
         alignment: Align,
+        background_color: Color32,
     ) -> Rect {
         let displayed_field_ref = DisplayedFieldRef {
             item: displayed_id,
@@ -958,6 +999,7 @@ impl SystemState {
                                             msgs,
                                             ui,
                                             None,
+                                            background_color,
                                         )
                                     },
                                 );
@@ -980,6 +1022,7 @@ impl SystemState {
                                                 ui,
                                                 levels_to_force_expand.map(|l| l.saturating_sub(1)),
                                                 alignment,
+                                                background_color,
                                             );
                                         },
                                     );
@@ -1012,6 +1055,7 @@ impl SystemState {
                             msgs,
                             ui,
                             None,
+                            background_color,
                         )
                     })
                     .inner;
@@ -1128,6 +1172,7 @@ impl SystemState {
         msgs: &mut Vec<Message>,
         ui: &mut Ui,
         meta: Option<&VariableMeta>,
+        background_color: Color32,
     ) -> egui::Response {
         let color_pair = {
             if self.item_is_focused(vidx) {
@@ -1138,7 +1183,10 @@ impl SystemState {
                 displayed_item,
                 DisplayedItem::Variable(_) | DisplayedItem::Placeholder(_)
             ) {
-                &self.user.config.theme.primary_ui_color
+                &ThemeColorPair {
+                    background: background_color,
+                    foreground: self.user.config.theme.get_best_text_color(background_color),
+                }
             } else {
                 &ThemeColorPair {
                     background: self.user.config.theme.primary_ui_color.background,
@@ -1311,8 +1359,18 @@ impl SystemState {
         displayed_item: &DisplayedItem,
         drawing_infos: &mut Vec<ItemDrawingInfo>,
         ui: &mut Ui,
+        background_color: Color32,
     ) -> Rect {
-        let label = self.draw_item_label(vidx, displayed_id, displayed_item, None, msgs, ui, None);
+        let label = self.draw_item_label(
+            vidx,
+            displayed_id,
+            displayed_item,
+            None,
+            msgs,
+            ui,
+            None,
+            background_color,
+        );
 
         self.draw_drag_source(msgs, vidx, &label, ui.input(|e| e.modifiers));
         match displayed_item {
@@ -1677,8 +1735,9 @@ impl SystemState {
             return self.user.config.theme.highlight_background;
         }
         waves
-            .displayed_items
-            .get(&waves.items_tree.get_visible(vidx).unwrap().item_ref)
+            .items_tree
+            .get_visible(vidx)
+            .and_then(|visible| waves.displayed_items.get(&visible.item_ref))
             .and_then(super::displayed_item::DisplayedItem::background_color)
             .and_then(|color| self.user.config.theme.get_color(color))
             .unwrap_or_else(|| self.get_default_alternating_background_color(item_count))

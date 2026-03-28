@@ -27,9 +27,7 @@
       }
     ]
   },
-  "dependencies": {
-    "eslint-plugin-unused-imports": "^3.2.0"
-  },
+  "dependencies": {},
   "description": "An Extensible and Snappy Waveform Viewer that supports VCD, FST, and GHW files",
   "devDependencies": {
     "@types/mocha": "^10.0.6",
@@ -40,6 +38,7 @@
     "@vscode/test-cli": "^0.0.8",
     "@vscode/test-electron": "^2.3.9",
     "eslint": "^8.57.0",
+    "eslint-plugin-unused-imports": "^3.2.0",
     "typescript": "^5.3.3"
   },
   "displayName": "surfer",

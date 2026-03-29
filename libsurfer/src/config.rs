@@ -1210,7 +1210,8 @@ pub fn write_default_config() -> eyre::Result<()> {
         fs::create_dir_all(config_dir)?;
 
         // write file
-        fs::write(config_path, default_config)?;
+        fs::write(&config_path, default_config)?;
+        tracing::info!("Default config written to {:?}", config_path);
     }
 
     Ok(())

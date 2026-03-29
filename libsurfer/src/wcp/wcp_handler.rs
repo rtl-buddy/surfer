@@ -368,6 +368,9 @@ impl SystemState {
                     if commands.iter().any(|s| s == "add_loads") {
                         self.wcp_client_capabilities.add_loads = true;
                     }
+                    if commands.iter().any(|s| s == "cursor_set") {
+                        self.wcp_client_capabilities.cursor_set = true;
+                    }
                     self.wcp_greeted_signal.store(true, Ordering::Relaxed);
                     self.wcp_greeted_signal.store(true, Ordering::Relaxed);
                     self.send_greeting();

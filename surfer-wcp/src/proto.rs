@@ -46,6 +46,7 @@ pub enum WcpEvent {
     goto_declaration { variable: String },
     add_drivers { variable: String },
     add_loads { variable: String },
+    cursor_set { time: BigInt },
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]

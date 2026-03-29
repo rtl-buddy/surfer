@@ -404,6 +404,10 @@ pub fn all_translators() -> TranslatorList {
         Arc::new(LeadingZerosTranslator {}),
         Arc::new(TrailingZerosTranslator {}),
         Arc::new(IdenticalMSBsTranslator {}),
+        Arc::new(AllBitsSetTranslator {}),
+        Arc::new(AnyBitSetTranslator {}),
+        Arc::new(AllBitsUnsetTranslator {}),
+        Arc::new(AnyBitUnsetTranslator {}),
         #[cfg(feature = "f128")]
         Arc::new(QuadPrecisionTranslator {}),
         Arc::new(color_translators::RGBTranslator {}),

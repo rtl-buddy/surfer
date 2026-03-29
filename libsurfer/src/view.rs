@@ -996,7 +996,7 @@ impl SystemState {
                 }));
                 response.0.rect
             }
-            VariableInfo::Bool
+            VariableInfo::Bool { .. }
             | VariableInfo::Bits
             | VariableInfo::Clock
             | VariableInfo::String

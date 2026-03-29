@@ -404,6 +404,7 @@ pub fn all_translators() -> TranslatorList {
         Arc::new(LeadingZerosTranslator {}),
         Arc::new(TrailingZerosTranslator {}),
         Arc::new(IdenticalMSBsTranslator {}),
+        Arc::new(ParityTranslator {}),
         #[cfg(feature = "f128")]
         Arc::new(QuadPrecisionTranslator {}),
         Arc::new(color_translators::RGBTranslator {}),
@@ -726,7 +727,7 @@ impl VariableInfoExt for VariableInfo {
                     .1
                     .get_subinfo(rest),
                 VariableInfo::Bits => panic!(),
-                VariableInfo::Bool => panic!(),
+                VariableInfo::Bool { .. } => panic!(),
                 VariableInfo::Clock => panic!(),
                 VariableInfo::String => panic!(),
                 VariableInfo::Real => panic!(),
@@ -869,7 +870,7 @@ mod tests {
                 (
                     "field2".to_string(),
                     VariableInfo::Compound {
-                        subfields: vec![("nested".to_string(), VariableInfo::Bool)],
+                        subfields: vec![("nested".to_string(), VariableInfo::nameless_bool())],
                     },
                 ),
             ],

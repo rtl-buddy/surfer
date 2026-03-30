@@ -322,6 +322,20 @@ impl Viewport {
         self.set_viewport_to_clipped(target_left, target_right, num_timestamps);
     }
 
+    pub fn zoom_to_time(&mut self, center: &BigInt, delta: f64, num_timestamps: &BigInt) {
+        let center = Absolute::from(center);
+        let half_width = (self.curr_right.absolute(num_timestamps)
+            - self.curr_left.absolute(num_timestamps))
+            * delta
+            / 2.;
+
+        self.set_viewport_to_clipped(
+            (center - half_width).relative(num_timestamps),
+            (center + half_width).relative(num_timestamps),
+            num_timestamps,
+        );
+    }
+
     pub fn handle_canvas_scroll(&mut self, deltay: f64) {
         // Scroll 5% of the viewport per scroll event.
         // One scroll event yields 50

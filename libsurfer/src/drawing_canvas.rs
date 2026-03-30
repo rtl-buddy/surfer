@@ -30,7 +30,8 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 
 use std::f32::consts::PI;
-use surfer_translation_types::numeric_range::NumericRange;
+
+use surfer_translation_types::NumericRange;
 use surfer_translation_types::{
     SubFieldFlatTranslationResult, TranslatedValue, ValueKind, VariableInfo, VariableValue,
 };

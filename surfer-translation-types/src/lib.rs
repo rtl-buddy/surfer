@@ -9,14 +9,6 @@ pub mod variable_index;
 mod variable_meta;
 mod variable_ref;
 
-use derive_more::Display;
-use ecolor::Color32;
-#[cfg(feature = "wasm_plugins")]
-use extism_convert::{FromBytes, Json, ToBytes};
-use num::{BigUint, ToPrimitive};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-
 pub use crate::field_ref::FieldRef;
 pub use crate::result::{
     HierFormatResult, SubFieldFlatTranslationResult, SubFieldTranslationResult, TranslatedValue,
@@ -30,7 +22,13 @@ pub use crate::translator::{
 pub use crate::variable_index::VariableIndex;
 pub use crate::variable_meta::VariableMeta;
 pub use crate::variable_ref::VariableRef;
-
+use derive_more::Display;
+use ecolor::Color32;
+#[cfg(feature = "wasm_plugins")]
+use extism_convert::{FromBytes, Json, ToBytes};
+use num::{BigUint, ToPrimitive};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 #[cfg_attr(feature = "wasm_plugins", derive(FromBytes, ToBytes))]
 #[cfg_attr(feature = "wasm_plugins", encoding(Json))]
 #[derive(Deserialize, Serialize)]

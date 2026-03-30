@@ -699,9 +699,7 @@ impl SystemState {
             } => {
                 let waves = self.user.waves.as_mut()?;
                 if let Some(num_timestamps) = waves.num_timestamps() {
-                    let Some(cursor) = waves.cursor.as_ref() else {
-                        return None;
-                    };
+                    let cursor = waves.cursor.as_ref()?;
                     waves.viewports[viewport_idx].zoom_to_time(
                         cursor,
                         f64::from(delta),

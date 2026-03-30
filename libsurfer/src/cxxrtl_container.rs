@@ -537,29 +537,29 @@ impl CxxrtlContainer {
     }
 
     pub fn variable_meta(&mut self, variable: &VariableRef) -> Result<VariableMeta> {
-    Ok(self
-        .fetch_item(variable)
-        .map(|item| VariableMeta {
-            var: variable.clone(),
-            num_bits: Some(item.width),
-            variable_type: None,
-            variable_type_name: None,
-            index: variable.index.map(|i| VariableIndex { msb: i, lsb: i }),
-            direction: None,
-            enum_map: Default::default(),
-            encoding: VariableEncoding::BitVector,
-        })
-        .unwrap_or_else(|| VariableMeta {
-            var: variable.clone(),
-            num_bits: None,
-            variable_type: None,
-            variable_type_name: None,
-            index: variable.index.map(|i| VariableIndex { msb: i, lsb: i }),
-            direction: None,
-            enum_map: Default::default(),
-            encoding: VariableEncoding::BitVector,
-        }))
-}
+        Ok(self
+            .fetch_item(variable)
+            .map(|item| VariableMeta {
+                var: variable.clone(),
+                num_bits: Some(item.width),
+                variable_type: None,
+                variable_type_name: None,
+                index: variable.index.map(|i| VariableIndex { msb: i, lsb: i }),
+                direction: None,
+                enum_map: Default::default(),
+                encoding: VariableEncoding::BitVector,
+            })
+            .unwrap_or_else(|| VariableMeta {
+                var: variable.clone(),
+                num_bits: None,
+                variable_type: None,
+                variable_type_name: None,
+                index: variable.index.map(|i| VariableIndex { msb: i, lsb: i }),
+                direction: None,
+                enum_map: Default::default(),
+                encoding: VariableEncoding::BitVector,
+            }))
+    }
 
     #[must_use]
     pub fn max_displayed_timestamp(&self) -> Option<CxxrtlTimestamp> {

@@ -29,8 +29,8 @@ use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-
 use std::f32::consts::PI;
+use surfer_translation_types::numeric_range::NumericRange;
 use surfer_translation_types::{
     SubFieldFlatTranslationResult, TranslatedValue, ValueKind, VariableInfo, VariableValue,
 };
@@ -258,9 +258,7 @@ fn variable_digital_draw_commands(
     let mut next_change = timestamps.first().map(|t| t.0).unwrap_or_default();
 
     for ((_, prev_time), (pixel, time)) in timestamps.iter().zip(timestamps.iter().skip(1)) {
-
         println!("Processing time: {:?}", time);
-
 
         let is_last_timestep = pixel == &end_pixel;
         let is_first_timestep = pixel == &start_pixel;

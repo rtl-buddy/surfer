@@ -139,7 +139,7 @@ impl ScopeRefExt for ScopeRef {
     }
 }
 
-fn extract_index(s: String) -> (String, Option<i64>) {
+pub(crate) fn extract_index(s: String) -> (String, Option<i64>) {
     if let Some(start_idx) = s.rfind('[')
         && start_idx > 0
         && s.ends_with(']')

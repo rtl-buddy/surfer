@@ -118,10 +118,10 @@ async fn fill_variable_values(
 
             block_on(variable_values.write())
                 .insert(sample.time.as_femtoseconds().to_bigint().unwrap(), values);
-            msg_sender
-                .send(Message::InvalidateDrawCommands)
-                .expect("Message receiver disconnected");
         });
+        msg_sender
+            .send(Message::AppendDrawCommands)
+            .expect("Message received disconnected");
 
         if let Some(ctx) = EGUI_CONTEXT.read().unwrap().as_ref() {
             ctx.request_repaint();

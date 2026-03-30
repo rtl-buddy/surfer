@@ -3,16 +3,9 @@ use std::{
     collections::{HashMap, VecDeque},
     sync::Arc,
 };
-use tokio::sync::mpsc;
+use surfer_translation_types::VariableIndex;
 
-use eyre::Result;
-use num::{
-    BigUint,
-    bigint::{ToBigInt, ToBigUint},
-};
-use serde::Deserialize;
-use surfer_translation_types::VariableEncoding;
-use tracing::{error, info};
+use tokio::sync::mpsc;
 
 use crate::wave_container::ScopeRefExt;
 use crate::{
@@ -32,6 +25,15 @@ use crate::{
         VariableRefExt,
     },
 };
+use eyre::Result;
+use num::{
+    BigUint,
+    bigint::{ToBigInt, ToBigUint},
+};
+use serde::Deserialize;
+use surfer_translation_types::VariableEncoding;
+
+use tracing::{error, info};
 
 const DEFAULT_REFERENCE: &str = "ALL_VARIABLES";
 
@@ -450,20 +452,26 @@ impl CxxrtlContainer {
                     error!("Found an empty variable name and scope");
                     None
                 } else {
-                    Some((
-                        VariableRef {
-                            path: ScopeRef::from_strs(
-                                &sp[0..sp.len() - 1]
-                                    .iter()
-                                    .map(ToString::to_string)
-                                    .collect::<Vec<_>>(),
-                            ),
-                            name: (*sp.last().unwrap()).to_string(),
-                            id: VarId::None,
-                            index: None,
-                        },
-                        v,
-                    ))
+                    Some({
+                        let raw_name = (*sp.last().unwrap()).to_string();
+
+                        let (name, index) = crate::wave_container::extract_index(raw_name.clone());
+
+                        (
+                            VariableRef {
+                                path: ScopeRef::from_strs(
+                                    &sp[0..sp.len() - 1]
+                                        .iter()
+                                        .map(ToString::to_string)
+                                        .collect::<Vec<_>>(),
+                                ),
+                                name,
+                                id: VarId::None,
+                                index,
+                            },
+                            v,
+                        )
+                    })
                 }
             })
             .collect()
@@ -529,28 +537,28 @@ impl CxxrtlContainer {
     }
 
     pub fn variable_meta(&mut self, variable: &VariableRef) -> Result<VariableMeta> {
-        Ok(self.fetch_item(variable).map_or_else(
-            || VariableMeta {
-                var: variable.clone(),
-                num_bits: None,
-                variable_type: None,
-                variable_type_name: None,
-                index: None,
-                direction: None,
-                enum_map: Default::default(),
-                encoding: VariableEncoding::BitVector,
-            },
-            |item| VariableMeta {
+        Ok(self
+            .fetch_item(variable)
+            .map(|item| VariableMeta {
                 var: variable.clone(),
                 num_bits: Some(item.width),
                 variable_type: None,
                 variable_type_name: None,
-                index: None,
+                index: variable.index.map(|i| VariableIndex { msb: i, lsb: i }),
                 direction: None,
                 enum_map: Default::default(),
                 encoding: VariableEncoding::BitVector,
-            },
-        ))
+            })
+            .unwrap_or_else(|| VariableMeta {
+                var: variable.clone(),
+                num_bits: None,
+                variable_type: None,
+                variable_type_name: None,
+                index: variable.index.map(|i| VariableIndex { msb: i, lsb: i }),
+                direction: None,
+                enum_map: Default::default(),
+                encoding: VariableEncoding::BitVector,
+            }))
     }
 
     #[must_use]

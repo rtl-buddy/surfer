@@ -238,6 +238,7 @@ fn key_listing(ui: &mut Ui, shortcuts: &SurferShortcuts) {
         (icons::TOOLS_FILL, &toggle_toolbar, "Show or hide toolbar"),
         (icons::ZOOM_IN_FILL, &zoom_in, "Zoom in"),
         (icons::ZOOM_OUT_FILL, &zoom_out, "Zoom out"),
+        (icons::TARGET_FILL, "", "Zoom in on cursor"),
         #[cfg(not(target_arch = "wasm32"))]
         ("", &ui_zoom_in, "UI Zoom in"),
         #[cfg(not(target_arch = "wasm32"))]

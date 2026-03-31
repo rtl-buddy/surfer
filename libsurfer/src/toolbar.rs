@@ -136,6 +136,15 @@ impl SystemState {
                 Message::OpenCommandFileDialog,
                 true,
             );
+            //VÅR NYA KNAPP
+            add_toolbar_button(
+                ui,
+                msgs,
+                icons::HAMMER_LINE,
+                "Run VHDL simulation (NVC) and load waveform...",
+                Message::SimulateButton,
+                true,
+            );
             if self.user.surver_url.is_some() {
                 ui.separator();
                 add_toolbar_button(

@@ -44,8 +44,8 @@ use crate::translation::TranslationResultExt;
 use crate::util::get_alpha_focus_id;
 use crate::wave_container::{FieldRef, FieldRefExt, VariableRef};
 use crate::{
-    Message, MoveDir, SystemState, command_prompt::show_command_prompt, hierarchy::HierarchyStyle,
-    wave_data::WaveData,
+    Message, MoveDir, SystemState, command_prompt::show_command_prompt,
+    hierarchy::HierarchyStyle, wave_data::WaveData, file_dialog::OpenMode
 };
 
 pub struct DrawingContext<'a> {
@@ -353,6 +353,9 @@ impl SystemState {
         if self.user.show_url_entry {
             self.draw_load_url(ctx, &mut msgs);
         }
+        if self.show_simulate_window {
+            self.draw_simulate_vhdl(ctx, &mut msgs);
+        }
 
         if self.user.show_server_file_window {
             self.draw_surver_file_window(ctx, &mut msgs);
@@ -574,6 +577,31 @@ impl SystemState {
             });
         if !open {
             msgs.push(Message::SetUrlEntryVisible(false, None));
+        }
+    }
+
+    /// Draws the startup window for simulating a VHDL file with NVC
+    fn draw_simulate_vhdl(&self, ctx: &egui::Context, msgs: &mut Vec<Message>) {
+        let mut open = true;
+        egui::Window::new("Simulate VHDL with NVC")
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(true)
+            .show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    if ui.button("Choose VHDL file...").clicked() {
+                        // TODO: replace OpenFileDialog with a message that only accepts vhdl files
+                        // Now it only accepts waveform files as surfer usually works
+                        msgs.push(Message::OpenFileDialog(OpenMode::Open));
+                    }
+                    if ui.button("Start simulation").clicked() {
+                        // TODO: add message to start our plugin
+                        println!("Start simulating");
+                    }
+                });
+            });
+        if !open {
+            msgs.push(Message::SetSimulateWindowVisible(false));
         }
     }
 

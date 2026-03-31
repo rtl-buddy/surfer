@@ -694,6 +694,27 @@ impl SystemState {
                     );
                 }
             }
+            Message::ZoomToCursor {
+                delta,
+                viewport_idx,
+            } => {
+                let waves = self.user.waves.as_mut()?;
+                if let Some(num_timestamps) = waves.num_timestamps() {
+                    let Some(cursor) = waves.cursor.as_ref() else {
+                        return None;
+                    };
+                    waves.viewports[viewport_idx].zoom_to_time(
+                        cursor,
+                        f64::from(delta),
+                        &num_timestamps,
+                    );
+                    self.invalidate_draw_commands();
+                } else {
+                    warn!(
+                        "Zoom to cursor: No timestamps count, even though waveforms should be loaded"
+                    );
+                }
+            }
             Message::ZoomToFit { viewport_idx } => {
                 let waves = self.user.waves.as_mut()?;
                 waves.viewports[viewport_idx].zoom_to_fit();

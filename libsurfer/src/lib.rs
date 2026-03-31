@@ -2158,6 +2158,12 @@ impl SystemState {
             Message::TestFinishSim => {
                 println!("Finish simulation");
             }
+            Message::TestReloadSim => {
+                println!("Reload simulation");
+            }
+            Message::TestPauseSim => {
+                println!("Pause simulation");
+            }
             Message::AddCharToPrompt(c) => *self.char_to_add_to_prompt.borrow_mut() = Some(c),
         }
         Some(())

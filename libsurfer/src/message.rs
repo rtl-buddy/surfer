@@ -446,5 +446,7 @@ pub enum Message {
 
     //Finish simulation 
     TestFinishSim,
+    TestPauseSim,
+    TestReloadSim,
 
 }

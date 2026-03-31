@@ -397,7 +397,23 @@ impl SystemState {
                 Message::TestFinishSim,
                 wave_loaded,
             );
+            add_toolbar_button(
+                ui,
+                msgs,
+                icons::PAUSE_CIRCLE_FILL,
+                "Pause current simulation",
+                Message::TestPauseSim,
+                wave_loaded,
+            );
 
+            add_toolbar_button(
+                ui,
+                msgs,
+                icons::REFRESH_LINE,
+                "Reload simulation",
+                Message::TestReloadSim,
+                wave_loaded,
+            ); 
             self.simulation_status_toolbar(ui, msgs);
         });
     }

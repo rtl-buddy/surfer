@@ -1574,6 +1574,7 @@ impl SystemState {
                 }
             }
             Message::SetAboutVisible(s) => self.user.show_about = s,
+            Message::SetSimulateWindowVisible(s) => self.show_simulate_window = s,
             Message::SetKeyHelpVisible(s) => self.user.show_keys = s,
             Message::SetGestureHelpVisible(s) => self.user.show_gestures = s,
             Message::SetUrlEntryVisible(s, f) => {
@@ -2101,6 +2102,10 @@ impl SystemState {
                 }
                 self.invalidate_draw_commands();
             }
+            Message::SimulateButton => {
+                self.show_simulate_window = true;
+            }
+            
             Message::Exit | Message::ToggleFullscreen => {} // Handled in eframe::update
             Message::AddViewport => {
                 let waves = self.user.waves.as_mut()?;

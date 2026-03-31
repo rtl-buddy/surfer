@@ -99,6 +99,9 @@ pub struct SystemState {
 
     // Only used for testing
     pub(crate) expand_parameter_section: bool,
+
+    // From toolbar simulate with NVCbutton. Show a small floating window 
+    pub(crate) show_simulate_window: bool,
 }
 
 impl SystemState {
@@ -146,6 +149,7 @@ impl SystemState {
             surver_selected_file: RefCell::new(None),
             surver_load_options: RefCell::new(LoadOptions::Clear),
             expand_parameter_section: false,
+            show_simulate_window: false,
 
             url_callback: None,
             continuous_redraw: false,

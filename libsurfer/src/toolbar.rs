@@ -1,5 +1,5 @@
 //! Toolbar handling.
-use egui::{Button, Context, Layout, RichText, TopBottomPanel, Ui};
+use egui::{Button, Context, Layout, RichText, TopBottomPanel, Ui, Window};
 use egui_remixicon::icons;
 use emath::{Align, Vec2};
 
@@ -136,6 +136,46 @@ impl SystemState {
                 Message::OpenCommandFileDialog,
                 true,
             );
+            //VÅR NYA KNAPP
+            add_toolbar_button(
+                ui,
+                msgs,
+                icons::HAMMER_LINE,
+                "Run VHDL simulation (NVC) and load waveform...",
+                Message::SimulateButton,
+                true,
+            );
+
+            //Den koden här ska inte ligga här. Skapa ett nytt message istället
+            //  och rita fönstret i view eller systemstatee 
+            if self.show_simulate_window {
+                let mut open = true;
+                const WINDOW_SIZE: Vec2 = Vec2::new(300.0, 100.0);
+                Window::new("Simulate VHDL file with NVC...")
+                    .open(&mut open)
+                    .collapsible(false)
+                    .default_pos(ui.ctx().content_rect().center())
+                    .fixed_size(WINDOW_SIZE)
+                    .show(ui.ctx(), |ui| {
+                        ui.set_min_size(WINDOW_SIZE);
+
+                        //Knappar i nya fönstret som öppnas
+                        if ui.button("Choose File...").clicked(){
+                            msgs.push(Message::OpenFileDialog(OpenMode::Open));
+                        }
+                        //This will later run the NVC plugin with the chosen file
+                        if ui.button("Start simulating").clicked(){
+                            println!("Start simulating");
+                        };
+                    });
+                //If user closes the window, set flag to stop showing it
+                if !open {
+                    msgs.push(Message::SetSimulateWindowVisible(false));
+                }
+                //NER HIT
+
+
+            }
             if self.user.surver_url.is_some() {
                 ui.separator();
                 add_toolbar_button(

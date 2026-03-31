@@ -2146,6 +2146,10 @@ impl SystemState {
             Message::ExpandDrawnItem { item, levels } => {
                 self.items_to_expand.borrow_mut().push((item, levels));
             }
+            // Print time test
+            Message::GoToTimePrint(time) => {
+                println!("Chosen time: {}", time);
+            }
             Message::AddCharToPrompt(c) => *self.char_to_add_to_prompt.borrow_mut() = Some(c),
         }
         Some(())

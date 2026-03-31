@@ -359,6 +359,38 @@ impl SystemState {
                 redo_available,
             );
 
+            // Test button
+            ui.separator();
+            if ui.button("Test").clicked() {
+                println!("Test button clicked!");
+            }
+
+
+            ui.separator();
+            // Text input
+            let mut time_input = ui.memory_mut(|m| {
+                m.data.get_temp::<String>(egui::Id::new("time_input"))
+                    .unwrap_or_default()
+            });
+
+            ui.add(egui::TextEdit::singleline(&mut time_input)
+                .hint_text("Go to time...")
+                .desired_width(80.0));
+
+            ui.memory_mut(|m| {
+                m.data.insert_temp(egui::Id::new("time_input"), time_input.clone())
+            });
+
+            // Regular toolbar button next to it
+            add_toolbar_button(
+                ui,
+                msgs,
+                icons::ARROW_RIGHT_FILL,
+                "Go to time",
+                Message::GoToTimePrint(time_input),
+                true,
+            );
+
             self.simulation_status_toolbar(ui, msgs);
         });
     }

@@ -100,7 +100,7 @@ pub struct SystemState {
     // Only used for testing
     pub(crate) expand_parameter_section: bool,
 
-    // From toolbar simulate with NVCbutton. Show a small floating window 
+    // From the toolbar simulate with NVC button. Shows a small floating window 
     pub(crate) show_simulate_window: bool,
 }
 

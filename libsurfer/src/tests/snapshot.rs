@@ -3279,3 +3279,20 @@ snapshot_ui_with_file_and_msgs! {analog_waveform_type_limits, "examples/analog.v
         5.0,
     ),
 ]}
+
+snapshot_ui_with_file_and_msgs! {divider_text_works, "examples/picorv32.vcd", [
+    Message::SetSidePanelVisible(true),
+    Message::ExpandParameterSection,
+    Message::SetActiveScope(Some(ScopeType::WaveScope(ScopeRef::from_strs(&[
+        "testbench",
+        "top",
+    ])))),
+    Message::AddDivider(Some("clk".to_string()), Some(VisibleItemIndex(0))),
+    Message::ShowDividerText(true),
+    Message::AddVariables(
+        [
+            VariableRef::from_hierarchy_string("testbench.top.clk"),
+        ]
+        .into(),
+    ),
+]}

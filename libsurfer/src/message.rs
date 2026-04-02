@@ -282,6 +282,10 @@ pub enum Message {
     SelectPrevCommand,
     SelectNextCommand,
     OpenFileDialog(OpenMode),
+    /// Open file picker for VHDL files only (.vhd, .vhdl).
+    OpenVhdlFileDialog,
+    /// Store the selected VHDL file path.
+    SetSimulateVhdlPath(Option<Utf8PathBuf>),
     OpenCommandFileDialog,
     #[cfg(feature = "python")]
     OpenPythonPluginDialog,

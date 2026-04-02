@@ -151,6 +151,38 @@ impl SystemState {
         );
     }
 
+    pub fn open_vhdl_file_dialog(&mut self) {
+        #[cfg(not(target_arch = "wasm32"))]
+        let message = move |file: PathBuf| match Utf8PathBuf::from_path_buf(file.clone()) {
+            Ok(utf8_path) => vec![Message::SetSimulateVhdlPath(Some(utf8_path))],
+            Err(_) => {
+                vec![Message::Error(eyre::eyre!(
+                    "File path '{}' contains invalid UTF-8",
+                    file.display()
+                ))]
+            }
+        };
+
+        #[cfg(target_arch = "wasm32")]
+        let message = move |_file: Vec<u8>| {
+            vec![Message::Error(eyre::eyre!(
+                "Selecting VHDL files by path is unsupported on wasm"
+            ))]
+        };
+
+        self.file_dialog_open(
+            "Open VHDL file",
+            (
+                "VHDL files (*.vhd, *.vhdl)".to_string(),
+                vec![
+                    "vhd".to_string(),
+                    "vhdl".to_string()
+                ],
+            ),
+            message,
+        );
+    }
+
     #[cfg(feature = "python")]
     pub fn open_python_file_dialog(&mut self) {
         self.file_dialog_open(

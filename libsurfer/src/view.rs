@@ -45,7 +45,7 @@ use crate::util::get_alpha_focus_id;
 use crate::wave_container::{FieldRef, FieldRefExt, VariableRef};
 use crate::{
     Message, MoveDir, SystemState, command_prompt::show_command_prompt,
-    hierarchy::HierarchyStyle, wave_data::WaveData, file_dialog::OpenMode
+    hierarchy::HierarchyStyle, wave_data::WaveData
 };
 
 pub struct DrawingContext<'a> {
@@ -590,10 +590,14 @@ impl SystemState {
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
                     if ui.button("Choose VHDL file...").clicked() {
-                        // TODO: replace OpenFileDialog with a message that only accepts vhdl files
-                        // Now it only accepts waveform files as surfer usually works
-                        msgs.push(Message::OpenFileDialog(OpenMode::Open));
+                        msgs.push(Message::OpenVhdlFileDialog);
                     }
+                    if let Some(path) = self.vhdl_file_path.as_ref() {
+                        //TODO: this path will be used when starting the plugin
+                        ui.label(path.as_str());
+                    }
+                    ui.add_space(15.0);
+                    ui.separator();
                     if ui.button("Start simulation").clicked() {
                         // TODO: add message to start our plugin
                         println!("Start simulating");
@@ -601,6 +605,7 @@ impl SystemState {
                 });
             });
         if !open {
+            msgs.push(Message::SetSimulateVhdlPath(None));
             msgs.push(Message::SetSimulateWindowVisible(false));
         }
     }

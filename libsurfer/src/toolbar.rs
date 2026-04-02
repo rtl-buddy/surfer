@@ -136,7 +136,6 @@ impl SystemState {
                 Message::OpenCommandFileDialog,
                 true,
             );
-            //VÅR NYA KNAPP
             add_toolbar_button(
                 ui,
                 msgs,

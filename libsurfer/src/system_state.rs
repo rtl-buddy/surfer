@@ -75,7 +75,7 @@ pub struct SystemState {
     pub(crate) surver_load_options: RefCell<LoadOptions>,
 
     /// These items should be expanded into subfields in the next frame. Cleared after each
-    /// frame
+    /// frame 
     pub(crate) items_to_expand: RefCell<Vec<(DisplayedItemRef, usize)>>,
     /// Character to add to the command prompt if it is visible. This is only needed for
     /// presentations at them moment.

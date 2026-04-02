@@ -445,6 +445,12 @@ pub enum Message {
     /// Should only used for tests. Expands the parameter section so that one can test the rendering.
     ExpandParameterSection,
     AsyncDone(AsyncJob),
+    //Take the imputed time
     GoToTimePrint(String),
+
+    //Finish simulation 
+    TestFinishSim,
+    TestPauseSim,
+    TestReloadSim,
 
 }

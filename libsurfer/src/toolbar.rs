@@ -373,8 +373,8 @@ impl SystemState {
             });
 
             ui.add(egui::TextEdit::singleline(&mut time_input)
-                .hint_text("Simulate time")
-                .desired_width(50.0));
+                .hint_text("Time")
+                .desired_width(30.0));
 
             ui.memory_mut(|m| {
                 m.data.insert_temp(egui::Id::new("time_input"), time_input.clone())
@@ -383,12 +383,36 @@ impl SystemState {
             add_toolbar_button(
                 ui,
                 msgs,
-                icons::ARROW_RIGHT_FILL,
+                icons::PLAY_FILL,
                 "Forward simulation with the given value",
                 Message::GoToTimePrint(time_input),
-                true,
+                wave_loaded,
+            );
+            add_toolbar_button(
+                ui,
+                msgs,
+                icons::FORWARD_END_FILL,
+                "Finish Simulation ",
+                Message::TestFinishSim,
+                wave_loaded,
+            );
+            add_toolbar_button(
+                ui,
+                msgs,
+                icons::PAUSE_CIRCLE_FILL,
+                "Pause current simulation",
+                Message::TestPauseSim,
+                wave_loaded,
             );
 
+            add_toolbar_button(
+                ui,
+                msgs,
+                icons::REFRESH_LINE,
+                "Reload simulation",
+                Message::TestReloadSim,
+                wave_loaded,
+            ); 
             self.simulation_status_toolbar(ui, msgs);
         });
     }

@@ -2191,6 +2191,9 @@ impl SystemState {
                     };
                 });
             }
+            Message::DoubleClickAdd(enable) => {
+                self.user.config.double_click_add = enable;
+            }
             Message::AsyncDone(_) => (),
             Message::AddGraphic(id, g) => {
                 let waves = self.user.waves.as_mut()?;

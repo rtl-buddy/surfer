@@ -390,7 +390,7 @@ impl DisplayedItemTree {
                     // ... or node deeper in, but don't move into
                     Some((_node_idx, node))
                         if (node.level >= this_level && f(node) && node.unfolded)
-                            | (node.level > this_level) =>
+                            || (node.level > this_level) =>
                     {
                         shift_subtree_to_level(&mut self.items[idx..end], this_level + 1)?;
                         vidx

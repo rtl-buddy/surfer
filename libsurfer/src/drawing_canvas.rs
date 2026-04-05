@@ -1363,7 +1363,7 @@ impl SystemState {
                         .chain(['…'])
                         .collect::<String>()
                 } else {
-                    prev_result.value.to_string()
+                    prev_result.value.clone()
                 };
 
                 ctx.painter.text(

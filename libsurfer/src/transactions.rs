@@ -109,7 +109,7 @@ impl WaveData {
 
                 self.add_generator(TransactionStreamRef::new_gen(stream_id, id, name));
             }
-        };
+        }
         Some(())
     }
 
@@ -131,7 +131,7 @@ impl WaveData {
             for (stream_id, id, name) in gens {
                 self.add_generator(TransactionStreamRef::new_gen(stream_id, id, name.clone()));
             }
-        };
+        }
         Some(())
     }
 
@@ -233,7 +233,7 @@ fn draw_focused_transaction_details(
                     subheader(&mut body, ATTR_NAME_LABEL, ATTR_VALUE_LABEL);
 
                     for attr in &focused_transaction.attributes {
-                        table_row(&mut body, &attr.name, &attr.value().to_string());
+                        table_row(&mut body, &attr.name, &attr.value().clone());
                     }
 
                     if !focused_transaction.inc_relations.is_empty() {

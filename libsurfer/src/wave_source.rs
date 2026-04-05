@@ -171,7 +171,7 @@ impl Display for WaveFormat {
             WaveFormat::Vcd => write!(f, "VCD"),
             WaveFormat::Fst => write!(f, "FST"),
             WaveFormat::Ghw => write!(f, "GHW"),
-            WaveFormat::CxxRtl => write!(f, "Cxxrtl"),
+            WaveFormat::CxxRtl => write!(f, "CXXRTL"),
             WaveFormat::Ftr => write!(f, "FTR"),
         }
     }

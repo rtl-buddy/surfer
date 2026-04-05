@@ -15,7 +15,7 @@ use super::integer_numeric_range;
 /// If the string length is not divisible by `n`, the first group will be shorter.
 /// The string must only consist of ASCII characters.
 #[must_use]
-pub fn group_n_chars(s: &str, n: usize) -> Vec<&str> {
+pub(crate) fn group_n_chars(s: &str, n: usize) -> Vec<&str> {
     let mut groups = Vec::new();
     let len = s.len();
     let rem = len % n;
@@ -123,7 +123,7 @@ impl BasicTranslator<VarId, ScopeId> for BitTranslator {
                 },
                 ValueKind::Normal,
             ),
-            VariableValue::String(s) => (s.to_string(), kind_for_binary_representation(s)),
+            VariableValue::String(s) => (s.clone(), kind_for_binary_representation(s)),
         }
     }
 
@@ -503,6 +503,69 @@ mod test {
     use num::BigUint;
 
     use super::*;
+
+    #[test]
+    fn group_n_chars_splits_with_remainder() {
+        assert_eq!(group_n_chars("101010", 4), vec!["10", "1010"]);
+    }
+
+    #[test]
+    fn group_n_chars_splits_evenly() {
+        assert_eq!(group_n_chars("10101010", 4), vec!["1010", "1010"]);
+    }
+
+    #[test]
+    fn group_n_chars_handles_empty_input() {
+        assert_eq!(group_n_chars("", 4), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn map_to_radix_formats_binary_groups() {
+        let (formatted, kind) = map_to_radix("10000", 4, 5);
+        assert_eq!(formatted, "10");
+        assert_eq!(kind, ValueKind::Normal);
+    }
+
+    #[test]
+    fn map_to_radix_prefers_special_digits_per_group() {
+        let (formatted, kind) = map_to_radix("zx01", 4, 4);
+        assert_eq!(formatted, "x");
+        assert_eq!(kind, kind_for_binary_representation("x"));
+    }
+
+    #[test]
+    fn map_to_radix_marks_invalid_binary_digit_as_error() {
+        let (formatted, kind) = map_to_radix("1002", 4, 4);
+        assert_eq!(formatted, "?");
+        assert_eq!(kind, ValueKind::Error);
+    }
+
+    #[test]
+    fn check_wordlength_returns_yes_when_predicate_matches() {
+        let preference = check_wordlength(Some(16), |n| n.is_multiple_of(8)).unwrap();
+        assert_eq!(preference, TranslationPreference::Yes);
+    }
+
+    #[test]
+    fn check_wordlength_returns_no_for_missing_or_nonmatching_wordlength() {
+        let missing = check_wordlength(None, |n| n.is_multiple_of(8)).unwrap();
+        assert_eq!(missing, TranslationPreference::No);
+
+        let nonmatching = check_wordlength(Some(7), |n| n.is_multiple_of(8)).unwrap();
+        assert_eq!(nonmatching, TranslationPreference::No);
+    }
+
+    #[test]
+    fn decode_lebxxx_decodes_valid_value() {
+        let decoded = decode_lebxxx(&BigUint::from(0b01011010_11101111u16)).unwrap();
+        assert_eq!(decoded, BigUint::from(11_631u32));
+    }
+
+    #[test]
+    fn decode_lebxxx_rejects_invalid_msb() {
+        let err = decode_lebxxx(&BigUint::from(0b10000000u8)).unwrap_err();
+        assert_eq!(err, "invalid MSB");
+    }
 
     #[test]
     fn hexadecimal_translation_groups_digits_correctly_string() {

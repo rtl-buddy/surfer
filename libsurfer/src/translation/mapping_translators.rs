@@ -231,7 +231,7 @@ fn parse_content_with_default_name(
             }
             let bits_num = bits_value
                 .parse::<u32>()
-                .map_err(|_| MappingParseError::InvalidBitsValue(bits_value.to_string()))?;
+                .map_err(|_| MappingParseError::InvalidBitsValue(bits_value.clone()))?;
             bits = Some(bits_num);
             continue;
         }
@@ -307,7 +307,7 @@ fn normalize_first_column(
             if s.chars().all(|c| c == '0' || c == '1') {
                 if value_len > bit_width {
                     return Err(MappingParseError::BinaryTooWide {
-                        value: s.to_string(),
+                        value: s.clone(),
                         required: value_len,
                         specified: bit_width,
                     });
@@ -320,7 +320,7 @@ fn normalize_first_column(
                 // Check if larger than specified bit width
                 if s.len() > bit_width as usize {
                     return Err(MappingParseError::StringLengthMismatch {
-                        value: s.to_string(),
+                        value: s.clone(),
                         value_len: s.len() as u32,
                         expected: bit_width,
                     });
@@ -410,7 +410,7 @@ fn parse_key_value(token: &str) -> Result<(VariableValue, u32), MappingParseErro
             .chars()
             .all(|c| matches!(c, '0' | '1' | 'z' | 'x' | '-' | 'h' | 'l' | 'w' | 'u'))
         {
-            return Ok((VariableValue::String(lower.to_string()), lower.len() as u32));
+            return Ok((VariableValue::String(lower.clone()), lower.len() as u32));
         }
 
         return Err(MappingParseError::InvalidBitsValue(token.to_string()));

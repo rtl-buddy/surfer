@@ -1084,7 +1084,7 @@ impl WaveData {
         } else {
             // Set to top-level scope
             self.active_scope = None;
-        };
+        }
         Some(())
     }
 }

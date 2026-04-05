@@ -618,7 +618,7 @@ impl SystemState {
                     ui.add_space(ui.text_style_height(&TextStyle::Body) + 2.0);
                 }
                 // drawing_infos accounts for height_scaling_factor
-                for drawing_info in waves.drawing_infos.iter() {
+                for drawing_info in &waves.drawing_infos {
                     let next_y = ui.cursor().top();
                     // Align with the corresponding row in other panels
                     if next_y < drawing_info.top() {

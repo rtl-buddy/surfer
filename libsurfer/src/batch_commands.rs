@@ -52,7 +52,8 @@ impl SystemState {
     }
 
     /// Returns true once all batch commands have been completed and their effects are all executed.
-    pub fn batch_commands_completed(&self) -> bool {
+    #[cfg(test)]
+    pub(crate) fn batch_commands_completed(&self) -> bool {
         debug_assert!(
             self.batch_messages_completed || !self.batch_messages.is_empty(),
             "completed implies no commands"
@@ -65,21 +66,21 @@ impl SystemState {
         self.add_batch_messages(messages);
     }
 
+    #[inline(always)]
     pub fn add_batch_messages<I: IntoIterator<Item = Message>>(&mut self, messages: I) {
-        for msg in messages {
-            self.batch_messages.push_back(msg);
-            self.batch_messages_completed = false;
-        }
+        messages
+            .into_iter()
+            .for_each(|msg| self.add_batch_message(msg));
     }
 
+    #[inline(always)]
     pub fn add_batch_message(&mut self, msg: Message) {
-        self.add_batch_messages([msg]);
+        self.batch_messages.push_back(msg);
+        self.batch_messages_completed = false;
     }
 
-    pub fn parse_batch_commands<I: IntoIterator<Item = String>>(
-        &mut self,
-        cmds: I,
-    ) -> Vec<Message> {
+    #[inline(always)]
+    fn parse_batch_commands<I: IntoIterator<Item = String>>(&mut self, cmds: I) -> Vec<Message> {
         trace!("Parsing batch commands");
 
         cmds
@@ -103,23 +104,24 @@ impl SystemState {
                     .collect::<Vec<_>>()
             })
             .filter_map(|(no, command)| {
-                if command.starts_with("run_command_file ") {
+                if let Some(path_str) = command.strip_prefix("run_command_file ") {
                     // Load commands from other file in place, otherwise they will be
                     // loaded when the corresponding message is processed, leading to
                     // a different position in the processing than expected.
                     #[cfg(not(target_arch = "wasm32"))]
                     {
-                        if let Some(path_str) = command.split_ascii_whitespace().nth(1) {
-                            match Utf8PathBuf::from_path_buf(path_str.into()) {
-                                Ok(utf8_path) => {
-                                    self.add_batch_commands(read_command_file(&utf8_path));
-                                }
-                                Err(_) => {
-                                    error!("Invalid UTF-8 path in run_command_file on line {no}: {path_str}");
-                                }
+                        let path_str = path_str.trim().trim_matches('"'); // remove quotes if present
+                        if path_str.is_empty() {
+                            error!("Empty path in run_command_file on line {no}");
+                            return None;
+                        }
+                        match Utf8PathBuf::from_path_buf(path_str.into()) {
+                            Ok(utf8_path) => {
+                                self.add_batch_commands(read_command_file(&utf8_path));
                             }
-                        } else {
-                            error!("Missing file path in run_command_file command on line {no}");
+                            Err(_) => {
+                                error!("Invalid UTF-8 path in run_command_file on line {no}: {path_str}");
+                            }
                         }
                     }
                     #[cfg(target_arch = "wasm32")]
@@ -137,13 +139,18 @@ impl SystemState {
             .collect::<Vec<_>>()
     }
 
-    pub fn load_commands_from_url(&mut self, url: String) {
+    pub(crate) fn load_commands_from_url(&mut self, url: String) {
         let sender = self.channels.msg_sender.clone();
         let url_ = url.clone();
         perform_async_work(async move {
             let maybe_response = reqwest::get(&url)
-                .map(|e| e.with_context(|| format!("Failed fetch download {url}")))
-                .await;
+                .map(|e| e.with_context(|| format!("Failed to fetch {url}")))
+                .await
+                .and_then(|response| {
+                    response.error_for_status().with_context(|| {
+                        format!("Failed to fetch {url}: server returned error status")
+                    })
+                });
             let response: reqwest::Response = match maybe_response {
                 Ok(r) => r,
                 Err(e) => {

@@ -28,7 +28,7 @@ use egui::{
     style::{Selection, WidgetVisuals, Widgets},
 };
 use epaint::{CornerRadius, Stroke};
-use eyre::{Context, Result};
+use eyre::{Result, WrapErr as _};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use surfer_translation_types::Translator;

@@ -8,8 +8,7 @@ use directories::ProjectDirs;
 use ecolor::Color32;
 use enum_iterator::Sequence;
 use epaint::{PathStroke, Stroke};
-use eyre::Report;
-use eyre::{Context, Result};
+use eyre::{Report, Result, WrapErr as _, anyhow};
 use serde::de;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
@@ -228,7 +227,7 @@ pub struct SurferLayout {
     /// UI zoom factors
     pub zoom_factors: Vec<f32>,
     /// Default UI zoom factor
-    pub default_zoom_factor: f32,
+    default_zoom_factor: f32,
     #[serde(default)]
     /// Highlight the waveform of the focused item?
     highlight_focused: bool,
@@ -349,7 +348,7 @@ pub struct SurferBehavior {
     /// Keep or remove variables if unavailable during reload
     pub keep_during_reload: bool,
     /// Select the functionality bound to the arrow keys
-    pub arrow_key_bindings: ArrowKeyBindings,
+    arrow_key_bindings: ArrowKeyBindings,
     /// Whether dragging with primary mouse button will measure time or move cursor
     /// (press shift for the other)
     primary_button_drag_behavior: PrimaryMouseDrag,
@@ -934,8 +933,6 @@ impl SurferTheme {
 
     #[cfg(target_arch = "wasm32")]
     pub fn new(theme_name: Option<String>) -> Result<Self> {
-        use eyre::anyhow;
-
         let (theme, _) = Self::generate_defaults(theme_name.as_ref());
 
         let theme = theme.set_override("theme_names", all_theme_names())?;
@@ -947,10 +944,8 @@ impl SurferTheme {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(theme_name: Option<String>) -> eyre::Result<Self> {
+    pub fn new(theme_name: Option<String>) -> Result<Self> {
         use std::fs::ReadDir;
-
-        use eyre::anyhow;
 
         let (mut theme, mut theme_names) = Self::generate_defaults(theme_name.as_ref());
 
@@ -1073,8 +1068,7 @@ impl SurferConfig {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(force_default_config: bool) -> eyre::Result<Self> {
-        use eyre::anyhow;
+    pub fn new(force_default_config: bool) -> Result<Self> {
         use tracing::warn;
 
         let default_config = String::from(include_str!("../../default_config.toml"));

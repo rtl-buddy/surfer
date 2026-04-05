@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use eyre::{Result, WrapErr};
+use eyre::{Result, WrapErr as _};
 use num::bigint::ToBigInt as _;
 use num::{BigInt, BigUint, One, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
@@ -21,7 +21,8 @@ use crate::variable_name_type::VariableNameType;
 use crate::view::ItemDrawingInfo;
 use crate::viewport::Viewport;
 use crate::wave_container::{
-    AnalogCacheKey, ScopeRef, VariableMeta, VariableRef, VariableRefExt, WaveContainer,
+    AnalogCacheKey, ScopeRef, ScopeRefExt as _, VariableMeta, VariableRef, VariableRefExt,
+    WaveContainer,
 };
 use crate::wave_source::{WaveFormat, WaveSource};
 use crate::wellen::LoadSignalsCmd;
@@ -117,7 +118,7 @@ fn select_preferred_translator(var: &VariableMeta, translators: &TranslatorList)
             warn!(
                 "More than one preferred translator for variable {} in scope {}: {}",
                 var.var.name,
-                var.var.path.strs.join("."),
+                var.var.path.full_name(),
                 preferred.join(", ")
             );
             preferred.sort();
@@ -1084,7 +1085,7 @@ impl WaveData {
         } else {
             // Set to top-level scope
             self.active_scope = None;
-        };
+        }
         Some(())
     }
 }

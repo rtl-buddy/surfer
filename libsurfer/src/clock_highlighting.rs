@@ -20,7 +20,7 @@ pub enum ClockHighlightType {
     None,
 }
 
-pub fn draw_clock_edge_marks(
+pub(crate) fn draw_clock_edge_marks(
     clock_edges: &[f32],
     ctx: &mut DrawingContext,
     config: &SurferConfig,
@@ -67,7 +67,7 @@ pub fn draw_clock_edge_marks(
     }
 }
 
-pub fn clock_highlight_type_menu(
+pub(crate) fn clock_highlight_type_menu(
     ui: &mut Ui,
     msgs: &mut Vec<Message>,
     clock_highlight_type: ClockHighlightType,

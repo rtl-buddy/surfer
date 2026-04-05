@@ -188,7 +188,7 @@ impl SystemState {
 
                     if ui.button("Copy image").clicked() {
                         let total = columns * rows;
-                        let mut padded = pixel_colors.to_vec();
+                        let mut padded = pixel_colors.clone();
                         padded.resize(total, Color32::BLACK);
                         ui.ctx().copy_image(egui::ColorImage {
                             size: [columns, rows],

@@ -166,7 +166,7 @@ fn handle_non_terminal_fuzz<T>(
             {
                 let s = suggestions
                     .iter()
-                    .map(|x| (x.to_string(), vec![false; x.len()]))
+                    .map(|x| (x.clone(), vec![false; x.len()]))
                     .collect::<Vec<(String, Vec<bool>)>>();
                 Ok(s)
             } else {

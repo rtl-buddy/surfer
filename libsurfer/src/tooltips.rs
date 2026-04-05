@@ -25,7 +25,7 @@ fn find_transaction<'a>(
 }
 
 #[must_use]
-pub fn variable_tooltip_text(meta: Option<&VariableMeta>, variable: &VariableRef) -> String {
+pub(crate) fn variable_tooltip_text(meta: Option<&VariableMeta>, variable: &VariableRef) -> String {
     if let Some(meta) = meta {
         format!(
             "{}\nNum bits: {}\nType: {}\nDirection: {}",
@@ -45,7 +45,11 @@ pub fn variable_tooltip_text(meta: Option<&VariableMeta>, variable: &VariableRef
 }
 
 #[must_use]
-pub fn scope_tooltip_text(wave: &WaveData, scope: &ScopeRef, include_parameters: bool) -> String {
+pub(crate) fn scope_tooltip_text(
+    wave: &WaveData,
+    scope: &ScopeRef,
+    include_parameters: bool,
+) -> String {
     let mut parts = vec![format!("{scope}")];
     if let Some(wave_container) = &wave.inner.as_waves() {
         if include_parameters && let Some(waves) = &wave.inner.as_waves() {
@@ -67,7 +71,7 @@ pub fn scope_tooltip_text(wave: &WaveData, scope: &ScopeRef, include_parameters:
 }
 
 #[must_use]
-pub fn handle_transaction_tooltip(
+pub(crate) fn handle_transaction_tooltip(
     response: Response,
     waves: &WaveData,
     gen_ref: &TransactionStreamRef,

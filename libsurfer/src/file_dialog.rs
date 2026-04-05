@@ -21,7 +21,7 @@ pub enum OpenMode {
 
 impl SystemState {
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn file_dialog_open<F>(
+    pub(crate) fn file_dialog_open<F>(
         &mut self,
         title: &'static str,
         filter: (String, Vec<String>),
@@ -39,7 +39,7 @@ impl SystemState {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub fn file_dialog_open<F>(
+    pub(crate) fn file_dialog_open<F>(
         &mut self,
         title: &'static str,
         filter: (String, Vec<String>),
@@ -57,7 +57,7 @@ impl SystemState {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn file_dialog_save<F, Fut>(
+    pub(crate) fn file_dialog_save<F, Fut>(
         &mut self,
         title: &'static str,
         filter: (String, Vec<String>),
@@ -76,7 +76,7 @@ impl SystemState {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub fn file_dialog_save<F, Fut>(
+    pub(crate) fn file_dialog_save<F, Fut>(
         &mut self,
         title: &'static str,
         filter: (String, Vec<String>),
@@ -94,7 +94,7 @@ impl SystemState {
         });
     }
 
-    pub fn open_file_dialog(&mut self, mode: OpenMode) {
+    pub(crate) fn open_file_dialog(&mut self, mode: OpenMode) {
         let load_options = (mode, self.user.config.behavior.keep_during_reload).into();
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -126,7 +126,7 @@ impl SystemState {
         );
     }
 
-    pub fn open_command_file_dialog(&mut self) {
+    pub(crate) fn open_command_file_dialog(&mut self) {
         #[cfg(not(target_arch = "wasm32"))]
         let message = move |file: PathBuf| match Utf8PathBuf::from_path_buf(file.clone()) {
             Ok(utf8_path) => vec![Message::LoadCommandFile(utf8_path)],
@@ -152,7 +152,7 @@ impl SystemState {
     }
 
     #[cfg(feature = "python")]
-    pub fn open_python_file_dialog(&mut self) {
+    pub(crate) fn open_python_file_dialog(&mut self) {
         self.file_dialog_open(
             "Open Python translator file",
             ("Python files (*.py)".to_string(), vec!["py".to_string()]),

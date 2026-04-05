@@ -21,7 +21,7 @@ use epaint::{
     Margin,
     text::{TextFormat, TextWrapMode},
 };
-use eyre::Context;
+use eyre::WrapErr as _;
 use itertools::Itertools;
 use num::BigUint;
 use serde::{Deserialize, Serialize};

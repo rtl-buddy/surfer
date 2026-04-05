@@ -185,7 +185,7 @@ impl VariableFilter {
         }
     }
 
-    pub fn matching_variables(
+    fn matching_variables(
         &self,
         variables: &[VariableRef],
         wave_container_opt: Option<&WaveContainer>,
@@ -211,7 +211,7 @@ impl VariableFilter {
 
     /// Returns true if the current `name_filter_type` is `Regex` and the cached
     /// compiled regex is invalid.
-    pub fn is_regex_and_invalid(&self) -> bool {
+    fn is_regex_and_invalid(&self) -> bool {
         if self.name_filter_type != VariableNameFilterType::Regex {
             return false;
         }
@@ -221,7 +221,7 @@ impl VariableFilter {
 
     /// Returns the regex error message if the current filter type is Regex and
     /// the regex compilation failed.
-    pub fn regex_error(&self) -> Option<String> {
+    fn regex_error(&self) -> Option<String> {
         if self.name_filter_type != VariableNameFilterType::Regex {
             return None;
         }
@@ -231,7 +231,7 @@ impl VariableFilter {
 }
 
 impl SystemState {
-    pub fn draw_variable_filter_edit(
+    pub(crate) fn draw_variable_filter_edit(
         &mut self,
         ui: &mut Ui,
         msgs: &mut Vec<Message>,
@@ -372,7 +372,7 @@ impl SystemState {
         }
     }
 
-    pub fn variable_filter_type_menu(&self, ui: &mut Ui, msgs: &mut Vec<Message>) {
+    fn variable_filter_type_menu(&self, ui: &mut Ui, msgs: &mut Vec<Message>) {
         // Checkbox wants a mutable bool reference but we don't have mutable self to give it a
         // mutable 'group_by_direction' directly. Plus we want to update things via a message. So
         // make a copy of the flag here that can be mutable and just ensure we update the actual
@@ -485,7 +485,7 @@ impl SystemState {
         });
     }
 
-    pub fn variable_cmp(
+    fn variable_cmp(
         &self,
         a: &VariableRef,
         b: &VariableRef,
@@ -508,7 +508,7 @@ impl SystemState {
         }
     }
 
-    pub fn filtered_variables(
+    pub(crate) fn filtered_variables(
         &self,
         variables: &[VariableRef],
         full_path: bool,

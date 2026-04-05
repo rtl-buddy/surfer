@@ -11,7 +11,7 @@ use crate::{SystemState, message::Message, wave_data::WaveData};
 const PROGRESS_DEBOUNCE_MS: u64 = 100;
 
 impl SystemState {
-    pub fn add_statusbar_panel(
+    pub(crate) fn add_statusbar_panel(
         &self,
         ui: &mut Ui,
         waves: Option<&WaveData>,

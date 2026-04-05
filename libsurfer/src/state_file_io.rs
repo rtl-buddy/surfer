@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 #[cfg(not(target_arch = "wasm32"))]
 use camino::Utf8PathBuf;
-use eyre::Context;
+use eyre::WrapErr as _;
 use rfd::FileHandle;
 use tracing::error;
 
@@ -16,7 +16,7 @@ use crate::{
 
 impl SystemState {
     #[cfg(target_arch = "wasm32")]
-    pub fn load_state_file(&mut self, path: Option<PathBuf>) {
+    pub(crate) fn load_state_file(&mut self, path: Option<PathBuf>) {
         if path.is_some() {
             return;
         }
@@ -40,7 +40,7 @@ impl SystemState {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn load_state_file(&mut self, path: Option<PathBuf>) {
+    pub(crate) fn load_state_file(&mut self, path: Option<PathBuf>) {
         let messages = move |path: PathBuf| {
             let source = if let Ok(p) = Utf8PathBuf::from_path_buf(path.clone()) {
                 p
@@ -90,7 +90,7 @@ impl SystemState {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn save_state_file(&mut self, path: Option<PathBuf>) {
+    pub(crate) fn save_state_file(&mut self, path: Option<PathBuf>) {
         let Some(encoded) = self.encode_state() else {
             return;
         };
@@ -130,7 +130,7 @@ impl SystemState {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub fn save_state_file(&mut self, path: Option<PathBuf>) {
+    pub(crate) fn save_state_file(&mut self, path: Option<PathBuf>) {
         if path.is_some() {
             return;
         }
@@ -155,7 +155,7 @@ impl SystemState {
         );
     }
 
-    pub fn encode_state(&self) -> Option<String> {
+    pub(crate) fn encode_state(&self) -> Option<String> {
         let opt = ron::Options::default();
 
         opt.to_string_pretty(&self.user, ron::ser::PrettyConfig::default())
@@ -164,7 +164,7 @@ impl SystemState {
             .ok()
     }
 
-    pub fn load_state_from_bytes(&mut self, bytes: Vec<u8>) {
+    pub(crate) fn load_state_from_bytes(&mut self, bytes: Vec<u8>) {
         match ron::de::from_bytes(&bytes).context("Failed loading state from bytes") {
             Ok(s) => {
                 let sender = self.channels.msg_sender.clone();

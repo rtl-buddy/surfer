@@ -6,8 +6,8 @@ mod main_impl {
     use camino::Utf8PathBuf;
     use clap::Parser;
     use emath::Vec2;
-    use eyre::Context;
     use eyre::Result;
+    use eyre::WrapErr as _;
     use libsurfer::{
         EGUI_CONTEXT, StartupParams, SystemState,
         batch_commands::read_command_file,

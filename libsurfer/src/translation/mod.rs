@@ -364,7 +364,7 @@ fn find_user_mapping_translators_at_path(path: &Path) -> Vec<Arc<DynBasicTransla
                 );
                 mapping_translators.push(Arc::new(translator));
             }
-        };
+        }
     }
     mapping_translators
 }
@@ -785,7 +785,7 @@ impl Translator<VarId, ScopeId, Message> for StringTranslator {
                 subfields: vec![],
             }),
             VariableValue::String(s) => Ok(TranslationResult {
-                val: ValueRepr::String((*s).to_string()),
+                val: ValueRepr::String((*s).clone()),
                 kind: ValueKind::Normal,
                 subfields: vec![],
             }),

@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use eyre::{Context, Result};
+use eyre::{Result, WrapErr as _};
 use num::BigUint;
 use serde::{Deserialize, Deserializer, Serialize};
 

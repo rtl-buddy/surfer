@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, io::Write};
 
-use eyre::{Context, Result};
+use eyre::{Result, WrapErr as _};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     sync::mpsc,

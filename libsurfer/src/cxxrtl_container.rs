@@ -233,7 +233,7 @@ impl CxxrtlContainer {
         addr: &str,
         msg_channel: std::sync::mpsc::Sender<Message>,
     ) -> Result<Self> {
-        use eyre::Context;
+        use eyre::WrapErr as _;
 
         use crate::channels::IngressSender;
         use crate::cxxrtl::io_worker;

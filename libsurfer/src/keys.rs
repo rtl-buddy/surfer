@@ -112,7 +112,7 @@ impl SystemState {
                     }
                     (Key::F11, true, false, _) => msgs.push(Message::ToggleFullscreen),
                     (Key::ArrowRight, true, false, false) => {
-                        msgs.push(match self.user.config.behavior.arrow_key_bindings {
+                        msgs.push(match self.user.config.behavior.arrow_key_bindings() {
                             ArrowKeyBindings::Edge => Message::MoveCursorToTransition {
                                 next: true,
                                 variable: None,
@@ -128,7 +128,7 @@ impl SystemState {
                         });
                     }
                     (Key::ArrowLeft, true, false, false) => {
-                        msgs.push(match self.user.config.behavior.arrow_key_bindings {
+                        msgs.push(match self.user.config.behavior.arrow_key_bindings() {
                             ArrowKeyBindings::Edge => Message::MoveCursorToTransition {
                                 next: false,
                                 variable: None,

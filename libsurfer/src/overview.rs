@@ -7,7 +7,12 @@ use emath::{Align2, Pos2, Rect, RectTransform};
 use epaint::CornerRadius;
 
 impl SystemState {
-    pub fn add_overview_panel(&self, ui: &mut Ui, waves: &WaveData, msgs: &mut Vec<Message>) {
+    pub(crate) fn add_overview_panel(
+        &self,
+        ui: &mut Ui,
+        waves: &WaveData,
+        msgs: &mut Vec<Message>,
+    ) {
         Panel::bottom("overview")
             .frame(Frame {
                 fill: self.user.config.theme.primary_ui_color.background,

@@ -11,7 +11,7 @@ use tracing::warn;
 
 use crate::{SystemState, message::Message};
 
-pub const NUM_PERF_SAMPLES: usize = 1000;
+pub(crate) const NUM_PERF_SAMPLES: usize = 1000;
 
 struct TimingRegion {
     durations: VecDeque<Duration>,
@@ -21,13 +21,13 @@ struct TimingRegion {
 }
 
 impl TimingRegion {
-    pub fn start(&mut self) {
+    pub(crate) fn start(&mut self) {
         #[cfg(not(target_arch = "wasm32"))]
         {
             self.start = Some(Instant::now());
         }
     }
-    pub fn stop(&mut self) {
+    pub(crate) fn stop(&mut self) {
         #[cfg(not(target_arch = "wasm32"))]
         {
             self.end = Some(Instant::now());
@@ -35,14 +35,14 @@ impl TimingRegion {
     }
 }
 
-pub struct Timing {
+pub(crate) struct Timing {
     active_region: Vec<String>,
     regions: HashMap<Vec<String>, TimingRegion>,
 }
 
 impl Timing {
     #[must_use]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let initial = vec![(
             vec![],
             TimingRegion {
@@ -61,7 +61,7 @@ impl Timing {
         }
     }
 
-    pub fn start_frame(&mut self) {
+    pub(crate) fn start_frame(&mut self) {
         if !self.active_region.is_empty() {
             warn!(
                 "Starting frame with active region {}",
@@ -77,7 +77,7 @@ impl Timing {
         }
     }
 
-    pub fn end_frame(&mut self) {
+    pub(crate) fn end_frame(&mut self) {
         if let Some(r) = self.regions.get_mut(&vec![]) {
             r.stop();
         }
@@ -116,7 +116,7 @@ impl Timing {
         }
     }
 
-    pub fn start(&mut self, name: impl Into<String>) {
+    pub(crate) fn start(&mut self, name: impl Into<String>) {
         let name = name.into();
         if let Some(reg) = self.regions.get_mut(&self.active_region)
             && !reg.subregions.contains(&name)
@@ -138,7 +138,7 @@ impl Timing {
         region.start();
     }
 
-    pub fn end(&mut self, name: impl Into<String>) {
+    pub(crate) fn end(&mut self, name: impl Into<String>) {
         let name = name.into();
         if let Some(reg) = self.regions.get_mut(&self.active_region) {
             reg.stop();
@@ -167,7 +167,7 @@ impl Default for Timing {
 }
 
 impl SystemState {
-    pub fn draw_performance_graph(&self, ctx: &egui::Context, msgs: &mut Vec<Message>) {
+    pub(crate) fn draw_performance_graph(&self, ctx: &egui::Context, msgs: &mut Vec<Message>) {
         let mut open = true;
         egui::Window::new("Frame times")
             .open(&mut open)
@@ -261,7 +261,7 @@ impl SystemState {
     }
 }
 
-pub fn draw_timing_region(plot_ui: &mut PlotUi, region: &Vec<String>, timing: &Timing) {
+fn draw_timing_region(plot_ui: &mut PlotUi, region: &Vec<String>, timing: &Timing) {
     let reg = &timing.regions[region];
 
     for sub in &reg.subregions {

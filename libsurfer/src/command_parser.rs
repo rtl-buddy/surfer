@@ -52,7 +52,7 @@ fn separate_at_space(query: &str) -> (String, String, String, String) {
     )
 }
 
-pub fn get_parser(state: &SystemState) -> Command<Message> {
+pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
     fn single_word(
         suggestions: Vec<String>,
         rest_command: RestCommand,

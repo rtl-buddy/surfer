@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 /// The function first formats the number as a hex digit and then performs
 /// the mapping.
 #[must_use]
-pub fn uint_idx_to_alpha_idx(idx: VisibleItemIndex, nvariables: usize) -> String {
+pub(crate) fn uint_idx_to_alpha_idx(idx: VisibleItemIndex, nvariables: usize) -> String {
     // this calculates how many hex digits we need to represent nvariables
     // unwrap because the result should always fit into usize and because
     // we are not going to display millions of character ids.
@@ -40,7 +40,7 @@ pub fn uint_idx_to_alpha_idx(idx: VisibleItemIndex, nvariables: usize) -> String
 }
 
 /// This is the reverse function to `uint_idx_to_alpha_idx`.
-pub fn alpha_idx_to_uint_idx(idx: &str) -> Option<VisibleItemIndex> {
+pub(crate) fn alpha_idx_to_uint_idx(idx: &str) -> Option<VisibleItemIndex> {
     let mapped = idx
         .chars()
         .map(|c| match c {
@@ -69,7 +69,7 @@ pub fn alpha_idx_to_uint_idx(idx: &str) -> Option<VisibleItemIndex> {
 }
 
 #[must_use]
-pub fn get_alpha_focus_id(vidx: VisibleItemIndex, waves: &WaveData) -> RichText {
+pub(crate) fn get_alpha_focus_id(vidx: VisibleItemIndex, waves: &WaveData) -> RichText {
     let alpha_id = uint_idx_to_alpha_idx(vidx, waves.displayed_items.len());
 
     RichText::new(alpha_id).monospace()
@@ -79,7 +79,7 @@ pub fn get_alpha_focus_id(vidx: VisibleItemIndex, waves: &WaveData) -> RichText 
 /// a `Vec<PathBuf>` to all found instances in order of closest to furthest away. The function only
 /// searches up within subdirectories of `end`.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn search_upward(
+pub(crate) fn search_upward(
     start: impl AsRef<Path>,
     end: impl AsRef<Path>,
     item: impl AsRef<Path>,
@@ -103,7 +103,7 @@ fn get_multi_extension_from_filename(filename: &str) -> Option<String> {
 /// For example, for "foo.tar.gz", this function returns "tar.gz", and not just "gz",
 /// like `path.extension()` would.
 #[must_use]
-pub fn get_multi_extension(path: &Utf8PathBuf) -> Option<String> {
+pub(crate) fn get_multi_extension(path: &Utf8PathBuf) -> Option<String> {
     // Find the first . in the path, if any. Return the rest of the path.
     if let Some(filename) = path.file_name() {
         return get_multi_extension_from_filename(filename);

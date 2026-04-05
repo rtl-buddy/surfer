@@ -470,7 +470,7 @@ impl SystemState {
     }
 
     pub fn get_visuals(&self) -> Visuals {
-        let widget_style = WidgetVisuals {
+        let inactive = WidgetVisuals {
             bg_fill: self.user.config.theme.secondary_ui_color.background,
             fg_stroke: Stroke {
                 color: self.user.config.theme.secondary_ui_color.foreground,
@@ -484,6 +484,38 @@ impl SystemState {
             corner_radius: CornerRadius::same(2),
             expansion: 0.0,
         };
+
+        let hovered = WidgetVisuals {
+            bg_fill: self.user.config.theme.selected_elements_colors.background,
+            fg_stroke: Stroke {
+                color: self.user.config.theme.secondary_ui_color.foreground,
+                width: 1.0,
+            },
+            weak_bg_fill: self.user.config.theme.selected_elements_colors.background,
+            bg_stroke: Stroke {
+                color: self.user.config.theme.border_color,
+                width: 1.0,
+            },
+            corner_radius: CornerRadius::same(2),
+            expansion: 0.0,
+        };
+
+        let active = WidgetVisuals {
+            bg_fill: self.user.config.theme.selected_elements_colors.background,
+            fg_stroke: Stroke {
+                color: self.user.config.theme.selected_elements_colors.foreground,
+                width: 1.0,
+            },
+            weak_bg_fill: self.user.config.theme.selected_elements_colors.background,
+            bg_stroke: Stroke {
+                color: self.user.config.theme.border_color,
+                width: 1.0,
+            },
+            corner_radius: CornerRadius::same(2),
+            expansion: 0.0,
+        };
+
+        let open = active;
 
         Visuals {
             override_text_color: Some(self.user.config.theme.foreground),
@@ -502,11 +534,11 @@ impl SystemState {
                 },
             },
             widgets: Widgets {
-                noninteractive: widget_style,
-                inactive: widget_style,
-                hovered: widget_style,
-                active: widget_style,
-                open: widget_style,
+                noninteractive: inactive,
+                inactive,
+                hovered,
+                active,
+                open,
             },
             ..Visuals::dark()
         }

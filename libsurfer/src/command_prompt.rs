@@ -115,7 +115,7 @@ pub fn show_command_prompt(
                 // Expand the current input to full command and append the suggestion that is selected in the ui.
                 let append_suggestion = |input: &String| -> String {
                     let new_input = if state.command_prompt.suggestions.is_empty() {
-                        input.to_string()
+                        input.clone()
                     } else {
                         // if no suggestions exist we use the last argument in the input (e.g., for divider_add)
                         let default = input

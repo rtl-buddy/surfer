@@ -184,7 +184,7 @@ impl VariableRefExt for VariableRef {
                 index: None,
             }
         } else {
-            let name = components.last().unwrap().to_string();
+            let name = components.last().unwrap().clone();
             let (name, index) = extract_index(name);
             Self {
                 path: ScopeRef::from_strs(&components[..(components.len()) - 1]),
@@ -211,7 +211,7 @@ impl VariableRefExt for VariableRef {
         } else {
             Self {
                 path: ScopeRef::from_strs(&components[..(components.len()) - 1]),
-                name: components.last().unwrap().to_string(),
+                name: components.last().unwrap().clone(),
                 id,
                 index: None,
             }

@@ -55,7 +55,7 @@ pub struct GestureZones {
 impl SystemState {
     /// Draw the mouse gesture widget, i.e., the line(s) and text showing which gesture is being drawn.
     #[allow(clippy::too_many_arguments)]
-    pub fn draw_mouse_gesture_widget(
+    pub(crate) fn draw_mouse_gesture_widget(
         &self,
         egui_ctx: &Context,
         waves: &WaveData,
@@ -316,7 +316,7 @@ impl SystemState {
     }
 
     /// Draw the mouse gesture help window.
-    pub fn mouse_gesture_help(&self, ctx: &Context, msgs: &mut Vec<Message>) {
+    pub(crate) fn mouse_gesture_help(&self, ctx: &Context, msgs: &mut Vec<Message>) {
         let mut open = true;
         Window::new("Mouse gestures")
             .open(&mut open)
@@ -349,7 +349,7 @@ impl SystemState {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn draw_measure_widget(
+    pub(crate) fn draw_measure_widget(
         &self,
         egui_ctx: &Context,
         waves: &WaveData,

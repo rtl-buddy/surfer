@@ -561,7 +561,7 @@ impl SystemState {
                 self.user.selected_server_file_index = file_index;
                 *self.surver_selected_file.borrow_mut() = file_index;
                 if let Some(url) = self.user.surver_url.as_ref() {
-                    self.load_wave_from_url(url.to_string(), load_options, force_switch);
+                    self.load_wave_from_url(url.clone(), load_options, force_switch);
                 }
             }
             Message::LoadSurverFileByName(file_name, load_options) => {
@@ -578,7 +578,7 @@ impl SystemState {
                 self.user.selected_server_file_index = file_index;
                 *self.surver_selected_file.borrow_mut() = file_index;
                 if let Some(url) = self.user.surver_url.as_ref() {
-                    self.load_wave_from_url(url.to_string(), load_options, force_switch);
+                    self.load_wave_from_url(url.clone(), load_options, force_switch);
                 }
             }
             Message::RemoveVisibleItems(target) => match target {
@@ -618,7 +618,7 @@ impl SystemState {
                     {
                         remove_ids.push(node.item_ref);
                     }
-                    for &item_ref in remove_ids.iter() {
+                    for &item_ref in &remove_ids {
                         waves.remove_displayed_item(item_ref);
                     }
                 }
@@ -2026,7 +2026,7 @@ impl SystemState {
                         .get_visible(focused_item)
                         .expect("Inconsistent state")
                         .level;
-                    if !unfold & (focused_level > 0) {
+                    if !unfold && (focused_level > 0) {
                         waves.focused_item = None;
                     }
                 }
@@ -2209,7 +2209,7 @@ impl SystemState {
         Some(())
     }
 
-    pub fn add_scope_as_group(
+    fn add_scope_as_group(
         &mut self,
         scope: &ScopeRef,
         pos: TargetPosition,
@@ -2298,7 +2298,7 @@ impl SystemState {
     }
 }
 
-pub fn dump_tree(waves: &WaveData) {
+fn dump_tree(waves: &WaveData) {
     let mut result = String::new();
     for (idx, node) in waves.items_tree.iter().enumerate() {
         for _ in 0..node.level.saturating_sub(1) {

@@ -30,7 +30,7 @@ impl VariableDirectionExt for VariableDirection {
 }
 
 #[must_use]
-pub fn get_direction_string(
+pub(crate) fn get_direction_string(
     meta: Option<&VariableMeta>,
     name_info: Option<&VariableNameInfo>,
 ) -> Option<String> {

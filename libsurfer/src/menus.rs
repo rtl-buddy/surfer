@@ -536,7 +536,7 @@ impl SystemState {
                     .then(|| {
                         msgs.push(Message::ItemColorChange(
                             group_target,
-                            Some(color_name.to_string()),
+                            Some(color_name.clone()),
                         ));
                     });
             }
@@ -556,7 +556,7 @@ impl SystemState {
                     .then(|| {
                         msgs.push(Message::ItemBackgroundColorChange(
                             group_target,
-                            Some(color_name.to_string()),
+                            Some(color_name.clone()),
                         ));
                     });
             }

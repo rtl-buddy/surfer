@@ -18,7 +18,7 @@ fn draw_file_info_tooltip(ui: &mut egui::Ui, file_info: &SurverFileInfo, is_load
 }
 
 impl SystemState {
-    pub fn draw_surver_file_window(&self, ctx: &Context, msgs: &mut Vec<Message>) {
+    pub(crate) fn draw_surver_file_window(&self, ctx: &Context, msgs: &mut Vec<Message>) {
         let mut open = true;
         let mut load_options = *self.surver_load_options.borrow();
         let mut should_load = false;

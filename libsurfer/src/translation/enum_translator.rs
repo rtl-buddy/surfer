@@ -23,7 +23,7 @@ impl Translator<VarId, ScopeId, Message> for EnumTranslator {
         let (kind, name) = meta
             .enum_map
             .get(str_value.as_str())
-            .map(|s| (ValueKind::Normal, s.to_string()))
+            .map(|s| (ValueKind::Normal, s.clone()))
             .unwrap_or((ValueKind::Warn, format!("ERROR ({str_value})")));
         Ok(TranslationResult {
             val: ValueRepr::String(name),

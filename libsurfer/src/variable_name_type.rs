@@ -190,7 +190,7 @@ fn compute_minimal_display_map(all_variables: &[&VariableRef]) -> HashMap<String
             let display = if scope.is_empty() {
                 var_i.name.clone()
             } else {
-                format!("{}{}.{}", prefix, scope, var_i.name)
+                format!("{prefix}{scope}.{}", var_i.name)
             };
             result.insert(var_i.full_path_string(), display);
         }

@@ -4,8 +4,7 @@ use std::sync::OnceLock;
 use std::sync::mpsc::Sender;
 
 use bincode::Options;
-use eyre::{Context, Result, anyhow};
-use eyre::{bail, eyre};
+use eyre::{Result, WrapErr as _, anyhow, bail, eyre};
 use reqwest::StatusCode;
 use thiserror::Error;
 use tracing::{info, warn};

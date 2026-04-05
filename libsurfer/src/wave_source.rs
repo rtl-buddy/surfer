@@ -15,7 +15,7 @@ use crate::util::get_multi_extension;
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::Report;
 use eyre::Result;
-use eyre::{WrapErr, anyhow};
+use eyre::{WrapErr as _, anyhow};
 use ftr_parser::parse;
 use futures_util::FutureExt;
 use serde::{Deserialize, Serialize};
@@ -171,7 +171,7 @@ impl Display for WaveFormat {
             WaveFormat::Vcd => write!(f, "VCD"),
             WaveFormat::Fst => write!(f, "FST"),
             WaveFormat::Ghw => write!(f, "GHW"),
-            WaveFormat::CxxRtl => write!(f, "Cxxrtl"),
+            WaveFormat::CxxRtl => write!(f, "CXXRTL"),
             WaveFormat::Ftr => write!(f, "FTR"),
         }
     }

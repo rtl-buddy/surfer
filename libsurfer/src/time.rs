@@ -361,7 +361,11 @@ pub struct TimeFormatter {
 impl TimeFormatter {
     /// Create a new `TimeFormatter` with the given settings.
     #[must_use]
-    pub fn new(timescale: &TimeScale, wanted_unit: &TimeUnit, time_format: &TimeFormat) -> Self {
+    pub(crate) fn new(
+        timescale: &TimeScale,
+        wanted_unit: &TimeUnit,
+        time_format: &TimeFormat,
+    ) -> Self {
         // Note: For Auto unit, we defer resolution to format() time since it depends on the value
         let (exponent_diff, unit_string) = if *wanted_unit == TimeUnit::Auto {
             // Use placeholder values for Auto - will be computed per-format call
@@ -396,7 +400,7 @@ impl TimeFormatter {
 
     /// Format a single time value.
     #[must_use]
-    pub fn format(&self, time: &BigInt) -> String {
+    pub(crate) fn format(&self, time: &BigInt) -> String {
         if self.wanted_unit == TimeUnit::None {
             return split_and_format_number(&time.to_string(), self.time_format.format);
         }
@@ -469,7 +473,7 @@ fn pow10(exp: u32) -> BigInt {
 /// Format the time string taking all settings into account.
 /// This function delegates to `TimeFormatter` which handles the Auto timeunit.
 #[must_use]
-pub fn time_string(
+pub(crate) fn time_string(
     time: &BigInt,
     timescale: &TimeScale,
     wanted_timeunit: &TimeUnit,
@@ -603,7 +607,7 @@ fn normalize_numeric_with_unit(
 
 /// State for the time input widget.
 #[derive(Clone, Debug)]
-pub struct TimeInputState {
+pub(crate) struct TimeInputState {
     /// User's text input
     input_text: String,
     /// Parsed time value (if valid)
@@ -633,12 +637,13 @@ impl Default for TimeInputState {
 
 impl TimeInputState {
     /// Create a new time input state with default values.
-    pub fn new() -> Self {
+    #[cfg(test)]
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 
     /// Update the input text and parse it.
-    pub fn update_input(&mut self, input: String) {
+    fn update_input(&mut self, input: String) {
         self.input_text = input;
         let (numeric_str, unit) = parse_time_input(&self.input_text);
         self.input_unit = unit;
@@ -659,7 +664,7 @@ impl TimeInputState {
     }
 
     /// Get the effective unit (from input or dropdown).
-    pub fn effective_unit(&self) -> TimeUnit {
+    fn effective_unit(&self) -> TimeUnit {
         self.normalized_unit
             .or(self.input_unit)
             .unwrap_or(self.selected_unit)
@@ -668,7 +673,7 @@ impl TimeInputState {
     /// Convert the parsed value into timescale ticks.
     ///
     /// When conversion is not exact, this truncates toward zero.
-    pub fn to_timescale_ticks(&self, timescale: &TimeScale) -> Option<BigInt> {
+    fn to_timescale_ticks(&self, timescale: &TimeScale) -> Option<BigInt> {
         let value = self.parsed_value.clone()?;
         let unit = self.effective_unit();
         let base_unit = if unit == TimeUnit::None {
@@ -713,7 +718,7 @@ impl TimeInputState {
 ///     println!("Time: {value} {:?}", timescale);
 /// }
 /// ```
-pub fn time_input_widget(
+pub(crate) fn time_input_widget(
     ui: &mut Ui,
     waves: &WaveData,
     msgs: &mut Vec<Message>,
@@ -795,7 +800,7 @@ pub fn time_input_widget(
 }
 
 impl WaveData {
-    pub fn draw_tick_line(&self, x: f32, ctx: &mut DrawingContext, stroke: &Stroke) {
+    pub(crate) fn draw_tick_line(&self, x: f32, ctx: &mut DrawingContext, stroke: &Stroke) {
         let Pos2 {
             x: x_pos,
             y: y_start,
@@ -807,7 +812,7 @@ impl WaveData {
         );
     }
     /// Draw the text for each tick location.
-    pub fn draw_ticks(
+    pub(crate) fn draw_ticks(
         &self,
         color: Color32,
         ticks: &[(String, f32)],
@@ -828,7 +833,7 @@ impl WaveData {
 }
 
 impl SystemState {
-    pub fn get_time_format(&self) -> TimeFormat {
+    pub(crate) fn get_time_format(&self) -> TimeFormat {
         let time_format = self.user.config.default_time_format.clone();
         if let Some(time_string_format) = self.user.time_string_format {
             time_format.with_format(time_string_format)
@@ -837,7 +842,7 @@ impl SystemState {
         }
     }
 
-    pub fn get_ticks_for_viewport_idx(
+    pub(crate) fn get_ticks_for_viewport_idx(
         &self,
         waves: &WaveData,
         viewport_idx: usize,
@@ -846,7 +851,7 @@ impl SystemState {
         self.get_ticks_for_viewport(waves, &waves.viewports[viewport_idx], cfg)
     }
 
-    pub fn get_ticks_for_viewport(
+    pub(crate) fn get_ticks_for_viewport(
         &self,
         waves: &WaveData,
         viewport: &Viewport,

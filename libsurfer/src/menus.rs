@@ -1,7 +1,7 @@
 //! Menu handling.
 use egui::containers::menu::{MenuConfig, SubMenuButton};
 use egui::{Button, Panel, PopupCloseBehavior, TextWrapMode, Ui};
-use eyre::WrapErr;
+use eyre::WrapErr as _;
 use futures::executor::block_on;
 use itertools::Itertools;
 use std::sync::atomic::Ordering;
@@ -536,7 +536,7 @@ impl SystemState {
                     .then(|| {
                         msgs.push(Message::ItemColorChange(
                             group_target,
-                            Some(color_name.to_string()),
+                            Some(color_name.clone()),
                         ));
                     });
             }
@@ -556,7 +556,7 @@ impl SystemState {
                     .then(|| {
                         msgs.push(Message::ItemBackgroundColorChange(
                             group_target,
-                            Some(color_name.to_string()),
+                            Some(color_name.clone()),
                         ));
                     });
             }

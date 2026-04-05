@@ -486,7 +486,7 @@ impl Viewport {
 }
 
 #[must_use]
-pub fn ease_in_out_size(r: RangeInclusive<f64>, t: f64) -> f64 {
+fn ease_in_out_size(r: RangeInclusive<f64>, t: f64) -> f64 {
     r.start() + ((r.end() - r.start()) * -((std::f64::consts::PI * t).cos() - 1.) / 2.)
 }
 

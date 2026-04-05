@@ -7,7 +7,7 @@ use camino::Utf8PathBuf;
 use extism::{Manifest, PTR, Plugin, PluginBuilder, Wasm, host_fn};
 use extism_convert;
 use extism_manifest::MemoryOptions;
-use eyre::{Context, anyhow};
+use eyre::{WrapErr as _, anyhow};
 use surfer_translation_types::plugin_types::TranslateParams;
 use surfer_translation_types::{
     TranslationPreference, TranslationResult, Translator, VariableInfo, VariableMeta,

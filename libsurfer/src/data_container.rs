@@ -32,7 +32,7 @@ impl VariableType {
         match self {
             VariableType::Variable(v) => {
                 if let Some(index) = v.index {
-                    format!("{}[{}]", v.name, index)
+                    format!("{}[{index}]", v.name)
                 } else {
                     v.name.clone()
                 }

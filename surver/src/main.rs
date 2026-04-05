@@ -1,6 +1,6 @@
 //! Code for the `surver` executable.
 use clap::Parser;
-use eyre::{Context, Result, bail};
+use eyre::{Result, WrapErr as _, bail};
 use std::{
     fs::File,
     io::{BufRead, BufReader, stdout},

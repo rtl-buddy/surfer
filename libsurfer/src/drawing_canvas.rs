@@ -936,7 +936,7 @@ impl SystemState {
         if !ticks.is_empty() && self.show_ticks() {
             let stroke = Stroke::from(&self.user.config.theme.ticks.style);
 
-            for (_, x) in ticks {
+            for (_, x, _) in ticks {
                 waves.draw_tick_line(*x, ctx, &stroke);
             }
         }
@@ -1076,7 +1076,32 @@ impl SystemState {
                         }
                     }
                 }
-                ItemDrawingInfo::Divider(_) => {}
+                ItemDrawingInfo::Divider(_) | ItemDrawingInfo::Group(_) => {
+                    if !self.show_divider_text() {
+                        continue;
+                    }
+
+                    let text_color = color.unwrap_or(
+                        // Get background color and determine best text color
+                        self.user
+                            .config
+                            .theme
+                            .get_best_text_color(self.get_background_color(
+                                waves,
+                                drawing_info.vidx(),
+                                item_count,
+                            )),
+                    );
+
+                    waves.draw_divider_text(
+                        Some(text_color),
+                        displayed_item.map(|item| item.name()).unwrap_or_default(),
+                        ticks,
+                        ctx,
+                        y_offset,
+                        &self.user.config,
+                    );
+                }
                 ItemDrawingInfo::Marker(_) => {}
                 ItemDrawingInfo::TimeLine(_) => {
                     let text_color = color.unwrap_or(
@@ -1093,7 +1118,6 @@ impl SystemState {
                     waves.draw_ticks(text_color, ticks, ctx, y_offset, Align2::CENTER_TOP);
                 }
                 ItemDrawingInfo::Stream(_) => {}
-                ItemDrawingInfo::Group(_) => {}
                 ItemDrawingInfo::Placeholder(_) => {}
             }
         }
@@ -1123,7 +1147,7 @@ impl SystemState {
         if !ticks.is_empty() && self.show_ticks() {
             let stroke = Stroke::from(&self.user.config.theme.ticks.style);
 
-            for (_, x) in &ticks {
+            for (_, x, _) in &ticks {
                 waves.draw_tick_line(*x, ctx, &stroke);
             }
         }

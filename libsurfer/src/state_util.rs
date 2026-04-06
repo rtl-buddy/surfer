@@ -140,6 +140,11 @@ impl SystemState {
     }
 
     #[inline]
+    pub fn show_divider_text(&self) -> bool {
+        self.user.config.show_divider_text()
+    }
+
+    #[inline]
     pub fn primary_button_drag_behavior(&self) -> PrimaryMouseDrag {
         self.user
             .primary_button_drag_behavior

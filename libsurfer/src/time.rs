@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use sys_locale::get_locale;
 
+use crate::config::SurferConfig;
 use crate::viewport::Viewport;
 use crate::wave_data::WaveData;
 use crate::{
@@ -815,17 +816,66 @@ impl WaveData {
     pub(crate) fn draw_ticks(
         &self,
         color: Color32,
-        ticks: &[(String, f32)],
+        ticks: &[(String, f32, i64)],
         ctx: &DrawingContext<'_>,
         y_offset: f32,
         align: Align2,
     ) {
-        for (tick_text, x) in ticks {
+        for (tick_text, x, _) in ticks {
             ctx.painter.text(
                 (ctx.to_screen)(*x, y_offset),
                 align,
                 tick_text,
                 FontId::proportional(ctx.cfg.text_size),
+                color,
+            );
+        }
+    }
+
+    /// Draw the divider text in a stable manner inline
+    pub fn draw_divider_text(
+        &self,
+        color: Option<Color32>,
+        text: String,
+        ticks: &[(String, f32, i64)],
+        ctx: &DrawingContext<'_>,
+        y_offset: f32,
+        config: &SurferConfig,
+    ) {
+        let font = FontId::monospace(ctx.cfg.text_size);
+        let color = color.unwrap_or(config.theme.foreground);
+
+        let layout = ctx
+            .painter
+            .layout_no_wrap(text.clone(), font.clone(), color);
+        let text_width = layout.rect.width() + (font.size * 2.);
+
+        let (next_tick, next_stamp) = ticks
+            .get(1)
+            .map_or_else(|| (1., 1), |&(_, dist, stamp)| (dist, stamp));
+
+        let (first_tick, first_stamp) = ticks
+            .first()
+            .map_or_else(|| (0., 0), |&(_, dist, stamp)| (dist, stamp));
+
+        let tick_delta = (next_tick - first_tick).abs();
+        let stamp_delta = next_stamp - first_stamp;
+        let tick_stride = (text_width / tick_delta).ceil();
+        let stamp_stride = stamp_delta * tick_stride as i64;
+        let elapsed = first_stamp / stamp_stride;
+        let mut last_stamp = (elapsed * stamp_stride) - (stamp_stride / 2);
+
+        for (_, x, stamp) in ticks {
+            if (*stamp < last_stamp + stamp_stride) || *stamp < 0 {
+                continue;
+            }
+            last_stamp = *stamp;
+
+            ctx.painter.text(
+                (ctx.to_screen)(*x, y_offset),
+                Align2::CENTER_TOP,
+                text.clone(),
+                font.clone(),
                 color,
             );
         }
@@ -847,7 +897,7 @@ impl SystemState {
         waves: &WaveData,
         viewport_idx: usize,
         cfg: &DrawConfig,
-    ) -> Vec<(String, f32)> {
+    ) -> Vec<(String, f32, i64)> {
         self.get_ticks_for_viewport(waves, &waves.viewports[viewport_idx], cfg)
     }
 
@@ -856,7 +906,7 @@ impl SystemState {
         waves: &WaveData,
         viewport: &Viewport,
         cfg: &DrawConfig,
-    ) -> Vec<(String, f32)> {
+    ) -> Vec<(String, f32, i64)> {
         get_ticks_internal(
             viewport,
             &waves.inner.metadata().timescale,
@@ -884,7 +934,7 @@ fn get_ticks_internal(
     time_format: &TimeFormat,
     density: f32,
     num_timestamps: &BigInt,
-) -> Vec<(String, f32)> {
+) -> Vec<(String, f32, i64)> {
     let char_width = text_size * (20. / 31.);
     let rightexp = viewport
         .curr_right
@@ -911,7 +961,7 @@ fn get_ticks_internal(
         .floor(),
     );
 
-    let mut ticks: Vec<(String, f32)> = [].to_vec();
+    let mut ticks: Vec<(String, f32, i64)> = [].to_vec();
     for step in &TICK_STEPS {
         let scaled_step = scale * step;
         let rounded_min_label_time =
@@ -934,9 +984,11 @@ fn get_ticks_internal(
                         time_formatter.format(&tick),
                         // X position
                         viewport.pixel_from_time(&tick, frame_width, num_timestamps),
+                        // Absolute time
+                        tick.to_i64().unwrap_or_default(),
                     )
                 })
-                .collect::<Vec<(String, f32)>>();
+                .collect::<Vec<(String, f32, i64)>>();
             break;
         }
     }
@@ -1728,7 +1780,7 @@ mod get_ticks_tests {
         // Check monotonic x positions and collect labels for uniqueness check
         let mut last_x = -1.0_f32;
         let mut labels: Vec<String> = Vec::with_capacity(ticks.len());
-        for (label, x) in &ticks {
+        for (label, x, _) in &ticks {
             assert!(
                 *x >= last_x,
                 "tick x not monotonic: {x} < {last_x} for label {label}"
@@ -1792,7 +1844,7 @@ mod get_ticks_tests {
         // monotonic x positions and unique labels
         let mut last_x = -1.0_f32;
         let mut labels: Vec<String> = Vec::with_capacity(ticks.len());
-        for (label, x) in &ticks {
+        for (label, x, _) in &ticks {
             assert!(
                 *x >= last_x,
                 "tick x not monotonic: {x} < {last_x} for label {label}"

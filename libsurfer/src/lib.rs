@@ -222,7 +222,7 @@ enum CachedDrawData {
 struct CachedWaveDrawData {
     pub draw_commands: HashMap<DisplayedFieldRef, drawing_canvas::DrawingCommands>,
     pub clock_edges: Vec<f32>,
-    pub ticks: Vec<(String, f32)>,
+    pub ticks: Vec<(String, f32, i64)>,
 }
 
 struct CachedTransactionDrawData {
@@ -2190,6 +2190,9 @@ impl SystemState {
                         0.0
                     };
                 });
+            }
+            Message::ShowDividerText(show) => {
+                self.user.config.show_divider_text = show;
             }
             Message::AsyncDone(_) => (),
             Message::AddGraphic(id, g) => {

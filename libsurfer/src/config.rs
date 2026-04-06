@@ -154,6 +154,8 @@ pub struct SurferConfig {
     /// Keyboard shortcuts
     #[serde(deserialize_with = "deserialize_shortcuts")]
     pub shortcuts: SurferShortcuts,
+    /// Show the text label of dividers inline with the waveforms
+    pub show_divider_text: bool,
 }
 
 impl SurferConfig {
@@ -175,6 +177,11 @@ impl SurferConfig {
     #[must_use]
     pub fn animation_enabled(&self) -> bool {
         self.animation_enabled
+    }
+
+    #[must_use]
+    pub fn show_divider_text(&self) -> bool {
+        self.show_divider_text
     }
 }
 

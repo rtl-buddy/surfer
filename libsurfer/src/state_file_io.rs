@@ -117,6 +117,13 @@ impl SystemState {
             let ext = "ron";
             #[cfg(not(target_os = "macos"))]
             let ext = STATE_FILE_EXTENSION;
+            let initial_directory = self
+                .user
+                .waves
+                .as_ref()
+                .and_then(|waves| waves.source.as_file())
+                .and_then(|path| path.parent())
+                .map(|parent| parent.to_path_buf().into_std_path_buf());
 
             self.file_dialog_save(
                 "Save state",
@@ -124,6 +131,7 @@ impl SystemState {
                     format!("Surfer state files (*.{STATE_FILE_EXTENSION})"),
                     vec![ext.to_string()],
                 ),
+                initial_directory,
                 messages,
             );
         }
@@ -151,6 +159,7 @@ impl SystemState {
                 format!("Surfer state files (*.{STATE_FILE_EXTENSION})"),
                 vec![STATE_FILE_EXTENSION.to_string()],
             ),
+            None,
             messages,
         );
     }

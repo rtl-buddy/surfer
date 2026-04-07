@@ -487,7 +487,7 @@ pub(crate) fn time_string(
 /// Parse a time string and extract numeric value and unit (if present).
 ///
 /// Parses strings like "100", "100ps", "100 ps", "1.5ms", etc.
-/// Returns (numeric_value_str, optional_unit)
+/// Returns (`numeric_value_str`, `optional_unit`)
 fn parse_time_input(input: &str) -> (String, Option<TimeUnit>) {
     let sorted_units =
         // Must be sorted by descending length to ensure correct matching (e.g., "ms" before "s")
@@ -559,7 +559,7 @@ fn split_numeric_parts(numeric_str: &str) -> Result<(String, String), String> {
     Ok((integer, fractional_part.to_string()))
 }
 
-/// Convert a numeric string into an integer BigInt and normalized TimeUnit.
+/// Convert a numeric string into an integer `BigInt` and normalized `TimeUnit`.
 ///
 /// Decimal inputs are scaled by selecting a smaller unit so the numeric part is an integer.
 /// Example: "1.5" with unit ns -> 1500 ps.

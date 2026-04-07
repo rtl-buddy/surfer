@@ -178,18 +178,18 @@ impl MappingTranslatorMap {
     }
 }
 
-/// Parse a file and return a MappingTranslatorMap.
+/// Parse a file and return a `MappingTranslatorMap`.
 fn parse_file<P: AsRef<Utf8Path>>(path: P) -> Result<MappingTranslatorMap, MappingParseError> {
     let utf = path.as_ref();
     let content = fs::read_to_string(utf.as_std_path())?;
 
     // Extract filename (without extension) for default name
-    let default_name = utf.file_stem().map(|s| s.to_string());
+    let default_name = utf.file_stem().map(std::string::ToString::to_string);
 
     parse_content_with_default_name(&content, default_name)
 }
 
-/// Parse content of file and return a MappingTranslatorMap, falling back to default_name if no name is found in the file.
+/// Parse content of file and return a `MappingTranslatorMap`, falling back to `default_name` if no name is found in the file.
 fn parse_content_with_default_name(
     content: &str,
     default_name: Option<String>,

@@ -84,7 +84,7 @@ pub enum AnalogDrawingCommands {
         /// Global min/max across entire signal (used for global Y-axis scaling)
         global_min: f64,
         global_max: f64,
-        /// Type limits min/max from the translator (used for TypeLimits Y-axis scaling)
+        /// Type limits min/max from the translator (used for `TypeLimits` Y-axis scaling)
         type_limits: Option<NumericRange>,
         /// Per-pixel drawing commands with flat spans and ranges
         values: Vec<AnalogDrawingCommand>,
@@ -1095,7 +1095,9 @@ impl SystemState {
 
                     waves.draw_divider_text(
                         Some(text_color),
-                        displayed_item.map(|item| item.name()).unwrap_or_default(),
+                        displayed_item
+                            .map(super::displayed_item::DisplayedItem::name)
+                            .unwrap_or_default(),
                         ticks,
                         ctx,
                         y_offset,

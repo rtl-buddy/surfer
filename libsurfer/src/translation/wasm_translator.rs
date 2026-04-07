@@ -274,7 +274,7 @@ host_fn!(translators_config_dir() -> extism_convert::Json(Option<String>) {
         .and_then(|dir| {
             dir.to_str().ok_or_else(|| {
                 anyhow!("{} is not valid utf8", dir.to_string_lossy())
-            }).map(|s| s.to_string()).ok()
+            }).map(std::string::ToString::to_string).ok()
         })))
 });
 

@@ -642,7 +642,7 @@ fn scale_to_u8(value: u16, bits: usize) -> u8 {
         return 0;
     }
     let max_in = (1u16 << bits) - 1;
-    (((value as u32) * 255) / (max_in as u32)) as u8
+    ((u32::from(value) * 255) / u32::from(max_in)) as u8
 }
 
 #[cfg(test)]

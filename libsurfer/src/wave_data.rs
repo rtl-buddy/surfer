@@ -367,7 +367,7 @@ impl WaveData {
                     assert!(
                         removed.len() <= 1,
                         "more elements removed then should be possible"
-                    )
+                    );
                 }
 
                 new
@@ -800,6 +800,7 @@ impl WaveData {
     }
 
     #[inline]
+    #[must_use]
     pub fn numbered_marker_location(&self, idx: u8, viewport: &Viewport, view_width: f32) -> f32 {
         viewport.pixel_from_time(
             self.numbered_marker_time(idx),

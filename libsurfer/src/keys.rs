@@ -196,7 +196,7 @@ impl SystemState {
 fn handle_digit(digit: u8, modifiers: &Modifiers, msgs: &mut Vec<Message>) {
     if modifiers.alt {
         // Convert 0..9 to '0'..'9' safely and clearly
-        if let Some(c) = std::char::from_digit(digit as u32, 10) {
+        if let Some(c) = std::char::from_digit(u32::from(digit), 10) {
             msgs.push(Message::AddCount(c));
         }
     } else if modifiers.command {

@@ -839,7 +839,7 @@ impl SystemState {
         {
             // Get background color
             let background_color =
-                self.get_background_color(waves, drawing_info.vidx(), item_count);
+                self.get_background_color(waves, drawing_info.vidx(), item_count, false);
 
             self.draw_background(drawing_info, y_zero, &ctx, gap, background_color);
         }
@@ -1039,6 +1039,7 @@ impl SystemState {
                                             waves,
                                             drawing_info.vidx(),
                                             item_count,
+                                            false,
                                         );
 
                                         let text_color = self
@@ -1088,6 +1089,7 @@ impl SystemState {
                                 waves,
                                 drawing_info.vidx(),
                                 item_count,
+                                false,
                             )),
                     );
                     waves.draw_ticks(text_color, ticks, ctx, y_offset, Align2::CENTER_TOP);
@@ -1254,6 +1256,7 @@ impl SystemState {
                                 waves,
                                 drawing_info.vidx(),
                                 item_count,
+                                false,
                             )),
                     );
                     waves.draw_ticks(text_color, &ticks, ctx, y_offset, Align2::CENTER_TOP);

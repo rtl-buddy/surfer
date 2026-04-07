@@ -720,11 +720,20 @@ impl SystemState {
                 let gap = ui.spacing().item_spacing.y * 0.5;
 
                 for (item_count, drawing_info) in waves.drawing_infos.iter().enumerate() {
-                    let background_color =
-                        self.get_background_color(waves, drawing_info.vidx(), item_count);
                     let min = Pos2::new(background_rect.left(), drawing_info.top() - gap);
                     let max = Pos2::new(background_rect.right(), drawing_info.bottom() + gap);
-                    painter.rect_filled(Rect { min, max }, CornerRadius::ZERO, background_color);
+                    let row_rect = Rect { min, max };
+
+                    let is_hovered = ui.rect_contains_pointer(row_rect);
+
+                    let background_color = self.get_background_color(
+                        waves,
+                        drawing_info.vidx(),
+                        item_count,
+                        is_hovered,
+                    );
+
+                    painter.rect_filled(row_rect, CornerRadius::ZERO, background_color);
                 }
             }
 
@@ -759,7 +768,10 @@ impl SystemState {
                     };
 
                     // Calculate background color for this item
-                    let background_color = self.get_background_color(waves, vidx, item_count);
+
+                    let is_hovered = false;
+                    let background_color =
+                        self.get_background_color(waves, vidx, item_count, is_hovered);
 
                     ui.with_layout(
                         if alignment == Align::LEFT {
@@ -1174,24 +1186,25 @@ impl SystemState {
         meta: Option<&VariableMeta>,
         background_color: Color32,
     ) -> egui::Response {
-        let color_pair = {
-            if self.item_is_focused(vidx) {
-                &self.user.config.theme.accent_info
-            } else if self.item_is_selected(displayed_id) {
-                &self.user.config.theme.selected_elements_colors
-            } else if matches!(
-                displayed_item,
-                DisplayedItem::Variable(_) | DisplayedItem::Placeholder(_)
-            ) {
-                &ThemeColorPair {
-                    background: background_color,
-                    foreground: self.user.config.theme.get_best_text_color(background_color),
-                }
-            } else {
-                &ThemeColorPair {
-                    background: self.user.config.theme.primary_ui_color.background,
-                    foreground: self.get_item_text_color(displayed_item),
-                }
+        let is_focused = self.item_is_focused(vidx);
+        let is_selected = self.item_is_selected(displayed_id);
+
+        let color_pair = if is_focused {
+            self.user.config.theme.accent_info.clone()
+        } else if is_selected {
+            self.user.config.theme.selected_elements_colors.clone()
+        } else if matches!(
+            displayed_item,
+            DisplayedItem::Variable(_) | DisplayedItem::Placeholder(_)
+        ) {
+            ThemeColorPair {
+                background: background_color,
+                foreground: self.user.config.theme.get_best_text_color(background_color),
+            }
+        } else {
+            ThemeColorPair {
+                background: self.user.config.theme.primary_ui_color.background,
+                foreground: self.get_item_text_color(displayed_item),
             }
         };
         {
@@ -1260,7 +1273,6 @@ impl SystemState {
                 &self.user.config,
             ),
         }
-
         let item_label = ui
             .selectable_label(
                 self.item_is_selected(displayed_id) || self.item_is_focused(vidx),
@@ -1503,7 +1515,7 @@ impl SystemState {
                 }
 
                 let backgroundcolor =
-                    self.get_background_color(waves, drawing_info.vidx(), item_count);
+                    self.get_background_color(waves, drawing_info.vidx(), item_count, false);
                 self.draw_background(drawing_info, y_zero, &ctx, gap, backgroundcolor);
                 match drawing_info {
                     ItemDrawingInfo::Variable(drawing_info) => {
@@ -1727,6 +1739,7 @@ impl SystemState {
         waves: &WaveData,
         vidx: VisibleItemIndex,
         item_count: usize,
+        is_hovered: bool,
     ) -> Color32 {
         if let Some(focused) = waves.focused_item
             && self.highlight_focused()
@@ -1734,6 +1747,29 @@ impl SystemState {
         {
             return self.user.config.theme.highlight_background;
         }
+
+        let is_selected = waves
+            .items_tree
+            .get_visible(vidx)
+            .is_some_and(|visible| visible.selected);
+
+        if is_selected && is_hovered {
+            return self
+                .user
+                .config
+                .theme
+                .active_hovered_elements_colors()
+                .background;
+        }
+
+        if is_selected {
+            return self.user.config.theme.selected_elements_colors.background;
+        }
+
+        if is_hovered {
+            return self.user.config.theme.hovered_elements_colors().background;
+        }
+
         waves
             .items_tree
             .get_visible(vidx)

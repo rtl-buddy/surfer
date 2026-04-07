@@ -453,6 +453,8 @@ pub struct SurferTheme {
     pub secondary_ui_color: ThemeColorPair,
     /// Color used for selected ui elements such as the currently selected hierarchy
     pub selected_elements_colors: ThemeColorPair,
+    pub hovered_elements_colors: Option<ThemeColorPair>,
+    pub active_hovered_elements_colors: Option<ThemeColorPair>,
 
     pub accent_info: ThemeColorPair,
     pub accent_warn: ThemeColorPair,
@@ -906,7 +908,35 @@ impl SurferTheme {
             self.alt_text_color
         }
     }
+    fn adjust_color(color: Color32, delta: i16) -> Color32 {
+        let r = (color.r() as i16 + delta).clamp(0, 255) as u8;
+        let g = (color.g() as i16 + delta).clamp(0, 255) as u8;
+        let b = (color.b() as i16 + delta).clamp(0, 255) as u8;
+        Color32::from_rgba_unmultiplied(r, g, b, color.a())
+    }
 
+    fn derive_contrast_background(&self, base: Color32) -> Color32 {
+        let base_luma = get_luminance(base);
+
+        let candidate_1 = Self::adjust_color(base, 28);
+        let candidate_2 = Self::adjust_color(base, -28);
+
+        let c1 = {
+            let l1 = get_luminance(candidate_1);
+            let mut ratio = (l1 + 0.05) / (base_luma + 0.05);
+            ratio = ratio.max(1.0 / ratio);
+            ratio
+        };
+
+        let c2 = {
+            let l2 = get_luminance(candidate_2);
+            let mut ratio = (l2 + 0.05) / (base_luma + 0.05);
+            ratio = ratio.max(1.0 / ratio);
+            ratio
+        };
+
+        if c1 >= c2 { candidate_1 } else { candidate_2 }
+    }
     fn generate_defaults(
         theme_name: Option<&String>,
     ) -> (ConfigBuilder<DefaultState>, Vec<String>) {
@@ -930,7 +960,26 @@ impl SurferTheme {
         ));
         (theme, theme_names)
     }
-
+    pub fn hovered_elements_colors(&self) -> ThemeColorPair {
+        self.hovered_elements_colors.clone().unwrap_or_else(|| {
+            let bg = self.derive_contrast_background(self.secondary_ui_color.background);
+            ThemeColorPair {
+                background: bg,
+                foreground: self.get_best_text_color(bg),
+            }
+        })
+    }
+    pub fn active_hovered_elements_colors(&self) -> ThemeColorPair {
+        self.active_hovered_elements_colors
+            .clone()
+            .unwrap_or_else(|| {
+                let bg = self.derive_contrast_background(self.selected_elements_colors.background);
+                ThemeColorPair {
+                    background: bg,
+                    foreground: self.get_best_text_color(bg),
+                }
+            })
+    }
     #[cfg(target_arch = "wasm32")]
     pub fn new(theme_name: Option<String>) -> Result<Self> {
         let (theme, _) = Self::generate_defaults(theme_name.as_ref());
@@ -1015,7 +1064,7 @@ impl SurferTheme {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ThemeColorPair {
     #[serde(deserialize_with = "deserialize_hex_color")]
     pub foreground: Color32,

@@ -35,6 +35,31 @@ struct ButtonBuilder {
     enabled: bool,
 }
 
+fn surfer_menu_style(style: &mut egui::Style) {
+    // Keep compact menu spacing.
+    style.spacing.button_padding = egui::vec2(2.0, 0.0);
+
+    // Keep inactive menu items subtle.
+    style.visuals.widgets.inactive.weak_bg_fill = egui::Color32::TRANSPARENT;
+    style.visuals.widgets.inactive.bg_stroke = epaint::Stroke::NONE;
+
+    // Preserve visible borders for menu interaction states.
+    if style.visuals.widgets.hovered.bg_stroke == epaint::Stroke::NONE {
+        style.visuals.widgets.hovered.bg_stroke =
+            epaint::Stroke::new(2.0, style.visuals.widgets.hovered.fg_stroke.color);
+    }
+
+    if style.visuals.widgets.active.bg_stroke == epaint::Stroke::NONE {
+        style.visuals.widgets.active.bg_stroke =
+            epaint::Stroke::new(2.0, style.visuals.widgets.active.fg_stroke.color);
+    }
+
+    if style.visuals.widgets.open.bg_stroke == epaint::Stroke::NONE {
+        style.visuals.widgets.open.bg_stroke =
+            epaint::Stroke::new(2.0, style.visuals.widgets.open.fg_stroke.color);
+    }
+}
+
 impl ButtonBuilder {
     fn new(text: impl Into<String>, message: Message) -> Self {
         Self {
@@ -76,9 +101,12 @@ impl ButtonBuilder {
 impl SystemState {
     pub fn add_menu_panel(&self, ui: &mut Ui, msgs: &mut Vec<Message>) {
         Panel::top("menu").show_inside(ui, |ui| {
-            egui::MenuBar::new().ui(ui, |ui| {
-                self.menu_contents(ui, msgs);
-            });
+            egui::MenuBar::new()
+                .style(surfer_menu_style)
+                .config(MenuConfig::new().style(surfer_menu_style))
+                .ui(ui, |ui| {
+                    self.menu_contents(ui, msgs);
+                });
         });
     }
 
@@ -643,7 +671,9 @@ impl SystemState {
 
                 SubMenuButton::new("Analog")
                     .config(
-                        MenuConfig::new().close_behavior(PopupCloseBehavior::CloseOnClickOutside),
+                        MenuConfig::new()
+                            .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
+                            .style(surfer_menu_style),
                     )
                     .ui(ui, |ui| {
                         Self::analog_submenu(

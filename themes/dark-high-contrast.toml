@@ -6,6 +6,7 @@
 foreground = "ffffff" # fg-main
 border_color = "646464" # border
 selected_elements_colors = { background = "535353", foreground = "ffffff" } # bg-active, fg-main
+active_hovered_elements_colors = { background = "646464", foreground = "ffffff" }
 canvas_colors = { background = "000000", alt_background = "303030", foreground = "ffffff" } # bg-main, bg-inactive, fg-main
 primary_ui_color = { background = "303030", foreground = "ffffff" } # bg-inactive, fg-main
 secondary_ui_color = { background = "1e1e1e", foreground = "ffffff" } # bg-dim, fg-main

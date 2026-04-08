@@ -235,28 +235,16 @@ pub struct SurferLayout {
     pub zoom_factors: Vec<f32>,
     /// Default UI zoom factor
     default_zoom_factor: f32,
-    #[serde(default)]
     /// Highlight the waveform of the focused item?
     highlight_focused: bool,
     /// Move the focus to the newly inserted marker?
     move_focus_on_inserted_marker: bool,
     /// Fill high values in boolean waveforms
-    #[serde(default = "default_true")]
     fill_high_values: bool,
     /// Dinotrace drawing style (thick upper line for all-ones, no upper line for all-zeros)
-    #[serde(default)]
     use_dinotrace_style: bool,
     /// Value to display when cursor is on a transition
-    #[serde(default = "default_next")]
     transition_value: TransitionValue,
-}
-
-fn default_true() -> bool {
-    true
-}
-
-fn default_next() -> TransitionValue {
-    TransitionValue::Next
 }
 
 impl SurferLayout {
@@ -512,10 +500,9 @@ pub struct SurferTheme {
     /// opaque.
     pub waveform_opacity: f32,
     /// Opacity of variable backgrounds for wide signals (signals with more than one bit)
-    #[serde(default)]
     pub wide_opacity: f32,
 
-    #[serde(default = "default_colors", deserialize_with = "deserialize_color_map")]
+    #[serde(deserialize_with = "deserialize_color_map")]
     pub colors: HashMap<String, Color32>,
     #[serde(deserialize_with = "deserialize_hex_color")]
     pub highlight_background: Color32,
@@ -546,7 +533,6 @@ pub struct SurferTheme {
     pub ticks: SurferTicks,
 
     /// List of theme names
-    #[serde(default = "Vec::new")]
     pub theme_names: Vec<String>,
 
     /// Icons for scope types in the hierarchy view
@@ -1046,26 +1032,6 @@ pub struct WcpConfig {
     pub autostart: bool,
     /// Address to bind to (address:port)
     pub address: String,
-}
-
-fn default_colors() -> HashMap<String, Color32> {
-    [
-        ("Green", "a7e47e"),
-        ("Red", "c52e2e"),
-        ("Yellow", "f3d54a"),
-        ("Blue", "81a2be"),
-        ("Purple", "b294bb"),
-        ("Aqua", "8abeb7"),
-        ("Gray", "c5c8c6"),
-    ]
-    .iter()
-    .map(|(name, hexcode)| {
-        (
-            (*name).to_string(),
-            hex_string_to_color32((*hexcode).to_string()).unwrap(),
-        )
-    })
-    .collect()
 }
 
 impl SurferConfig {

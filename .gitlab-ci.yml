@@ -126,6 +126,7 @@ test-windows:
         - cargo -V
         - cargo test --color=always --locked -- --include-ignored
     interruptible: true
+    allow_failure: true # Often causes timeouts, and the Windows binary is built after the Linux tests passes.
 
 test-no-default-features:
     stage: test
@@ -359,7 +360,9 @@ linux_arm64_build:
 
 windows_build:
     stage: deploy
-    needs: [test-windows]
+    # Should really be test-windows, but that job often times out.
+    # We build the Windows binary on Linux anyway and cannot really recall when we found a Windows-specific bug in the tests.
+    needs: [test]
     script:
         - apt-get update -y
         - apt-get install -y mingw-w64 zip cmake

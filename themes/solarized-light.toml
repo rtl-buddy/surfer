@@ -1,0 +1,75 @@
+
+# Surfer solarized light
+# Colors from here https://github.com/microsoft/vscode/blob/main/extensions/theme-solarized-light/themes/solarized-light-color-theme.json
+# AI slop w/ human tweaks
+
+foreground = "586e75"
+alt_text_color = "6b7f86"
+border_color = "eee8d5"
+
+selected_elements_colors = { 
+  background = "eee8d5", 
+  alt_background = "e6dfc8",
+  foreground = "586e75" 
+}
+
+canvas_colors = { 
+  background = "fdf6e3", 
+  alt_background = "eee8d5",
+  foreground = "4a5f66" 
+}
+
+primary_ui_color = { 
+  background = "eee8d5", 
+  foreground = "4a5f66" 
+}
+
+secondary_ui_color = { 
+  background = "f5efdc", 
+  foreground = "4a5f66" 
+}
+
+accent_info = { background = "e0f2f1", foreground = "2aa198" }
+accent_warn = { background = "fdf6d9", foreground = "b58900" }
+accent_error = { background = "fdecea", foreground = "dc322f" }
+
+variable_default = "4f6f1f"      # darker green
+variable_undef = "a02c2c"        # deeper red
+variable_highimp = "1f5f8b"      # deeper blue
+
+variable_dontcare = "7b8b8f"
+variable_weak = "9a7d00"
+variable_parameter = "1f8a87"
+variable_event = "1c6fa3"
+
+transaction_default = "1c6fa3"
+
+waveform_opacity = 0.35
+wide_opacity = 0.0
+
+cursor = { color = "d30102", width = 2 }
+
+linewidth = 2
+thick_linewidth = 4
+
+highlight_background = "eee8d5"
+
+viewport_separator = { color = "e6dfc8", width = 3 }
+
+drag_hint_color = "6b7f86"
+drag_hint_width = 2.0
+
+[colors]
+Green = "586e75"
+Red = "cb4b16"
+Yellow = "a57700"
+Blue = "1f5f8b"
+Magenta = "b03060"
+Cyan = "1f8a87"
+Orange = "a14b1f"
+Violet = "5a5cad"
+Gray = "6b7f86"
+
+[ticks]
+style = { color = "e6dfc8", width = 1 }
+density = 1

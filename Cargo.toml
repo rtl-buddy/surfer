@@ -76,7 +76,7 @@ instruction-decoder = { path = "instruction-decoder" }
 itertools = "0.14.0"
 leb128 = "0.2.5"
 local-impl = "0.1.2"
-lz4_flex = "0.12"
+lz4_flex = "0.13"
 notify = "8.0"
 num = { version = "0.4", features = ["serde"] }
 numeric-sort = "0.1.4"
@@ -113,7 +113,7 @@ wasm-bindgen-futures = "0.4.67"
 wasm-tracing = "2.1"
 web-sys = { version = "= 0.3.94", features = ["Location", "UrlSearchParams"] }
 web-time = "1.1.0"
-wellen = { version = "0.20.3", features = ["serde1"] }
+wellen = { version = "0.20.4", features = ["serde1"] }
 whoami = "2"
 
 [profile.release]

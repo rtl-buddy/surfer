@@ -1347,7 +1347,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.2",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1768,7 +1768,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2116,12 +2116,12 @@ dependencies = [
 
 [[package]]
 name = "fst-reader"
-version = "0.15.0"
+version = "0.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac147a69de9e58c89a19243c8d128ef54e991f01d1d898ffdf7f9aa1cfd03f06"
+checksum = "64ac66f301e1e6131f969e7d73802ad78ac4389568c324b63066b4daded25760"
 dependencies = [
  "lz4_flex 0.12.1",
- "miniz_oxide 0.9.0",
+ "miniz_oxide 0.9.1",
  "num_enum",
  "thiserror 2.0.17",
 ]
@@ -3047,7 +3047,7 @@ dependencies = [
  "itertools 0.14.0",
  "leb128",
  "local-impl",
- "lz4_flex 0.12.1",
+ "lz4_flex 0.13.0",
  "notify",
  "num",
  "numeric-sort",
@@ -3165,6 +3165,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lz4_flex"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db9a0d582c2874f68138a16ce1867e0ffde6c0bb0a0df85e1f36d04146db488a"
+dependencies = [
+ "twox-hash",
+]
+
+[[package]]
 name = "mach2"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3228,9 +3237,9 @@ dependencies = [
 
 [[package]]
 name = "memmap2"
-version = "0.9.9"
+version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "744133e4a0e0a658e1374cf3bf8e415c4052a15a111acd372764c55b4177d490"
+checksum = "714098028fe011992e1c3962653c96b2d578c4b4bce9036e15ff220319b1e0e3"
 dependencies = [
  "libc",
 ]
@@ -3268,9 +3277,9 @@ dependencies = [
 
 [[package]]
 name = "miniz_oxide"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5faa9f23e86bd5768d76def086192ff5f869fb088da12a976ea21e9796b975f6"
+checksum = "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c"
 dependencies = [
  "adler2",
  "serde",
@@ -3399,7 +3408,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4713,7 +4722,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4780,7 +4789,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5205,7 +5214,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "leb128",
- "lz4_flex 0.12.1",
+ "lz4_flex 0.13.0",
  "reqwest",
  "serde",
  "serde_json",
@@ -5323,7 +5332,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6578,16 +6587,16 @@ checksum = "a751b3277700db47d3e574514de2eced5e54dc8a5436a3bf7a0b248b2cee16f3"
 
 [[package]]
 name = "wellen"
-version = "0.20.3"
+version = "0.20.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebe1aec2a6b9e22bc5fa634168edcab70c8104dfeb3d4f24e9ff220d382eb54d"
+checksum = "df9eb5a8055184f9bd23764e9709bc8af69f170d48010940ef73d9118c955f62"
 dependencies = [
  "fst-reader",
  "indexmap",
  "leb128",
- "lz4_flex 0.12.1",
+ "lz4_flex 0.13.0",
  "memmap2",
- "miniz_oxide 0.9.0",
+ "miniz_oxide 0.9.1",
  "num_enum",
  "rayon",
  "rustc-hash 2.1.1",
@@ -6784,7 +6793,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

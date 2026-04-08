@@ -47,6 +47,7 @@ pub struct SurverFileInfo {
 }
 
 impl SurverFileInfo {
+    #[must_use]
     pub fn modification_time_string(&self) -> String {
         modification_time_string(self.last_modification_time)
     }

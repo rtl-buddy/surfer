@@ -639,7 +639,7 @@ impl Default for ScopeIconColors {
 }
 
 /// Icons for different scope types in the hierarchy view.
-/// Each field maps to a wellen::ScopeType and contains a Remix icon string.
+/// Each field maps to a `wellen::ScopeType` and contains a Remix icon string.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
 pub struct ScopeIcons {
@@ -1151,6 +1151,7 @@ where
 /// are found, they will be returned in a `Vec<PathBuf>` in a pre-order of most top-level to most
 /// local. All plain files are ignored.
 #[cfg(not(target_arch = "wasm32"))]
+#[must_use]
 pub fn find_local_configs() -> Vec<PathBuf> {
     use crate::util::search_upward;
     match std::env::current_dir() {

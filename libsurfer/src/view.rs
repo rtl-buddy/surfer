@@ -1330,7 +1330,7 @@ impl SystemState {
                         msgs.push(Message::Batch(vec![
                             Message::SetItemSelected(vidx, false),
                             Message::UnfocusItem,
-                        ]))
+                        ]));
                     }
                 }
             }

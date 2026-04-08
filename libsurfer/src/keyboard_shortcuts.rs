@@ -126,6 +126,7 @@ where
 }
 
 impl SurferShortcuts {
+    #[must_use]
     pub fn format_shortcut(&self, action: ShortcutAction) -> String {
         #[cfg(any(not(target_os = "macos"), test))]
         let is_mac = false;
@@ -505,7 +506,7 @@ mod keyboard_shortcuts_serde {
     use egui::Key;
     use serde::{Deserializer, Serializer};
 
-    use super::*;
+    use super::{Deserialize, KeyboardShortcut, Modifiers, Result, Serialize};
 
     pub fn serialize<S>(shortcuts: &[KeyboardShortcut], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -561,7 +562,7 @@ mod keyboard_shortcuts_serde {
             ("cmd", Modifiers::COMMAND),
         ];
 
-        let parts: Vec<&str> = binding.split('+').map(|s| s.trim()).collect();
+        let parts: Vec<&str> = binding.split('+').map(str::trim).collect();
 
         // Use slice pattern to extract key and modifiers
         let (modifier_parts, key_str) = match parts.as_slice() {

@@ -470,43 +470,65 @@ impl SystemState {
     }
 
     pub fn get_visuals(&self) -> Visuals {
-        let widget_style = WidgetVisuals {
-            bg_fill: self.user.config.theme.secondary_ui_color.background,
-            fg_stroke: Stroke {
-                color: self.user.config.theme.secondary_ui_color.foreground,
-                width: 1.0,
-            },
-            weak_bg_fill: self.user.config.theme.secondary_ui_color.background,
-            bg_stroke: Stroke {
-                color: self.user.config.theme.border_color,
-                width: 1.0,
-            },
+        let theme = &self.user.config.theme;
+        let active_hover = theme.active_hovered_elements_colors();
+
+        let inactive = WidgetVisuals {
+            bg_fill: theme.secondary_ui_color.background,
+            weak_bg_fill: theme.secondary_ui_color.background,
+            fg_stroke: Stroke::new(1.0, theme.secondary_ui_color.foreground),
+            bg_stroke: Stroke::new(1.0, theme.border_color),
             corner_radius: CornerRadius::same(2),
             expansion: 0.0,
         };
 
+        let hovered_colors = theme.hovered_elements_colors();
+        let hovered_border = theme.get_best_text_color(hovered_colors.background);
+        let active_border = theme.get_best_text_color(theme.selected_elements_colors.background);
+        let open_border = theme.get_best_text_color(active_hover.background);
+
+        let hovered = WidgetVisuals {
+            bg_fill: hovered_colors.background,
+            weak_bg_fill: hovered_colors.background,
+            fg_stroke: Stroke::new(1.0, hovered_colors.foreground),
+            bg_stroke: Stroke::new(2.0, hovered_border),
+            corner_radius: CornerRadius::same(4),
+            expansion: 1.0,
+        };
+
+        let active = WidgetVisuals {
+            bg_fill: theme.selected_elements_colors.background,
+            weak_bg_fill: theme.selected_elements_colors.background,
+            fg_stroke: Stroke::new(1.0, theme.selected_elements_colors.foreground),
+            bg_stroke: Stroke::new(2.0, active_border),
+            corner_radius: CornerRadius::same(4),
+            expansion: 1.0,
+        };
+
+        let open = WidgetVisuals {
+            bg_fill: active_hover.background,
+            weak_bg_fill: active_hover.background,
+            fg_stroke: Stroke::new(1.0, active_hover.foreground),
+            bg_stroke: Stroke::new(2.0, open_border),
+            corner_radius: CornerRadius::same(4),
+            expansion: 1.0,
+        };
         Visuals {
-            override_text_color: Some(self.user.config.theme.foreground),
-            extreme_bg_color: self.user.config.theme.secondary_ui_color.background,
-            panel_fill: self.user.config.theme.secondary_ui_color.background,
-            window_fill: self.user.config.theme.primary_ui_color.background,
-            window_stroke: Stroke {
-                width: 1.0,
-                color: self.user.config.theme.border_color,
-            },
+            override_text_color: Some(theme.foreground),
+            extreme_bg_color: theme.secondary_ui_color.background,
+            panel_fill: theme.secondary_ui_color.background,
+            window_fill: theme.primary_ui_color.background,
+            window_stroke: Stroke::new(1.0, theme.border_color),
             selection: Selection {
-                bg_fill: self.user.config.theme.selected_elements_colors.background,
-                stroke: Stroke {
-                    color: self.user.config.theme.selected_elements_colors.foreground,
-                    width: 1.0,
-                },
+                bg_fill: theme.selected_elements_colors.background,
+                stroke: Stroke::new(1.0, theme.selected_elements_colors.foreground),
             },
             widgets: Widgets {
-                noninteractive: widget_style,
-                inactive: widget_style,
-                hovered: widget_style,
-                active: widget_style,
-                open: widget_style,
+                noninteractive: inactive,
+                inactive,
+                hovered,
+                active,
+                open,
             },
             ..Visuals::dark()
         }

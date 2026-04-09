@@ -4,6 +4,269 @@
     "Visualization"
   ],
   "contributes": {
+    "configuration": {
+      "properties": {
+        "surfer.animation.enabled": {
+          "default": true,
+          "description": "Enable UI animations.",
+          "type": "boolean"
+        },
+        "surfer.animation.time": {
+          "default": 0.12,
+          "description": "Animation duration in seconds.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "surfer.behavior.arrowKeyBindings": {
+          "default": "Edge",
+          "description": "Bind left/right arrow keys to stepping edges or scrolling view.",
+          "enum": [
+            "Edge",
+            "Scroll"
+          ],
+          "type": "string"
+        },
+        "surfer.behavior.keepDuringReload": {
+          "default": true,
+          "description": "Keep variables if unavailable during reload (otherwise remove).",
+          "type": "boolean"
+        },
+        "surfer.behavior.primaryButtonDragBehavior": {
+          "default": "Measure",
+          "description": "Primary mouse drag performs time measurement or cursor movement.",
+          "enum": [
+            "Measure",
+            "Cursor"
+          ],
+          "type": "string"
+        },
+        "surfer.gesture.backgroundGamma": {
+          "default": 0.6,
+          "description": "Background circle gamma between 0 (opaque) and 1 (transparent).",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "surfer.gesture.backgroundRadius": {
+          "default": 0.85,
+          "description": "Background circle radius as a factor of size/2.",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "surfer.gesture.deadzone": {
+          "default": 400,
+          "description": "Squared minimum distance to dismiss overlay and perform gesture.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "surfer.gesture.size": {
+          "default": 160,
+          "description": "Size of the gesture overlay (pixels).",
+          "minimum": 40,
+          "type": "number"
+        },
+        "surfer.layout.alignNamesRight": {
+          "default": false,
+          "description": "Align variable names to the right.",
+          "type": "boolean"
+        },
+        "surfer.layout.defaultZoomFactor": {
+          "default": 1.0,
+          "description": "Default UI zoom factor.",
+          "minimum": 0.5,
+          "type": "number"
+        },
+        "surfer.layout.fillHighValues": {
+          "default": true,
+          "description": "Fill high values in boolean waveforms.",
+          "type": "boolean"
+        },
+        "surfer.layout.hierarchyStyle": {
+          "default": "Separate",
+          "description": "Style of the hierarchy view.",
+          "enum": [
+            "Separate",
+            "Tree",
+            "Variables"
+          ],
+          "type": "string"
+        },
+        "surfer.layout.highlightFocused": {
+          "default": true,
+          "description": "Highlight the waveform of the focused item.",
+          "type": "boolean"
+        },
+        "surfer.layout.moveFocusOnInsertedMarker": {
+          "default": false,
+          "description": "Move focus to newly inserted marker.",
+          "type": "boolean"
+        },
+        "surfer.layout.parameterDisplayLocation": {
+          "default": "Top",
+          "description": "Where to display parameters in hierarchy.",
+          "enum": [
+            "Top",
+            "Bottom"
+          ],
+          "type": "string"
+        },
+        "surfer.layout.showDefaultTimeline": {
+          "default": true,
+          "description": "Show default timeline at top.",
+          "type": "boolean"
+        },
+        "surfer.layout.showEmptyScopes": {
+          "default": true,
+          "description": "Show empty scopes in hierarchy.",
+          "type": "boolean"
+        },
+        "surfer.layout.showHierarchy": {
+          "default": true,
+          "description": "Show the hierarchy view.",
+          "type": "boolean"
+        },
+        "surfer.layout.showMenu": {
+          "default": true,
+          "description": "Show the Surfer menu panel.",
+          "type": "boolean"
+        },
+        "surfer.layout.showOverview": {
+          "default": true,
+          "description": "Show the overview panel.",
+          "type": "boolean"
+        },
+        "surfer.layout.showScopeTooltip": {
+          "default": true,
+          "description": "Show tooltips for scopes.",
+          "type": "boolean"
+        },
+        "surfer.layout.showStatusbar": {
+          "default": true,
+          "description": "Show the status bar.",
+          "type": "boolean"
+        },
+        "surfer.layout.showTicks": {
+          "default": true,
+          "description": "Show tick lines in timeline.",
+          "type": "boolean"
+        },
+        "surfer.layout.showToolbar": {
+          "default": true,
+          "description": "Show the toolbar.",
+          "type": "boolean"
+        },
+        "surfer.layout.showTooltip": {
+          "default": true,
+          "description": "Show tooltips for variables.",
+          "type": "boolean"
+        },
+        "surfer.layout.showVariableDirection": {
+          "default": true,
+          "description": "Show variable direction icon.",
+          "type": "boolean"
+        },
+        "surfer.layout.showVariableIndices": {
+          "default": false,
+          "description": "Show variable indices in list.",
+          "type": "boolean"
+        },
+        "surfer.layout.transactionsLineHeight": {
+          "default": 18,
+          "description": "Line height for transaction streams (pt).",
+          "minimum": 8,
+          "type": "number"
+        },
+        "surfer.layout.useDinotraceStyle": {
+          "default": false,
+          "description": "Use Dinotrace drawing style.",
+          "type": "boolean"
+        },
+        "surfer.layout.waveformsLineHeight": {
+          "default": 18,
+          "description": "Line height for waves (pt).",
+          "minimum": 8,
+          "type": "number"
+        },
+        "surfer.layout.waveformsLineHeightMultiples": {
+          "default": [
+            1,
+            1.5,
+            2
+          ],
+          "description": "Line height multiples for higher variables.",
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "surfer.layout.waveformsTextSize": {
+          "default": 13,
+          "description": "Text size for values in waves (pt).",
+          "minimum": 6,
+          "type": "number"
+        },
+        "surfer.layout.windowHeight": {
+          "default": 800,
+          "description": "Initial window height (px).",
+          "minimum": 100,
+          "type": "number"
+        },
+        "surfer.layout.windowWidth": {
+          "default": 1200,
+          "description": "Initial window width (px).",
+          "minimum": 100,
+          "type": "number"
+        },
+        "surfer.layout.zoomFactors": {
+          "default": [
+            0.9,
+            1.0,
+            1.1
+          ],
+          "description": "Available UI zoom factors.",
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "surfer.maxUrlLength": {
+          "default": 4000,
+          "description": "Maximum URL length for remote connections. Increase if your proxy truncates long URLs.",
+          "minimum": 1024,
+          "type": "number"
+        },
+        "surfer.snapDistance": {
+          "default": 6,
+          "description": "Cursor snap distance in pixels.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "surfer.theme": {
+          "default": "dark+",
+          "description": "Select Surfer UI theme (matches built-in theme names).",
+          "enum": [
+            "dark+",
+            "dark-high-contrast",
+            "ibm",
+            "light+",
+            "light-high-contrast",
+            "okabe/ito",
+            "petroff-dark",
+            "petroff-light",
+            "solarized"
+          ],
+          "type": "string"
+        },
+        "surfer.undoStackSize": {
+          "default": 100,
+          "description": "Maximum size of the undo stack.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "title": "Surfer"
+    },
     "customEditors": [
       {
         "displayName": "Surfer Waveform Viewer",

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import { SurferConfigLike } from './configTemplate'
 
 class Wavefile implements vscode.CustomDocument {
   uri: vscode.Uri
@@ -11,8 +12,8 @@ class Wavefile implements vscode.CustomDocument {
 export class SurferWaveformViewerEditorProvider
   implements vscode.CustomReadonlyEditorProvider<Wavefile>
 {
-  public static register(context: vscode.ExtensionContext): vscode.Disposable {
-    const provider = new SurferWaveformViewerEditorProvider(context)
+  public static register(context: vscode.ExtensionContext, cfg?: SurferConfigLike): vscode.Disposable {
+    const provider = new SurferWaveformViewerEditorProvider(context, cfg)
     const providerRegistration = vscode.window.registerCustomEditorProvider(
       SurferWaveformViewerEditorProvider.viewType,
       provider,
@@ -27,7 +28,7 @@ export class SurferWaveformViewerEditorProvider
   }
   private static readonly viewType = 'surfer.waveformViewer'
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext, private readonly cfg?: SurferConfigLike) {}
   async openCustomDocument(
     uri: vscode.Uri,
     _openContext: vscode.CustomDocumentOpenContext,
@@ -61,6 +62,10 @@ export class SurferWaveformViewerEditorProvider
       switch (message.command) {
         case 'loaded': {
           console.log("Surfer got the loaded message from the web view")
+          // Send initial configuration followed by the URL to load
+          if (this.cfg) {
+            webviewPanel.webview.postMessage({ command: 'SetConfig', config: this.cfg })
+          }
           webviewPanel.webview.postMessage({command: "LoadUrl", url: documentUri})
           break;
         }

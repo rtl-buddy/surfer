@@ -1,5 +1,4 @@
 use std::future::Future;
-#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -61,6 +60,7 @@ impl SystemState {
         &mut self,
         title: &'static str,
         filter: (String, Vec<String>),
+        initial_directory: Option<PathBuf>,
         messages: F,
     ) where
         F: FnOnce(FileHandle) -> Fut + Send + 'static,
@@ -69,7 +69,13 @@ impl SystemState {
         let sender = self.channels.msg_sender.clone();
 
         perform_async_work(async move {
-            if let Some(file) = create_file_dialog(filter, title).save_file().await {
+            let mut dialog = create_file_dialog(filter, title);
+
+            if let Some(directory) = initial_directory {
+                dialog = dialog.set_directory(directory);
+            }
+
+            if let Some(file) = dialog.save_file().await {
                 checked_send_many(&sender, messages(file).await);
             }
         });
@@ -80,6 +86,7 @@ impl SystemState {
         &mut self,
         title: &'static str,
         filter: (String, Vec<String>),
+        _initial_directory: Option<std::path::PathBuf>,
         messages: F,
     ) where
         F: FnOnce(FileHandle) -> Fut + 'static,

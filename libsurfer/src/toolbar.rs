@@ -136,6 +136,7 @@ impl SystemState {
                 Message::OpenCommandFileDialog,
                 true,
             );
+            #[cfg(not(target_arch = "wasm32"))]
             add_toolbar_button(
                 ui,
                 msgs,

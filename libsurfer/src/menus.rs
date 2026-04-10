@@ -176,6 +176,8 @@ impl SystemState {
                     .add_closing_menu(msgs, ui);
             }
             #[cfg(not(target_arch = "wasm32"))]
+            b("Run VHDL simulation (NVC) and load waveform...", Message::SimulateButton).add_closing_menu(msgs, ui);
+            #[cfg(not(target_arch = "wasm32"))]
             b("Exit", Message::Exit).add_closing_menu(msgs, ui);
         });
         ui.menu_button("View", |ui: &mut Ui| {

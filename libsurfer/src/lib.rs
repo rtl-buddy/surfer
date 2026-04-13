@@ -1587,7 +1587,9 @@ impl SystemState {
                 }
                 #[cfg(target_arch = "wasm32")]
                 {
-                    error!("Ignoring selected VHDL file {path:?}: VHDL file selection by path is unsupported on wasm");
+                    error!(
+                        "Ignoring selected VHDL file {path:?}: VHDL file selection by path is unsupported on wasm"
+                    );
                 }
             }
             Message::SetUrlEntryVisible(s, f) => {
@@ -2118,7 +2120,7 @@ impl SystemState {
             Message::SimulateButton => {
                 self.show_simulate_window = true;
             }
-            
+
             Message::Exit | Message::ToggleFullscreen => {} // Handled in eframe::update
             Message::AddViewport => {
                 let waves = self.user.waves.as_mut()?;

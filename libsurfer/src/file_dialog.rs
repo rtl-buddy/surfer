@@ -174,10 +174,7 @@ impl SystemState {
             "Open VHDL file",
             (
                 "VHDL files (*.vhd, *.vhdl)".to_string(),
-                vec![
-                    "vhd".to_string(),
-                    "vhdl".to_string()
-                ],
+                vec!["vhd".to_string(), "vhdl".to_string()],
             ),
             message,
         );

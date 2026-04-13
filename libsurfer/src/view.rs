@@ -44,8 +44,8 @@ use crate::translation::TranslationResultExt;
 use crate::util::get_alpha_focus_id;
 use crate::wave_container::{FieldRef, FieldRefExt, VariableRef};
 use crate::{
-    Message, MoveDir, SystemState, command_prompt::show_command_prompt,
-    hierarchy::HierarchyStyle, wave_data::WaveData
+    Message, MoveDir, SystemState, command_prompt::show_command_prompt, hierarchy::HierarchyStyle,
+    wave_data::WaveData,
 };
 
 pub struct DrawingContext<'a> {

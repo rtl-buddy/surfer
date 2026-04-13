@@ -448,9 +448,8 @@ pub enum Message {
     //Take the imputed time
     GoToTimePrint(String),
 
-    //Finish simulation 
+    //Finish simulation
     TestFinishSim,
     TestPauseSim,
     TestReloadSim,
-
 }

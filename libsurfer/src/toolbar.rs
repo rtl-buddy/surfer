@@ -369,16 +369,20 @@ impl SystemState {
             );
             ui.separator();
             let mut time_input = ui.memory_mut(|m| {
-                m.data.get_temp::<String>(egui::Id::new("time_input"))
+                m.data
+                    .get_temp::<String>(egui::Id::new("time_input"))
                     .unwrap_or_default()
             });
 
-            ui.add(egui::TextEdit::singleline(&mut time_input)
-                .hint_text("Time")
-                .desired_width(30.0));
+            ui.add(
+                egui::TextEdit::singleline(&mut time_input)
+                    .hint_text("Time")
+                    .desired_width(30.0),
+            );
 
             ui.memory_mut(|m| {
-                m.data.insert_temp(egui::Id::new("time_input"), time_input.clone())
+                m.data
+                    .insert_temp(egui::Id::new("time_input"), time_input.clone())
             });
 
             add_toolbar_button(
@@ -413,7 +417,7 @@ impl SystemState {
                 "Reload simulation",
                 Message::TestReloadSim,
                 wave_loaded,
-            ); 
+            );
             self.simulation_status_toolbar(ui, msgs);
         });
     }

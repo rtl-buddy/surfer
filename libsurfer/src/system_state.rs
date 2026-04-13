@@ -77,7 +77,7 @@ pub struct SystemState {
     pub(crate) surver_load_options: RefCell<LoadOptions>,
 
     /// These items should be expanded into subfields in the next frame. Cleared after each
-    /// frame 
+    /// frame
     pub(crate) items_to_expand: RefCell<Vec<(DisplayedItemRef, usize)>>,
     /// Character to add to the command prompt if it is visible. This is only needed for
     /// presentations at them moment.
@@ -102,7 +102,7 @@ pub struct SystemState {
     // Only used for testing
     pub(crate) expand_parameter_section: bool,
 
-    // Shows menu for simulating with NVC plugin. 
+    // Shows menu for simulating with NVC plugin.
     pub(crate) show_simulate_window: bool,
 
     /// Selected VHDL file for the simulate with NVC window.

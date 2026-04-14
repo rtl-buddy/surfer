@@ -113,7 +113,7 @@ impl PluginTranslator {
             )
             .with_function(
                 "translators_config_dir",
-                [PTR],
+                [],
                 [PTR],
                 extism::UserData::new(()),
                 translators_config_dir,
@@ -269,8 +269,16 @@ host_fn!(current_dir() -> String {
 });
 
 host_fn!(translators_config_dir() -> extism_convert::Json(Option<String>) {
-    Ok(extism_convert::Json(PROJECT_DIR.as_ref()
-        .map(|dirs| dirs.config_dir().join("translators"))
+    // Check local .surfer/translators/ first, then fall back to global config dir
+    let local = std::env::current_dir()
+        .ok()
+        .map(|dir| dir.join(LOCAL_DIR).join(TRANSLATOR_DIR))
+        .filter(|dir| dir.exists());
+
+    let global = PROJECT_DIR.as_ref()
+        .map(|dirs| dirs.config_dir().join("translators"));
+
+    Ok(extism_convert::Json(local.or(global)
         .and_then(|dir| {
             dir.to_str().ok_or_else(|| {
                 anyhow!("{} is not valid utf8", dir.to_string_lossy())

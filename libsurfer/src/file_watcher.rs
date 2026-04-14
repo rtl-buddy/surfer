@@ -41,8 +41,10 @@ impl FileWatcher {
     {
         let std_path = path.as_std_path().to_owned();
         let binding = std_path.clone();
-        let Some(parent) = binding.parent() else {
-            return Err(Error::new(notify::ErrorKind::PathNotFound).add_path(std_path));
+        let parent = match binding.parent() {
+            Some(p) if p.as_os_str().is_empty() => std::path::Path::new("."),
+            Some(p) => p,
+            None => return Err(Error::new(notify::ErrorKind::PathNotFound).add_path(std_path)),
         };
         let mut watcher = notify::RecommendedWatcher::new(
             move |res| match res {

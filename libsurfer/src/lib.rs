@@ -1105,16 +1105,17 @@ impl SystemState {
             #[cfg(all(not(target_arch = "wasm32"), feature = "wasm_plugins"))]
             Message::LoadWasmTranslator(path) => {
                 let sender = self.channels.msg_sender.clone();
-                perform_work(
-                    move || match PluginTranslator::new(path.into_std_path_buf()) {
+                let max_memory_mib = self.user.config.plugin.max_memory_mib;
+                perform_work(move || {
+                    match PluginTranslator::new(path.into_std_path_buf(), max_memory_mib) {
                         Ok(t) => {
                             checked_send(&sender, Message::TranslatorLoaded(Arc::new(t)));
                         }
                         Err(e) => {
                             error!("Failed to load wasm translator {e:#}");
                         }
-                    },
-                );
+                    }
+                });
             }
             Message::LoadCommandFile(path) => {
                 self.add_batch_commands(read_command_file(&path));

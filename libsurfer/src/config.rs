@@ -140,6 +140,8 @@ pub struct SurferConfig {
     autoreload_files: AutoLoad,
     /// Load state file
     autoload_sibling_state_files: AutoLoad,
+    /// Plugin configuration
+    pub plugin: PluginConfig,
     /// WCP Configuration
     pub wcp: WcpConfig,
     /// HTTP Server Configuration
@@ -1024,6 +1026,12 @@ pub struct ThemeColorTriple {
     pub background: Color32,
     #[serde(deserialize_with = "deserialize_hex_color")]
     pub alt_background: Color32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PluginConfig {
+    /// Maximum memory in MiB available to each WASM translator plugin
+    pub max_memory_mib: u64,
 }
 
 #[derive(Debug, Deserialize)]

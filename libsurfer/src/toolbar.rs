@@ -187,6 +187,17 @@ impl SystemState {
             add_toolbar_button(
                 ui,
                 msgs,
+                icons::TARGET_FILL,
+                "Zoom in on cursor",
+                Message::ZoomToCursor {
+                    delta: 0.5,
+                    viewport_idx: 0,
+                },
+                wave_loaded && cursor_set,
+            );
+            add_toolbar_button(
+                ui,
+                msgs,
                 icons::ASPECT_RATIO_FILL,
                 "Zoom to fit",
                 Message::ZoomToFit { viewport_idx: 0 },

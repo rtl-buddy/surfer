@@ -39,6 +39,7 @@ pub enum ShortcutAction {
     RenameItem,
     DividerAdd,
     ZoomToFit,
+    ZoomToCursor,
     GoToTime,
 }
 
@@ -109,6 +110,8 @@ pub struct SurferShortcuts {
     pub divider_add: Vec<KeyboardShortcut>,
     #[serde(with = "keyboard_shortcuts_serde")]
     pub zoom_to_fit: Vec<KeyboardShortcut>,
+    #[serde(with = "keyboard_shortcuts_serde")]
+    pub zoom_to_cursor: Vec<KeyboardShortcut>,
     #[serde(with = "keyboard_shortcuts_serde")]
     pub go_to_time: Vec<KeyboardShortcut>,
 
@@ -262,6 +265,10 @@ impl SurferShortcuts {
                 priority: modifier_priority(&self.zoom_to_fit),
             },
             DispatchEntry {
+                action: ShortcutAction::ZoomToCursor,
+                priority: modifier_priority(&self.zoom_to_cursor),
+            },
+            DispatchEntry {
                 action: ShortcutAction::GoToTime,
                 priority: modifier_priority(&self.go_to_time),
             },
@@ -303,6 +310,7 @@ impl SurferShortcuts {
             ShortcutAction::RenameItem => &self.rename_item,
             ShortcutAction::DividerAdd => &self.divider_add,
             ShortcutAction::ZoomToFit => &self.zoom_to_fit,
+            ShortcutAction::ZoomToCursor => &self.zoom_to_cursor,
             ShortcutAction::GoToTime => &self.go_to_time,
         }
     }
@@ -463,6 +471,12 @@ impl SurferShortcuts {
             }
             ShortcutAction::ZoomToFit => {
                 msgs.push(Message::ZoomToFit { viewport_idx: 0 });
+            }
+            ShortcutAction::ZoomToCursor => {
+                msgs.push(Message::ZoomToCursor {
+                    delta: 0.5,
+                    viewport_idx: 0,
+                });
             }
             ShortcutAction::GoToTime => {
                 msgs.push(Message::SetRequestTimeEditFocus(true));

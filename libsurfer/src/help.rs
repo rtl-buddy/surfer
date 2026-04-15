@@ -220,6 +220,7 @@ fn key_listing(ui: &mut Ui, shortcuts: &SurferShortcuts) {
     let delete_selected = shortcuts.format_shortcut(ShortcutAction::DeleteSelected);
     let toggle_menu = shortcuts.format_shortcut(ShortcutAction::ToggleMenu);
     let divider_add = shortcuts.format_shortcut(ShortcutAction::DividerAdd);
+    let zoom_to_cursor = shortcuts.format_shortcut(ShortcutAction::ZoomToCursor);
     #[cfg(not(target_arch = "wasm32"))]
     let ui_zoom_in = shortcuts.format_shortcut(ShortcutAction::UiZoomIn);
     #[cfg(not(target_arch = "wasm32"))]
@@ -238,6 +239,7 @@ fn key_listing(ui: &mut Ui, shortcuts: &SurferShortcuts) {
         (icons::TOOLS_FILL, &toggle_toolbar, "Show or hide toolbar"),
         (icons::ZOOM_IN_FILL, &zoom_in, "Zoom in"),
         (icons::ZOOM_OUT_FILL, &zoom_out, "Zoom out"),
+        (icons::TARGET_FILL, &zoom_to_cursor, "Zoom in on cursor"),
         #[cfg(not(target_arch = "wasm32"))]
         ("", &ui_zoom_in, "UI Zoom in"),
         #[cfg(not(target_arch = "wasm32"))]

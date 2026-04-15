@@ -1,9 +1,10 @@
 //! Toolbar handling.
-use egui::{Button, Context, Layout, RichText, TopBottomPanel, Ui};
+use egui::{Button, ComboBox, Context, Layout, RichText, TopBottomPanel, Ui};
 use egui_remixicon::icons;
 use emath::{Align, Vec2};
 
 use crate::message::MessageTarget;
+use crate::time::TimeUnit;
 use crate::wave_container::SimulationStatus;
 use crate::wave_source::LoadOptions;
 use crate::{
@@ -12,6 +13,7 @@ use crate::{
     message::Message,
     wave_data::{PER_SCROLL_EVENT, SCROLL_EVENTS_PER_PAGE},
 };
+use enum_iterator::all;
 
 /// Helper function to add a new toolbar button, setting up icon, hover text etc.
 fn add_toolbar_button(
@@ -384,7 +386,23 @@ impl SystemState {
                 m.data
                     .insert_temp(egui::Id::new("time_input"), time_input.clone())
             });
-            //Taking the input from the time box
+
+            // Dropdown menu for changing time prefix
+            ComboBox::from_id_salt("toolbar_time_prefix")
+                .width(52.0)
+                .selected_text(self.user.wanted_timeunit.to_string())
+                .show_ui(ui, |ui| {
+                    let current = self.user.wanted_timeunit;
+                    for unit in all::<TimeUnit>().filter(|&u| u != TimeUnit::None) {
+                        if ui
+                            .selectable_label(current == unit, unit.to_string())
+                            .clicked()
+                        {
+                            msgs.push(Message::SetTimeUnit(unit));
+                        }
+                    }
+                });
+
             add_toolbar_button(
                 ui,
                 msgs,

@@ -393,7 +393,7 @@ impl SystemState {
                 Message::GoToTimePrint(time_input),
                 wave_loaded,
             );
-            //Finish the rest of simulation 
+            //Finish the rest of simulation
             add_toolbar_button(
                 ui,
                 msgs,
@@ -402,7 +402,7 @@ impl SystemState {
                 Message::TestFinishSim,
                 wave_loaded,
             );
-            //Pause the current 
+            //Pause the current
             add_toolbar_button(
                 ui,
                 msgs,
@@ -411,7 +411,7 @@ impl SystemState {
                 Message::TestPauseSim,
                 wave_loaded,
             );
-            //Rerun simulation from begining 
+            //Rerun simulation from begining
             add_toolbar_button(
                 ui,
                 msgs,

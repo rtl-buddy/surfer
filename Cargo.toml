@@ -72,7 +72,7 @@ hyper = { version = "1.4", features = ["http1", "server"] }
 hyper-util = { version = "0.1.6", features = ["tokio"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
 image-compare = "0.5"
-instruction-decoder = { path = "instruction-decoder" }
+instruction-decoder = { git = "https://github.com/ics-jku/instruction-decoder.git", rev = "02bdcbfd5663a72e4a0b1b9d54519412d417fab1" }
 itertools = "0.14.0"
 leb128 = "0.2.5"
 local-impl = "0.1.2"

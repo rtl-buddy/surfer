@@ -61,6 +61,11 @@ mod main_impl {
         state_file: Option<Utf8PathBuf>,
 
         #[clap(long, action)]
+        /// Exit automatically after all commands from --command-file have been executed.
+        /// Useful for batch/headless scripting (e.g. saving a waveform PNG and exiting).
+        exit_after_commands: bool,
+
+        #[clap(long, action)]
         /// Port for WCP to connect to
         wcp_initiate: Option<u16>,
 
@@ -84,10 +89,13 @@ mod main_impl {
 
     #[allow(dead_code)] // NOTE: Only used in desktop version
     fn startup_params_from_args(args: Args) -> StartupParams {
-        let startup_commands = args
+        let mut startup_commands = args
             .command_file()
             .map(read_command_file)
             .unwrap_or_default();
+        if args.exit_after_commands && !startup_commands.is_empty() {
+            startup_commands.push("exit".to_string());
+        }
         StartupParams {
             waves: args.wave_file.map(|s| string_to_wavesource(&s)),
             wcp_initiate: args.wcp_initiate,

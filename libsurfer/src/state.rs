@@ -112,6 +112,9 @@ pub struct UserState {
     pub(crate) variable_filter: VariableFilter,
     //Sidepanel width
     pub(crate) sidepanel_width: Option<f32>,
+    /// Rect of the waveform content area (variable list + waveform traces), updated each frame.
+    #[serde(skip, default)]
+    pub(crate) waveform_content_rect: Option<egui::Rect>,
     /// UI zoom factor if set by the user
     pub(crate) ui_zoom_factor: Option<f32>,
     #[serde(default)]
@@ -219,6 +222,7 @@ impl Default for UserState {
             surver_file_infos: None,
             surver_url: None,
             transition_value: None,
+            waveform_content_rect: None,
         }
     }
 }

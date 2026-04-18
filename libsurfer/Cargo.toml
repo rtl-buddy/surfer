@@ -103,12 +103,12 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 web-time.workspace = true
 wellen.workspace = true
+image.workspace = true
 
 [build-dependencies]
 vergen-gitcl = { workspace = true, features = ["build"] }
 
 [dev-dependencies]
-image.workspace = true
 image-compare.workspace = true
 port_check.workspace = true
 project-root.workspace = true

@@ -2199,6 +2199,60 @@ impl SystemState {
                     warn!("save_image is not supported on wasm");
                 }
             }
+            Message::SaveWaveform(path, width, height) => {
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    use egui_skia_renderer::{EncodedImageFormat, create_surface, draw_onto_surface};
+                    let w = width.unwrap_or(1280) as i32;
+                    let h = height.unwrap_or(720) as i32;
+                    let size = emath::Vec2::new(w as f32, h as f32);
+                    let visuals = self.get_visuals();
+                    let mut surface = create_surface((w, h));
+                    draw_onto_surface(
+                        &mut surface,
+                        |ctx| {
+                            ctx.set_visuals(visuals.clone());
+                            let msgs = self.draw(ctx, Some(size));
+                            for msg in msgs {
+                                if matches!(msg, Message::BuildAnalogCache { .. }) {
+                                    self.update(msg);
+                                }
+                            }
+                        },
+                        Some(egui_skia_renderer::RasterizeOptions {
+                            frames_before_screenshot: 5,
+                            ..Default::default()
+                        }),
+                    );
+                    let data = surface
+                        .image_snapshot()
+                        .encode(None, EncodedImageFormat::PNG, None)
+                        .expect("Failed to encode image");
+                    // Crop to the waveform content rect (variable list + waveform traces)
+                    let img = image::load_from_memory(&data).expect("Failed to decode PNG");
+                    let cropped = if let Some(rect) = self.user.waveform_content_rect {
+                        let x = rect.min.x.max(0.0) as u32;
+                        let y = rect.min.y.max(0.0) as u32;
+                        let cw = (rect.width() as u32).min(img.width().saturating_sub(x));
+                        let ch = (rect.height() as u32).min(img.height().saturating_sub(y));
+                        img.crop_imm(x, y, cw, ch)
+                    } else {
+                        img
+                    };
+                    let mut buf = std::io::Cursor::new(Vec::new());
+                    cropped.write_to(&mut buf, image::ImageFormat::Png).expect("Failed to encode cropped PNG");
+                    if let Err(e) = std::fs::write(&path, buf.into_inner()) {
+                        error!("save_waveform: failed to write {path:?}: {e}");
+                    } else {
+                        info!("save_waveform: wrote {path:?}");
+                    }
+                }
+                #[cfg(target_arch = "wasm32")]
+                {
+                    let _ = (path, width, height);
+                    warn!("save_waveform is not supported on wasm");
+                }
+            }
             Message::Exit | Message::ToggleFullscreen => {} // Handled in eframe::update
             Message::AddViewport => {
                 let waves = self.user.waves.as_mut()?;

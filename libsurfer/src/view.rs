@@ -292,6 +292,8 @@ impl SystemState {
     pub(crate) fn draw(&mut self, ui: &mut Ui, window_size: Option<Vec2>) -> Vec<Message> {
         let max_width = ui.available_size().x;
         let max_height = ui.available_size().y;
+        // Reset each frame so save_waveform gets fresh crop coordinates
+        self.user.waveform_content_rect = None;
 
         let mut msgs = vec![];
 
@@ -435,6 +437,13 @@ impl SystemState {
                     .default_size(100.)
                     .size_range(100.0..=max_width)
                     .show_inside(ui, |ui| {
+                        // Record the top-left of the content area for save_waveform cropping
+                        let panel_rect = ui.clip_rect();
+                        self.user.waveform_content_rect = Some(
+                            self.user.waveform_content_rect
+                                .map(|r| r.union(panel_rect))
+                                .unwrap_or(panel_rect),
+                        );
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                         let text_margin = Self::item_text_margin(ui);
                         if self.show_default_timeline() {
@@ -510,6 +519,13 @@ impl SystemState {
                         ..Default::default()
                     })
                     .show_inside(ui, |ui| {
+                        // Extend content rect to include the waveform trace area
+                        let panel_rect = ui.clip_rect();
+                        self.user.waveform_content_rect = Some(
+                            self.user.waveform_content_rect
+                                .map(|r| r.union(panel_rect))
+                                .unwrap_or(panel_rect),
+                        );
                         self.draw_items(ui, &mut msgs, 0);
                     });
                 ui.style_mut().visuals.widgets.noninteractive.bg_stroke = std_stroke;

@@ -901,7 +901,7 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                     initiate: false,
                 })),
                 "wcp_server_stop" => Some(Command::Terminal(Message::StopWcpServer)),
-                "save_image" => Some(Command::NonTerminal(
+                "export_window" => Some(Command::NonTerminal(
                     ParamGreed::Rest,
                     vec![],
                     Box::new(|query, _| {
@@ -909,14 +909,14 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                         let path = parts.next().filter(|s| !s.is_empty())?;
                         let width = parts.next().and_then(|s| s.parse::<u32>().ok());
                         let height = parts.next().and_then(|s| s.parse::<u32>().ok());
-                        Some(Command::Terminal(Message::SaveImage(
+                        Some(Command::Terminal(Message::ExportWindow(
                             std::path::PathBuf::from(path),
                             width,
                             height,
                         )))
                     }),
                 )),
-                "save_waveform" => Some(Command::NonTerminal(
+                "export_wave" => Some(Command::NonTerminal(
                     ParamGreed::Rest,
                     vec![],
                     Box::new(|query, _| {
@@ -924,7 +924,7 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                         let path = parts.next().filter(|s| !s.is_empty())?;
                         let width = parts.next().and_then(|s| s.parse::<u32>().ok());
                         let height = parts.next().and_then(|s| s.parse::<u32>().ok());
-                        Some(Command::Terminal(Message::SaveWaveform(
+                        Some(Command::Terminal(Message::ExportWave(
                             std::path::PathBuf::from(path),
                             width,
                             height,

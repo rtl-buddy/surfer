@@ -2158,7 +2158,7 @@ impl SystemState {
                 }
                 self.invalidate_draw_commands();
             }
-            Message::SaveImage(path, width, height) => {
+            Message::ExportWindow(path, width, height) => {
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     use egui_skia_renderer::{EncodedImageFormat, create_surface, draw_onto_surface};
@@ -2188,18 +2188,18 @@ impl SystemState {
                         .encode(None, EncodedImageFormat::PNG, None)
                         .expect("Failed to encode image");
                     if let Err(e) = std::fs::write(&path, data.as_bytes()) {
-                        error!("save_image: failed to write {path:?}: {e}");
+                        error!("export_window: failed to write {path:?}: {e}");
                     } else {
-                        info!("save_image: wrote {path:?}");
+                        info!("export_window: wrote {path:?}");
                     }
                 }
                 #[cfg(target_arch = "wasm32")]
                 {
                     let _ = (path, width, height);
-                    warn!("save_image is not supported on wasm");
+                    warn!("export_window is not supported on wasm");
                 }
             }
-            Message::SaveWaveform(path, width, height) => {
+            Message::ExportWave(path, width, height) => {
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     use egui_skia_renderer::{EncodedImageFormat, create_surface, draw_onto_surface};
@@ -2242,15 +2242,15 @@ impl SystemState {
                     let mut buf = std::io::Cursor::new(Vec::new());
                     cropped.write_to(&mut buf, image::ImageFormat::Png).expect("Failed to encode cropped PNG");
                     if let Err(e) = std::fs::write(&path, buf.into_inner()) {
-                        error!("save_waveform: failed to write {path:?}: {e}");
+                        error!("export_wave: failed to write {path:?}: {e}");
                     } else {
-                        info!("save_waveform: wrote {path:?}");
+                        info!("export_wave: wrote {path:?}");
                     }
                 }
                 #[cfg(target_arch = "wasm32")]
                 {
                     let _ = (path, width, height);
-                    warn!("save_waveform is not supported on wasm");
+                    warn!("export_wave is not supported on wasm");
                 }
             }
             Message::Exit | Message::ToggleFullscreen => {} // Handled in eframe::update

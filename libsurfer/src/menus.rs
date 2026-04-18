@@ -177,7 +177,7 @@ impl SystemState {
                     .add_closing_menu(msgs, ui);
             }
             #[cfg(not(target_arch = "wasm32"))]
-            b("Save image...", Message::SaveImage(
+            b("Save image...", Message::ExportWindow(
                 std::path::PathBuf::from("surfer_screenshot.png"),
                 None,
                 None,
@@ -185,7 +185,7 @@ impl SystemState {
             .enabled(waves_loaded)
             .add_closing_menu(msgs, ui);
             #[cfg(not(target_arch = "wasm32"))]
-            b("Save waveform...", Message::SaveWaveform(
+            b("Save waveform...", Message::ExportWave(
                 std::path::PathBuf::from("surfer_waveform.png"),
                 None,
                 None,

@@ -292,7 +292,7 @@ impl SystemState {
     pub(crate) fn draw(&mut self, ui: &mut Ui, window_size: Option<Vec2>) -> Vec<Message> {
         let max_width = ui.available_size().x;
         let max_height = ui.available_size().y;
-        // Reset each frame so save_waveform gets fresh crop coordinates
+        // Reset each frame so export_wave gets fresh crop coordinates
         self.user.waveform_content_rect = None;
 
         let mut msgs = vec![];
@@ -437,7 +437,7 @@ impl SystemState {
                     .default_size(100.)
                     .size_range(100.0..=max_width)
                     .show_inside(ui, |ui| {
-                        // Record the top-left of the content area for save_waveform cropping
+                        // Record the top-left of the content area for export_wave cropping
                         let panel_rect = ui.clip_rect();
                         self.user.waveform_content_rect = Some(
                             self.user.waveform_content_rect

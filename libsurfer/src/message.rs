@@ -441,10 +441,10 @@ pub enum Message {
     Exit,
     /// Save the current waveform view as a PNG image.
     /// Arguments: output path, optional width, optional height (default 1280x720).
-    SaveImage(PathBuf, Option<u32>, Option<u32>),
+    ExportWindow(PathBuf, Option<u32>, Option<u32>),
     /// Save only the waveform panel (hides menu, toolbar, statusbar, and side panel).
     /// Arguments: output path, optional width, optional height (default 1280x720).
-    SaveWaveform(PathBuf, Option<u32>, Option<u32>),
+    ExportWave(PathBuf, Option<u32>, Option<u32>),
     /// Should only used for tests. Expands the parameter section so that one can test the rendering.
     ExpandParameterSection,
     AsyncDone(AsyncJob),

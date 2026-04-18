@@ -200,6 +200,47 @@ pub fn run_egui(cc: &CreationContext, mut state: SystemState) -> Result<Box<dyn 
     Ok(Box::new(state))
 }
 
+/// Run surfer in headless mode: pump batch commands and async messages until all commands
+/// complete (including any `exit` command), without opening a GUI window.
+///
+/// Export commands (`export_wave`, `export_window`) work in headless mode because they
+/// use the Skia offscreen renderer which does not require a display.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn run_headless(mut state: SystemState) {
+    use std::time::Instant;
+
+    let timeout = std::time::Duration::from_secs(60);
+    let start = Instant::now();
+
+    // Phase 1: wait for the waveform to finish loading.
+    loop {
+        state.handle_async_messages();
+        state.handle_batch_commands();
+        if state.waves_fully_loaded() {
+            break;
+        }
+        if start.elapsed() > timeout {
+            tracing::error!("run_headless: timeout waiting for waveform to load");
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+
+    // Phase 2: keep processing batch commands until they all complete.
+    loop {
+        state.handle_async_messages();
+        state.handle_batch_commands();
+        if state.batch_messages_completed {
+            break;
+        }
+        if start.elapsed() > timeout {
+            tracing::error!("run_headless: timeout waiting for batch commands to complete");
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Display, PartialEq, Eq)]
 pub enum MoveDir {
     #[display("up")]

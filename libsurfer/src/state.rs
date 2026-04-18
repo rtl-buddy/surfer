@@ -445,7 +445,6 @@ impl SystemState {
         self.user.waves = Some(new_transaction_streams);
     }
 
-    #[cfg(test)]
     pub(crate) fn handle_async_messages(&mut self) {
         let mut msgs = vec![];
         loop {

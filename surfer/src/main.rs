@@ -15,6 +15,7 @@ mod main_impl {
         logs,
         message::Message,
         run_egui,
+        run_headless,
         wave_source::{WaveSource, string_to_wavesource},
     };
     use tracing::error;
@@ -66,6 +67,12 @@ mod main_impl {
         exit_after_commands: bool,
 
         #[clap(long, action)]
+        /// Run without opening a GUI window. Processes --command-file batch commands using
+        /// the Skia offscreen renderer and exits when all commands complete.
+        /// Implies --exit-after-commands.
+        headless: bool,
+
+        #[clap(long, action)]
         /// Port for WCP to connect to
         wcp_initiate: Option<u16>,
 
@@ -88,16 +95,16 @@ mod main_impl {
     }
 
     #[allow(dead_code)] // NOTE: Only used in desktop version
-    fn startup_params_from_args(args: Args) -> StartupParams {
+    fn startup_params_from_args(args: &Args) -> StartupParams {
         let mut startup_commands = args
             .command_file()
             .map(read_command_file)
             .unwrap_or_default();
-        if args.exit_after_commands && !startup_commands.is_empty() {
+        if (args.exit_after_commands || args.headless) && !startup_commands.is_empty() {
             startup_commands.push("exit".to_string());
         }
         StartupParams {
-            waves: args.wave_file.map(|s| string_to_wavesource(&s)),
+            waves: args.wave_file.clone().map(|s| string_to_wavesource(&s)),
             wcp_initiate: args.wcp_initiate,
             startup_commands,
         }
@@ -154,8 +161,9 @@ mod main_impl {
             });
         });
 
+        let headless = args.headless;
         let state_file = args.state_file.clone();
-        let startup_params = startup_params_from_args(args);
+        let startup_params = startup_params_from_args(&args);
         let waves = startup_params.waves.clone();
 
         let state = match &state_file {
@@ -209,6 +217,11 @@ mod main_impl {
             }
             _ => None,
         };
+
+        if headless {
+            run_headless(state);
+            return Ok(());
+        }
 
         // Load icon using png crate
         let icon_bytes = include_bytes!("../assets/com.gitlab.surferproject.surfer.png");

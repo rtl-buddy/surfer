@@ -901,6 +901,21 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                     initiate: false,
                 })),
                 "wcp_server_stop" => Some(Command::Terminal(Message::StopWcpServer)),
+                "save_image" => Some(Command::NonTerminal(
+                    ParamGreed::Rest,
+                    vec![],
+                    Box::new(|query, _| {
+                        let mut parts = query.splitn(3, ' ');
+                        let path = parts.next().filter(|s| !s.is_empty())?;
+                        let width = parts.next().and_then(|s| s.parse::<u32>().ok());
+                        let height = parts.next().and_then(|s| s.parse::<u32>().ok());
+                        Some(Command::Terminal(Message::SaveImage(
+                            std::path::PathBuf::from(path),
+                            width,
+                            height,
+                        )))
+                    }),
+                )),
                 "exit" => Some(Command::Terminal(Message::Exit)),
                 _ => None,
             }

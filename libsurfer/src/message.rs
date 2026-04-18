@@ -439,6 +439,9 @@ pub enum Message {
     /// Exit the application. This has no effect on wasm and closes the window
     /// on other platforms
     Exit,
+    /// Save the current waveform view as a PNG image.
+    /// Arguments: output path, optional width, optional height (default 1280x720).
+    SaveImage(PathBuf, Option<u32>, Option<u32>),
     /// Should only used for tests. Expands the parameter section so that one can test the rendering.
     ExpandParameterSection,
     AsyncDone(AsyncJob),

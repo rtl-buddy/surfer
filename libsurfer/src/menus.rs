@@ -177,6 +177,14 @@ impl SystemState {
                     .add_closing_menu(msgs, ui);
             }
             #[cfg(not(target_arch = "wasm32"))]
+            b("Save image...", Message::SaveImage(
+                std::path::PathBuf::from("surfer_screenshot.png"),
+                None,
+                None,
+            ))
+            .enabled(waves_loaded)
+            .add_closing_menu(msgs, ui);
+            #[cfg(not(target_arch = "wasm32"))]
             b("Exit", Message::Exit).add_closing_menu(msgs, ui);
         });
         ui.menu_button("View", |ui: &mut Ui| {

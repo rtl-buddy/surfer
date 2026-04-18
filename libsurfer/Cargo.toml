@@ -28,6 +28,9 @@ wasm-bindgen-futures.workspace = true
 wasm-tracing.workspace = true
 web-sys.workspace = true
 
+[target.'cfg(not(target_os = "unknown"))'.dependencies]
+egui_skia_renderer = { git = "https://gitlab.com/oscargus/egui_skia_renderer.git", rev = "36fe7b49a59a87f9d4b62533bd81e6e37139e9cd" }
+
 [target.'cfg(not(target_os = "unknown"))'.dev-dependencies]
 tempfile.workspace = true
 
@@ -105,7 +108,6 @@ wellen.workspace = true
 vergen-gitcl = { workspace = true, features = ["build"] }
 
 [dev-dependencies]
-egui_skia_renderer = { git = "https://gitlab.com/oscargus/egui_skia_renderer.git", rev = "36fe7b49a59a87f9d4b62533bd81e6e37139e9cd" }
 image.workspace = true
 image-compare.workspace = true
 port_check.workspace = true

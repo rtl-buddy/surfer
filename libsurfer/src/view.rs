@@ -428,6 +428,19 @@ impl SystemState {
                         });
                 }
 
+                // If a width was requested (e.g. via variable_list_width command), apply it
+                // by writing directly to egui's persisted panel state before the panel renders.
+                if let Some(w) = self.user.requested_varlist_width.take() {
+                    let panel_id = egui::Id::new("variable list");
+                    ui.ctx().data_mut(|d| {
+                        let rect = d.get_persisted::<egui::PanelState>(panel_id)
+                            .map(|s| { let mut r = s.rect; r.set_width(w); r })
+                            .unwrap_or_else(|| egui::Rect::from_min_size(
+                                egui::Pos2::ZERO, egui::Vec2::new(w, 100.0),
+                            ));
+                        d.insert_persisted(panel_id, egui::PanelState { rect });
+                    });
+                }
                 Panel::left("variable list")
                     .frame(
                         Frame::default()
@@ -436,7 +449,7 @@ impl SystemState {
                             .fill(self.user.config.theme.secondary_ui_color.background),
                     )
                     .default_size(100.)
-                    .size_range(100.0..=max_width)
+                    .size_range(10.0..=max_width)
                     .show_inside(ui, |ui| {
                         // Record the top-left of the content area for export_wave cropping
                         let panel_rect = ui.clip_rect();

@@ -118,6 +118,9 @@ pub struct UserState {
     /// Bottom y-coordinate of the last rendered waveform row, for tight export_wave cropping.
     #[serde(skip, default)]
     pub(crate) waveform_rows_bottom: Option<f32>,
+    /// Requested pixel width for the variable-name panel (applied once, then cleared).
+    #[serde(skip, default)]
+    pub(crate) requested_varlist_width: Option<f32>,
     /// UI zoom factor if set by the user
     pub(crate) ui_zoom_factor: Option<f32>,
     #[serde(default)]
@@ -227,6 +230,7 @@ impl Default for UserState {
             transition_value: None,
             waveform_content_rect: None,
             waveform_rows_bottom: None,
+            requested_varlist_width: None,
         }
     }
 }

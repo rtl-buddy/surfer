@@ -311,6 +311,7 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
             "save_state_as",
             "timeline_add",
             "cursor_set",
+            "variable_list_width",
             "zoom_range",
             "marker_set",
             "marker_remove",
@@ -821,6 +822,14 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                         } else {
                             Some(Command::Terminal(Message::SetPerformanceVisible(true)))
                         }
+                    }),
+                ),
+                "variable_list_width" => single_word(
+                    vec![],
+                    Box::new(|w_str| {
+                        w_str.parse::<f32>().ok().map(|w| {
+                            Command::Terminal(Message::SetVariableListWidth(w))
+                        })
                     }),
                 ),
                 "cursor_set" => single_word(

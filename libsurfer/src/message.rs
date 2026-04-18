@@ -103,6 +103,8 @@ pub enum Message {
     /// Scroll in vertical direction so that the item at a given location in the list is at the top (or visible).
     ScrollToItem(usize),
     SetScrollOffset(f32),
+    /// Force the variable-name panel to a specific pixel width.
+    SetVariableListWidth(f32),
     /// Change format (translator) of a variable. Passing None as first element means all selected variables.
     VariableFormatChange(MessageTarget<DisplayedFieldRef>, String),
     ItemSelectionClear,

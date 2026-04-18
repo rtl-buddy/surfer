@@ -311,6 +311,7 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
             "save_state_as",
             "timeline_add",
             "cursor_set",
+            "zoom_range",
             "marker_set",
             "marker_remove",
             "show_marker_window",
@@ -747,11 +748,12 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                     }),
                 ),
                 "item_unfocus" => Some(Command::Terminal(Message::UnfocusItem)),
-                "divider_add" => optional_single_word(
+                "divider_add" => single_word(
                     vec![],
-                    Box::new(|word| {
+                    Box::new(|label| {
+                        let label = label.trim().to_string();
                         Some(Command::Terminal(Message::AddDivider(
-                            Some(word.into()),
+                            if label.is_empty() { None } else { Some(label) },
                             None,
                         )))
                     }),
@@ -831,6 +833,25 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                         _ => None,
                     }),
                 ),
+                "zoom_range" => Some(Command::NonTerminal(
+                    ParamGreed::Word,
+                    vec![],
+                    Box::new(|start_str, _| {
+                        let start: num::BigInt = start_str.parse().ok()?;
+                        Some(Command::NonTerminal(
+                            ParamGreed::Word,
+                            vec![],
+                            Box::new(move |end_str, _| {
+                                let end: num::BigInt = end_str.parse().ok()?;
+                                Some(Command::Terminal(Message::ZoomToRange {
+                                    start: start.clone(),
+                                    end,
+                                    viewport_idx: 0,
+                                }))
+                            }),
+                        ))
+                    }),
+                )),
                 "marker_set" => Some(Command::NonTerminal(
                     ParamGreed::Custom(&separate_at_space),
                     // FIXME use once fzcmd does not enforce suggestion match, as of now we couldn't add a marker (except the first)

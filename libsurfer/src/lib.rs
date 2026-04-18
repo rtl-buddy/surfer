@@ -2228,13 +2228,19 @@ impl SystemState {
                         .image_snapshot()
                         .encode(None, EncodedImageFormat::PNG, None)
                         .expect("Failed to encode image");
-                    // Crop to the waveform content rect (variable list + waveform traces)
+                    // Crop to the waveform content rect (variable list + waveform traces).
+                    // Tighten the bottom to the actual rendered row content when available,
+                    // so that empty panel space below the last signal is not included.
                     let img = image::load_from_memory(&data).expect("Failed to decode PNG");
                     let cropped = if let Some(rect) = self.user.waveform_content_rect {
                         let x = rect.min.x.max(0.0) as u32;
                         let y = rect.min.y.max(0.0) as u32;
+                        let bottom = self.user.waveform_rows_bottom
+                            .map(|b| b.min(rect.max.y))
+                            .unwrap_or(rect.max.y);
                         let cw = (rect.width() as u32).min(img.width().saturating_sub(x));
-                        let ch = (rect.height() as u32).min(img.height().saturating_sub(y));
+                        let ch = ((bottom - rect.min.y).max(0.0) as u32)
+                            .min(img.height().saturating_sub(y));
                         img.crop_imm(x, y, cw, ch)
                     } else {
                         img

@@ -294,6 +294,7 @@ impl SystemState {
         let max_height = ui.available_size().y;
         // Reset each frame so export_wave gets fresh crop coordinates
         self.user.waveform_content_rect = None;
+        self.user.waveform_rows_bottom = None;
 
         let mut msgs = vec![];
 
@@ -463,6 +464,24 @@ impl SystemState {
                             response.inner_rect.min.y;
                         self.user.waves.as_mut().unwrap().total_height =
                             response.inner_rect.height();
+                        // Track tight bottom for export_wave auto-height:
+                        // item_count × (line_height + item_spacing) + one-row padding
+                        let item_count = self
+                            .user
+                            .waves
+                            .as_ref()
+                            .map(|w| w.items_tree.len())
+                            .unwrap_or(0) as f32;
+                        let line_h = self.user.config.layout.waveforms_line_height;
+                        let item_spacing = ui.spacing().item_spacing.y;
+                        let rows_bottom = response.inner_rect.min.y
+                            + item_count * (line_h + item_spacing)
+                            + 2.0 * line_h; // two rows of padding to avoid clipping last row
+                        self.user.waveform_rows_bottom = Some(
+                            self.user.waveform_rows_bottom
+                                .map(|b: f32| b.max(rows_bottom))
+                                .unwrap_or(rows_bottom),
+                        );
                         if (scroll_offset - response.state.offset.y).abs() > 5. {
                             msgs.push(Message::SetScrollOffset(response.state.offset.y));
                         }

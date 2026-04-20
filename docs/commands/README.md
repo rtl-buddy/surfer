@@ -4,6 +4,24 @@ To execute a command, press space and type the command. There is fuzzy match sup
 
 It is also possible to create a command file, extension `.sucl`, and run that. Running a command file can be done from within Surfer using the menu option in the File menu, through the toolbar button, or by typing the command ``run_command_file``. It can also be done using the ``--command-file`` argument when starting Surfer.
 
+## CLI flags for batch/headless use
+
+* ``--command-file <FILE>`` (``-c <FILE>``)
+
+    Load and execute a command file on startup.
+
+* ``--exit-after-commands``
+
+    Exit automatically after all commands from ``--command-file`` have been executed. Useful for scripted PNG export.
+
+* ``--headless``
+
+    Run without a GUI window. Processes ``--command-file`` batch commands and exits. Implies ``--exit-after-commands``. Typical usage:
+
+    ```
+    surfer --headless -c export.cmd dump.fst
+    ```
+
 Not all commands are available unless a file is loaded. Also, some commands are not available in the WASM-build (browser/VS Code extension).
 
 ## Waveform/transaction loading and reloading
@@ -122,6 +140,26 @@ Not all commands are available unless a file is loaded. Also, some commands are 
 * ``item_rename``
 * ``theme_select <THEME_NAME>``
 
+    Apply a named theme (e.g. ``light``, ``dark``, ``light+``, ``dark+``).
+
+## Signal name and value columns
+
+* ``name_col_width <PIXELS>``
+
+    Set the signal-name column to a fixed pixel width.
+
+* ``name_col_fit``
+
+    Auto-size the signal-name column to fit the widest displayed name. Computed from font metrics at render time.
+
+* ``value_col_width <PIXELS>``
+
+    Set the signal-value column to a fixed pixel width.
+
+* ``value_col_fit``
+
+    Auto-size the signal-value column to fit the widest value currently shown at the cursor. Call after ``cursor_set`` so values are available.
+
 ## Navigation
 
 * ``zoom_fit``
@@ -130,6 +168,9 @@ Not all commands are available unless a file is loaded. Also, some commands are 
 
 * ``zoom_in``
 * ``zoom_out``
+* ``zoom_range <START> <END>``
+
+  Zoom the viewport to the given time range (in simulation time units).
 * ``scroll_to_start``,  ``goto_start``
 * ``scroll_to_end``, ``goto_end``
 * ``transition_next``
@@ -234,6 +275,19 @@ Stop the WCP server.
 * ``copy_value``
 
 Copy the variable name and value at cursor to the clipboard.
+
+* ``export_wave <PATH> <WIDTH> [HEIGHT]`` (not WASM)
+
+  Export the waveform traces (cropped to the signal list area) as a PNG. ``WIDTH`` is in pixels. ``HEIGHT`` is optional — when omitted the canvas is auto-sized to fit all displayed rows without clipping.
+
+  ```
+  export_wave report/img/overview.png 1280
+  export_wave report/img/detail.png 1280 400
+  ```
+
+* ``export_window <PATH> [WIDTH [HEIGHT]]`` (not WASM)
+
+  Export the full Surfer window as a PNG.
 
 * ``undo``
 * ``redo``

@@ -1,0 +1,84 @@
+# Monochrome theme — greyscale only, white background throughout.
+# Based on light-high-contrast.
+foreground = "000000"
+border_color = "808080"
+selected_elements_colors = { background = "c0c0c0", foreground = "000000" }
+canvas_colors = { background = "ffffff", alt_background = "ffffff", foreground = "000000" }
+primary_ui_color = { background = "ffffff", foreground = "000000" }
+secondary_ui_color = { background = "ffffff", foreground = "000000" }
+accent_info = { background = "606060", foreground = "ffffff" }
+accent_warn = { background = "909090", foreground = "000000" }
+accent_error = { background = "404040", foreground = "ffffff" }
+clock_highlight_line = { color = "909090", width = 2 }
+clock_highlight_cycle = "c0c0c0"
+clock_rising_marker = true
+variable_default = "000000"
+variable_undef = "808080"
+variable_highimp = "b0b0b0"
+variable_dontcare = "606060"
+variable_weak = "404040"
+waveform_opacity = 0.5
+cursor = { color = "000000", width = 3 }
+gesture = { color = "000000", width = 2 }
+linewidth = 3
+alt_frequency = 0
+highlight_background = "e0e0e0"
+
+[colors]
+red = "000000"
+bg-red = "e8e8e8"
+green = "202020"
+bg-green = "d8d8d8"
+yellow = "383838"
+bg-yellow = "c8c8c8"
+blue = "505050"
+bg-blue = "b8b8b8"
+magenta = "404040"
+bg-magenta = "d0d0d0"
+cyan = "484848"
+bg-cyan = "c0c0c0"
+rust = "282828"
+gold = "585858"
+olive = "606060"
+slate = "484848"
+indigo = "383838"
+maroon = "404040"
+pink = "505050"
+
+[scope_icons.colors]
+module = "303030"
+task = "505050"
+function = "404040"
+begin = "303030"
+fork = "505050"
+generate = "404040"
+struct = "484848"
+union = "484848"
+class = "404040"
+interface = "505050"
+package = "585858"
+program = "484848"
+vhdl_architecture = "303030"
+vhdl_procedure = "505050"
+vhdl_function = "404040"
+vhdl_record = "484848"
+vhdl_process = "303030"
+vhdl_block = "484848"
+vhdl_for_generate = "404040"
+vhdl_if_generate = "404040"
+vhdl_generate = "404040"
+vhdl_package = "585858"
+ghw_generic = "484848"
+vhdl_array = "383838"
+unknown = "606060"
+
+[variable_icons.colors]
+wire = "303030"
+bus = "404040"
+string = "505050"
+event = "484848"
+other = "404040"
+
+[ticks]
+style = { color = "909090", width = 2 }
+density = 1

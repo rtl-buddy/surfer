@@ -42,6 +42,7 @@ static BUILTIN_THEMES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock:
         theme!("ibm"),
         theme!("light+"),
         theme!("light-high-contrast"),
+        theme!("mono"),
         ("okabe/ito", include_str!("../../themes/okabe-ito.toml")),
         theme!("petroff-dark"),
         theme!("petroff-light"),

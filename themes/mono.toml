@@ -17,7 +17,7 @@ variable_undef = "808080"
 variable_highimp = "b0b0b0"
 variable_dontcare = "606060"
 variable_weak = "404040"
-waveform_opacity = 0.5
+waveform_opacity = 0.1
 cursor = { color = "000000", width = 3 }
 gesture = { color = "000000", width = 2 }
 linewidth = 3

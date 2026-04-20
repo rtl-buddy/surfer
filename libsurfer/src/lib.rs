@@ -523,6 +523,9 @@ impl SystemState {
                 let waves = self.user.waves.as_mut()?;
                 waves.scroll_offset = offset;
             }
+            Message::SetVariableListWidth(width) => {
+                self.user.requested_varlist_width = Some(width);
+            }
             Message::SetLogsVisible(visibility) => self.user.show_logs = visibility,
             Message::SetFrameBufferVariable(variable_ref) => {
                 let waves = self.user.waves.as_mut()?;
@@ -2245,7 +2248,17 @@ impl SystemState {
                 {
                     use egui_skia_renderer::{EncodedImageFormat, create_surface, draw_onto_surface};
                     let w = width.unwrap_or(1280) as i32;
-                    let h = height.unwrap_or(720) as i32;
+                    // When height is omitted, compute a canvas tall enough to fit all signal
+                    // rows without clipping. The crop step will trim empty space at the bottom.
+                    let h = height.unwrap_or_else(|| {
+                        let item_count = self.user.waves.as_ref()
+                            .map(|w| w.items_tree.len())
+                            .unwrap_or(0) as f32;
+                        let line_h = self.user.config.layout.waveforms_line_height;
+                        let item_spacing = 4.0_f32; // egui default item spacing y
+                        let estimated = 80.0 + item_count * (line_h + item_spacing);
+                        (estimated as u32).max(720)
+                    }) as i32;
                     let size = emath::Vec2::new(w as f32, h as f32);
                     let visuals = self.get_visuals();
                     let mut surface = create_surface((w, h));

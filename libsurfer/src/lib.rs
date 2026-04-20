@@ -2248,17 +2248,45 @@ impl SystemState {
                 {
                     use egui_skia_renderer::{EncodedImageFormat, create_surface, draw_onto_surface};
                     let w = width.unwrap_or(1280) as i32;
-                    // When height is omitted, compute a canvas tall enough to fit all signal
-                    // rows without clipping. The crop step will trim empty space at the bottom.
-                    let h = height.unwrap_or_else(|| {
-                        let item_count = self.user.waves.as_ref()
-                            .map(|w| w.items_tree.len())
-                            .unwrap_or(0) as f32;
-                        let line_h = self.user.config.layout.waveforms_line_height;
-                        let item_spacing = 4.0_f32; // egui default item spacing y
-                        let estimated = 80.0 + item_count * (line_h + item_spacing);
-                        (estimated as u32).max(720)
-                    }) as i32;
+                    // When height is omitted, do a two-pass render: first at a large canvas to
+                    // measure the true rows_bottom, then at the exact needed height. This
+                    // guarantees all signal rows are rendered without clipping.
+                    let h = if let Some(h) = height {
+                        h as i32
+                    } else {
+                        let probe_h = 4000_i32;
+                        let probe_size = emath::Vec2::new(w as f32, probe_h as f32);
+                        let visuals = self.get_visuals();
+                        let mut probe_surface = create_surface((w, probe_h));
+                        draw_onto_surface(
+                            &mut probe_surface,
+                            |ctx| {
+                                ctx.set_visuals(visuals.clone());
+                                let msgs = self.draw(ctx, Some(probe_size));
+                                for msg in msgs {
+                                    if matches!(msg, Message::BuildAnalogCache { .. }) {
+                                        self.update(msg);
+                                    }
+                                }
+                            },
+                            Some(egui_skia_renderer::RasterizeOptions {
+                                frames_before_screenshot: 5,
+                                ..Default::default()
+                            }),
+                        );
+                        // Compute canvas height = rows_bottom + bottom_chrome + margin.
+                        // rows_bottom is in canvas coords; bottom_chrome = probe_h - rect.max.y.
+                        let exact = if let Some(rect) = self.user.waveform_content_rect {
+                            let rows_bottom = self.user.waveform_rows_bottom
+                                .unwrap_or(rect.max.y);
+                            let bottom_chrome = (probe_h as f32 - rect.max.y).max(0.0) as i32;
+                            let canvas_h = rows_bottom as i32 + bottom_chrome + 4;
+                            canvas_h.max(100)
+                        } else {
+                            720
+                        };
+                        exact
+                    };
                     let size = emath::Vec2::new(w as f32, h as f32);
                     let visuals = self.get_visuals();
                     let mut surface = create_surface((w, h));

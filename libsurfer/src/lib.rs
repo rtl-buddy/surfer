@@ -523,8 +523,17 @@ impl SystemState {
                 let waves = self.user.waves.as_mut()?;
                 waves.scroll_offset = offset;
             }
-            Message::SetVariableListWidth(width) => {
-                self.user.requested_varlist_width = Some(width);
+            Message::SetNameColWidth(width) => {
+                self.user.requested_name_col_width = Some(width);
+            }
+            Message::FitNameCol => {
+                self.user.fit_name_col = true;
+            }
+            Message::SetValueColWidth(width) => {
+                self.user.requested_value_col_width = Some(width);
+            }
+            Message::FitValueCol => {
+                self.user.fit_value_col = true;
             }
             Message::SetLogsVisible(visibility) => self.user.show_logs = visibility,
             Message::SetFrameBufferVariable(variable_ref) => {

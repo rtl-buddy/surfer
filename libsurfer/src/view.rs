@@ -428,16 +428,52 @@ impl SystemState {
                         });
                 }
 
-                // If a width was requested (e.g. via variable_list_width command), apply it
-                // by writing directly to egui's persisted panel state before the panel renders.
-                if let Some(w) = self.user.requested_varlist_width.take() {
+                // Auto-fit or set the signal-name column width.
+                if self.user.fit_name_col {
+                    self.user.fit_name_col = false;
+                    if let Some(waves) = &self.user.waves {
+                        let font_id = ui
+                            .style()
+                            .text_styles
+                            .get(&egui::TextStyle::Body)
+                            .cloned()
+                            .unwrap_or_default();
+                        let max_w = waves
+                            .items_tree
+                            .iter_visible()
+                            .filter_map(|node| waves.displayed_items.get(&node.item_ref))
+                            .map(|item| {
+                                ui.fonts_mut(|f| {
+                                    f.layout_no_wrap(
+                                        item.name(),
+                                        font_id.clone(),
+                                        egui::Color32::BLACK,
+                                    )
+                                    .size()
+                                    .x
+                                })
+                            })
+                            .fold(0.0_f32, f32::max);
+                        // Add padding for item margins and any icons.
+                        self.user.requested_name_col_width = Some(max_w + 24.0);
+                    }
+                }
+                if let Some(w) = self.user.requested_name_col_width.take() {
                     let panel_id = egui::Id::new("variable list");
                     ui.ctx().data_mut(|d| {
-                        let rect = d.get_persisted::<egui::PanelState>(panel_id)
-                            .map(|s| { let mut r = s.rect; r.set_width(w); r })
-                            .unwrap_or_else(|| egui::Rect::from_min_size(
-                                egui::Pos2::ZERO, egui::Vec2::new(w, 100.0),
-                            ));
+                        let rect = d
+                            .get_persisted::<egui::PanelState>(panel_id)
+                            .map(|s| {
+                                let mut r = s.rect;
+                                r.set_width(w);
+                                r
+                            })
+                            .unwrap_or_else(|| {
+                                egui::Rect::from_min_size(
+                                    egui::Pos2::ZERO,
+                                    egui::Vec2::new(w, 100.0),
+                                )
+                            });
                         d.insert_persisted(panel_id, egui::PanelState { rect });
                     });
                 }
@@ -502,6 +538,58 @@ impl SystemState {
 
                 // Will only draw if a transaction is focused
                 self.draw_transaction_detail_panel(ui, max_width, &mut msgs);
+
+                // Auto-fit or set the signal-value column width.
+                if self.user.fit_value_col {
+                    self.user.fit_value_col = false;
+                    if let Some(waves) = &self.user.waves {
+                        let font_id = ui
+                            .style()
+                            .text_styles
+                            .get(&egui::TextStyle::Monospace)
+                            .cloned()
+                            .unwrap_or_default();
+                        let ucursor = waves.cursor.as_ref().and_then(num::BigInt::to_biguint);
+                        let max_w = waves
+                            .drawing_infos
+                            .iter()
+                            .filter_map(|di| {
+                                if let ItemDrawingInfo::Variable(v) = di {
+                                    self.get_variable_value(waves, &v.displayed_field_ref, ucursor.as_ref())
+                                } else {
+                                    None
+                                }
+                            })
+                            .map(|val| {
+                                ui.fonts_mut(|f| {
+                                    f.layout_no_wrap(val, font_id.clone(), egui::Color32::BLACK)
+                                        .size()
+                                        .x
+                                })
+                            })
+                            .fold(0.0_f32, f32::max);
+                        self.user.requested_value_col_width = Some(max_w + 16.0);
+                    }
+                }
+                if let Some(w) = self.user.requested_value_col_width.take() {
+                    let panel_id = egui::Id::new("variable values");
+                    ui.ctx().data_mut(|d| {
+                        let rect = d
+                            .get_persisted::<egui::PanelState>(panel_id)
+                            .map(|s| {
+                                let mut r = s.rect;
+                                r.set_width(w);
+                                r
+                            })
+                            .unwrap_or_else(|| {
+                                egui::Rect::from_min_size(
+                                    egui::Pos2::ZERO,
+                                    egui::Vec2::new(w, 100.0),
+                                )
+                            });
+                        d.insert_persisted(panel_id, egui::PanelState { rect });
+                    });
+                }
 
                 Panel::left("variable values")
                     .frame(

@@ -311,7 +311,10 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
             "save_state_as",
             "timeline_add",
             "cursor_set",
-            "variable_list_width",
+            "name_col_width",
+            "name_col_fit",
+            "value_col_width",
+            "value_col_fit",
             "zoom_range",
             "marker_set",
             "marker_remove",
@@ -824,14 +827,26 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                         }
                     }),
                 ),
-                "variable_list_width" => single_word(
+                "name_col_width" => single_word(
                     vec![],
                     Box::new(|w_str| {
-                        w_str.parse::<f32>().ok().map(|w| {
-                            Command::Terminal(Message::SetVariableListWidth(w))
-                        })
+                        w_str
+                            .parse::<f32>()
+                            .ok()
+                            .map(|w| Command::Terminal(Message::SetNameColWidth(w)))
                     }),
                 ),
+                "name_col_fit" => Some(Command::Terminal(Message::FitNameCol)),
+                "value_col_width" => single_word(
+                    vec![],
+                    Box::new(|w_str| {
+                        w_str
+                            .parse::<f32>()
+                            .ok()
+                            .map(|w| Command::Terminal(Message::SetValueColWidth(w)))
+                    }),
+                ),
+                "value_col_fit" => Some(Command::Terminal(Message::FitValueCol)),
                 "cursor_set" => single_word(
                     vec![],
                     Box::new(|time_str| match time_str.parse() {

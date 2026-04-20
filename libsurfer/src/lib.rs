@@ -431,6 +431,9 @@ impl SystemState {
             Message::SetNameAlignRight(align_right) => {
                 self.user.align_names_right = Some(align_right);
             }
+            Message::SetValueAlignRight(align_right) => {
+                self.user.align_values_right = Some(align_right);
+            }
             Message::FocusItem(idx) => {
                 let waves = self.user.waves.as_mut()?;
 

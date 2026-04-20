@@ -1599,6 +1599,15 @@ impl SystemState {
         let canvas_size = rect.size();
         let canvas_width = canvas_size.x;
         let canvas_height = canvas_size.y;
+        let right_align = self.align_values_right();
+        let value_font_id = ui
+            .style()
+            .text_styles
+            .get(&egui::TextStyle::Monospace)
+            .cloned()
+            .unwrap_or_default();
+        // Horizontal budget for value text: panel width minus item spacing on both sides.
+        let text_budget = (canvas_width - ui.spacing().item_spacing.x * 2.0).max(0.0);
         let container_rect = Rect::from_min_size(Pos2::ZERO, rect.size());
         let to_screen = RectTransform::from_to(container_rect, rect);
         let cfg = DrawConfig::new(
@@ -1659,26 +1668,40 @@ impl SystemState {
                             ucursor.as_ref(),
                         );
                         if let Some(v) = v {
-                            ui.label(
-                                RichText::new(v)
-                                    .color(
-                                        self.user.config.theme.get_best_text_color(backgroundcolor),
-                                    )
-                                    .line_height(Some(
-                                        self.user.config.layout.waveforms_line_height,
-                                    )),
-                            )
-                            .context_menu(|ui| {
-                                self.item_context_menu(
-                                    Some(&FieldRef::without_fields(
-                                        drawing_info.field_ref.root.clone(),
-                                    )),
-                                    msgs,
-                                    ui,
-                                    drawing_info.vidx,
-                                    true,
-                                    crate::message::MessageTarget::CurrentSelection,
-                                );
+                            let display_v = truncate_value(
+                                ui,
+                                &v,
+                                text_budget,
+                                &value_font_id,
+                                right_align,
+                            );
+                            let layout = if right_align {
+                                Layout::right_to_left(Align::Center)
+                            } else {
+                                Layout::left_to_right(Align::Center)
+                            };
+                            ui.with_layout(layout, |ui| {
+                                ui.label(
+                                    RichText::new(display_v)
+                                        .color(self.user.config.theme.get_best_text_color(
+                                            backgroundcolor,
+                                        ))
+                                        .line_height(Some(
+                                            self.user.config.layout.waveforms_line_height,
+                                        )),
+                                )
+                                .context_menu(|ui| {
+                                    self.item_context_menu(
+                                        Some(&FieldRef::without_fields(
+                                            drawing_info.field_ref.root.clone(),
+                                        )),
+                                        msgs,
+                                        ui,
+                                        drawing_info.vidx,
+                                        true,
+                                        crate::message::MessageTarget::CurrentSelection,
+                                    );
+                                });
                             });
                         }
                     }
@@ -1911,6 +1934,49 @@ impl SystemState {
             0.0,
             emath::Align2::CENTER_TOP,
         );
+    }
+}
+
+/// Truncate `text` to fit within `budget` pixels using the given monospace font.
+/// For right-aligned values, trims from the left and prepends `..` (LSBs stay visible).
+/// For left-aligned values, trims from the right and appends `..` (MSBs stay visible).
+fn truncate_value(
+    ui: &mut egui::Ui,
+    text: &str,
+    budget: f32,
+    font_id: &egui::FontId,
+    right_align: bool,
+) -> String {
+    if text.is_empty() {
+        return text.to_string();
+    }
+    let measure = |s: &str| -> f32 {
+        ui.fonts_mut(|f| {
+            f.layout_no_wrap(s.to_string(), font_id.clone(), egui::Color32::BLACK)
+                .size()
+                .x
+        })
+    };
+    let text_w = measure(text);
+    if text_w <= budget {
+        return text.to_string();
+    }
+    let dots_w = measure("..");
+    let content_budget = (budget - dots_w).max(0.0);
+    let chars: Vec<char> = text.chars().collect();
+    let n = chars.len();
+    // Approximate monospace char width from the full string measurement.
+    let char_w = text_w / n as f32;
+    let max_chars = ((content_budget / char_w).floor() as usize).min(n);
+    if right_align {
+        // Keep the tail (LSBs), drop leading characters.
+        let start = n.saturating_sub(max_chars);
+        let tail: String = chars[start..].iter().collect();
+        format!("..{tail}")
+    } else {
+        // Keep the head (MSBs), drop trailing characters.
+        let head: String = chars[..max_chars].iter().collect();
+        format!("{head}..")
     }
 }
 

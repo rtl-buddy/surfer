@@ -222,4 +222,11 @@ impl SystemState {
             .align_names_right
             .unwrap_or_else(|| self.user.config.layout.align_names_right())
     }
+
+    #[inline]
+    pub fn align_values_right(&self) -> bool {
+        self.user
+            .align_values_right
+            .unwrap_or_else(|| self.user.config.layout.align_values_right())
+    }
 }

@@ -33,6 +33,7 @@ parameter_display_location = "Scopes"
 window_width = 1920
 window_height = 1080
 align_names_right = false
+align_values_right = true
 hierarchy_style = "Separate"
 waveforms_text_size = 11.0
 waveforms_line_height = 16.0

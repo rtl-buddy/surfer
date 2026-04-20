@@ -221,6 +221,8 @@ pub struct SurferLayout {
     pub window_width: usize,
     /// Align variable names right
     align_names_right: bool,
+    /// Align variable values right (shows LSBs when truncated)
+    align_values_right: bool,
     /// Set style of hierarchy
     hierarchy_style: HierarchyStyle,
     /// Text size in points for values in waves
@@ -287,6 +289,10 @@ impl SurferLayout {
     #[must_use]
     pub fn align_names_right(&self) -> bool {
         self.align_names_right
+    }
+    #[must_use]
+    pub fn align_values_right(&self) -> bool {
+        self.align_values_right
     }
     #[must_use]
     pub fn show_variable_indices(&self) -> bool {

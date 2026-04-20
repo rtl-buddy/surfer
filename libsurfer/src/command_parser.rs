@@ -315,6 +315,7 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
             "name_col_fit",
             "value_col_width",
             "value_col_fit",
+            "value_col_align",
             "zoom_range",
             "marker_set",
             "marker_remove",
@@ -857,6 +858,14 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                     Box::new(|word| {
                         let max_w = word.trim().parse::<f32>().ok();
                         Some(Command::Terminal(Message::FitValueCol(max_w)))
+                    }),
+                ),
+                "value_col_align" => single_word(
+                    vec!["left".to_string(), "right".to_string()],
+                    Box::new(|word| match word.trim() {
+                        "left" => Some(Command::Terminal(Message::SetValueAlignRight(false))),
+                        "right" => Some(Command::Terminal(Message::SetValueAlignRight(true))),
+                        _ => None,
                     }),
                 ),
                 "cursor_set" => single_word(

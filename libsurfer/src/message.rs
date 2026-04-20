@@ -127,6 +127,7 @@ pub enum Message {
     ForceVariableNameTypes(VariableNameType),
     /// Set or unset right alignment of names
     SetNameAlignRight(bool),
+    SetValueAlignRight(bool),
     SetClockHighlightType(ClockHighlightType),
     SetFillHighValues(bool),
     SetDinotraceStyle(bool),

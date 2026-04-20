@@ -148,17 +148,25 @@ Not all commands are available unless a file is loaded. Also, some commands are 
 
     Set the signal-name column to a fixed pixel width.
 
-* ``name_col_fit``
+* ``name_col_fit [MAX_PIXELS]``
 
-    Auto-size the signal-name column to fit the widest displayed name. Computed from font metrics at render time.
+    Auto-size the signal-name column to fit the widest displayed name. Computed from font metrics at render time. Optional ``MAX_PIXELS`` caps the result.
 
 * ``value_col_width <PIXELS>``
 
     Set the signal-value column to a fixed pixel width.
 
-* ``value_col_fit``
+* ``value_col_fit [MAX_PIXELS]``
 
-    Auto-size the signal-value column to fit the widest value currently shown at the cursor. Call after ``cursor_set`` so values are available.
+    Auto-size the signal-value column to fit the widest value currently shown at the cursor. Call after ``cursor_set`` so values are available. Optional ``MAX_PIXELS`` caps the result.
+
+* ``value_col_align <left|right>``
+
+    Align values left or right within the value column. Default is ``right`` (LSBs stay visible when the value is truncated). When truncated, a ``..`` indicator is shown on the clipped side.
+
+* ``waveform_text_size <POINTS>``
+
+    Set the waveform label font size in points. Default is ``11``. Takes effect immediately, so place before ``export_wave`` calls.
 
 ## Navigation
 

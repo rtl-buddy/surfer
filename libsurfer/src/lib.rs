@@ -2260,6 +2260,11 @@ impl SystemState {
                     // When height is omitted, do a two-pass render: first at a large canvas to
                     // measure the true rows_bottom, then at the exact needed height. This
                     // guarantees all signal rows are rendered without clipping.
+                    // Save fit flags: the probe render consumes them via .take(), so they
+                    // must be restored before the main render which uses a fresh egui context.
+                    let saved_fit_name = self.user.fit_name_col;
+                    let saved_fit_value = self.user.fit_value_col;
+
                     let h = if let Some(h) = height {
                         h as i32
                     } else {
@@ -2296,6 +2301,9 @@ impl SystemState {
                         };
                         exact
                     };
+                    // Restore fit flags so the main render (fresh egui context) also applies them.
+                    self.user.fit_name_col = saved_fit_name;
+                    self.user.fit_value_col = saved_fit_value;
                     let size = emath::Vec2::new(w as f32, h as f32);
                     let visuals = self.get_visuals();
                     let mut surface = create_surface((w, h));

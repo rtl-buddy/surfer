@@ -105,12 +105,12 @@ pub enum Message {
     SetScrollOffset(f32),
     /// Force the signal-name column to a specific pixel width.
     SetNameColWidth(f32),
-    /// Auto-fit the signal-name column to the widest displayed name.
-    FitNameCol,
+    /// Auto-fit the signal-name column to the widest displayed name; optional max-width cap in pixels.
+    FitNameCol(Option<f32>),
     /// Force the signal-value column to a specific pixel width.
     SetValueColWidth(f32),
-    /// Auto-fit the signal-value column to the widest displayed value.
-    FitValueCol,
+    /// Auto-fit the signal-value column to the widest displayed value; optional max-width cap in pixels.
+    FitValueCol(Option<f32>),
     /// Change format (translator) of a variable. Passing None as first element means all selected variables.
     VariableFormatChange(MessageTarget<DisplayedFieldRef>, String),
     ItemSelectionClear,

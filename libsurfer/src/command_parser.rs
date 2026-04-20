@@ -836,7 +836,13 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                             .map(|w| Command::Terminal(Message::SetNameColWidth(w)))
                     }),
                 ),
-                "name_col_fit" => Some(Command::Terminal(Message::FitNameCol)),
+                "name_col_fit" => optional_single_word(
+                    vec![],
+                    Box::new(|word| {
+                        let max_w = word.trim().parse::<f32>().ok();
+                        Some(Command::Terminal(Message::FitNameCol(max_w)))
+                    }),
+                ),
                 "value_col_width" => single_word(
                     vec![],
                     Box::new(|w_str| {
@@ -846,7 +852,13 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                             .map(|w| Command::Terminal(Message::SetValueColWidth(w)))
                     }),
                 ),
-                "value_col_fit" => Some(Command::Terminal(Message::FitValueCol)),
+                "value_col_fit" => optional_single_word(
+                    vec![],
+                    Box::new(|word| {
+                        let max_w = word.trim().parse::<f32>().ok();
+                        Some(Command::Terminal(Message::FitValueCol(max_w)))
+                    }),
+                ),
                 "cursor_set" => single_word(
                     vec![],
                     Box::new(|time_str| match time_str.parse() {

@@ -124,12 +124,24 @@ pub struct UserState {
     /// When true, auto-fit the signal-name column width on the next frame.
     #[serde(skip, default)]
     pub(crate) fit_name_col: bool,
+    /// Optional max-width cap for name_col_fit.
+    #[serde(skip, default)]
+    pub(crate) fit_name_col_max: Option<f32>,
+    /// Last computed name-column width; re-applied to every fresh egui context (e.g. export_wave).
+    #[serde(skip, default)]
+    pub(crate) cached_name_col_width: Option<f32>,
     /// Requested pixel width for the signal-value column (applied once, then cleared).
     #[serde(skip, default)]
     pub(crate) requested_value_col_width: Option<f32>,
     /// When true, auto-fit the signal-value column width on the next frame.
     #[serde(skip, default)]
     pub(crate) fit_value_col: bool,
+    /// Optional max-width cap for value_col_fit.
+    #[serde(skip, default)]
+    pub(crate) fit_value_col_max: Option<f32>,
+    /// Last computed value-column width; re-applied to every fresh egui context (e.g. export_wave).
+    #[serde(skip, default)]
+    pub(crate) cached_value_col_width: Option<f32>,
     /// UI zoom factor if set by the user
     pub(crate) ui_zoom_factor: Option<f32>,
     #[serde(default)]
@@ -241,8 +253,12 @@ impl Default for UserState {
             waveform_rows_bottom: None,
             requested_name_col_width: None,
             fit_name_col: false,
+            fit_name_col_max: None,
+            cached_name_col_width: None,
             requested_value_col_width: None,
             fit_value_col: false,
+            fit_value_col_max: None,
+            cached_value_col_width: None,
         }
     }
 }

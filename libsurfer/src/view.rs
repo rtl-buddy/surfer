@@ -454,11 +454,13 @@ impl SystemState {
                                 })
                             })
                             .fold(0.0_f32, f32::max);
-                        // Add padding for item margins and any icons.
-                        self.user.requested_name_col_width = Some(max_w + 24.0);
+                        let col_w = (max_w + 24.0)
+                            .min(self.user.fit_name_col_max.unwrap_or(f32::MAX));
+                        self.user.requested_name_col_width = Some(col_w);
                     }
                 }
                 if let Some(w) = self.user.requested_name_col_width.take() {
+                    self.user.cached_name_col_width = Some(w);
                     let panel_id = egui::Id::new("variable list");
                     ui.ctx().data_mut(|d| {
                         let rect = d
@@ -568,10 +570,13 @@ impl SystemState {
                                 })
                             })
                             .fold(0.0_f32, f32::max);
-                        self.user.requested_value_col_width = Some(max_w + 16.0);
+                        let col_w = (max_w + 16.0)
+                            .min(self.user.fit_value_col_max.unwrap_or(f32::MAX));
+                        self.user.requested_value_col_width = Some(col_w);
                     }
                 }
                 if let Some(w) = self.user.requested_value_col_width.take() {
+                    self.user.cached_value_col_width = Some(w);
                     let panel_id = egui::Id::new("variable values");
                     ui.ctx().data_mut(|d| {
                         let rect = d

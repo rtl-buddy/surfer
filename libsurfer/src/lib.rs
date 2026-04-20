@@ -526,14 +526,16 @@ impl SystemState {
             Message::SetNameColWidth(width) => {
                 self.user.requested_name_col_width = Some(width);
             }
-            Message::FitNameCol => {
+            Message::FitNameCol(max_w) => {
                 self.user.fit_name_col = true;
+                self.user.fit_name_col_max = max_w;
             }
             Message::SetValueColWidth(width) => {
                 self.user.requested_value_col_width = Some(width);
             }
-            Message::FitValueCol => {
+            Message::FitValueCol(max_w) => {
                 self.user.fit_value_col = true;
+                self.user.fit_value_col_max = max_w;
             }
             Message::SetLogsVisible(visibility) => self.user.show_logs = visibility,
             Message::SetFrameBufferVariable(variable_ref) => {
@@ -2265,6 +2267,16 @@ impl SystemState {
                     let saved_fit_name = self.user.fit_name_col;
                     let saved_fit_value = self.user.fit_value_col;
 
+                    // Each export_wave creates a fresh egui context with no persisted panel
+                    // state. If fit flags are false (e.g. second/third export in the same cmd
+                    // file), re-apply the cached widths so columns don't revert to 100 px.
+                    if !self.user.fit_name_col {
+                        self.user.requested_name_col_width = self.user.cached_name_col_width;
+                    }
+                    if !self.user.fit_value_col {
+                        self.user.requested_value_col_width = self.user.cached_value_col_width;
+                    }
+
                     let h = if let Some(h) = height {
                         h as i32
                     } else {
@@ -2304,6 +2316,13 @@ impl SystemState {
                     // Restore fit flags so the main render (fresh egui context) also applies them.
                     self.user.fit_name_col = saved_fit_name;
                     self.user.fit_value_col = saved_fit_value;
+                    // Re-apply cached widths for the main render's fresh context (same reason as above).
+                    if !self.user.fit_name_col {
+                        self.user.requested_name_col_width = self.user.cached_name_col_width;
+                    }
+                    if !self.user.fit_value_col {
+                        self.user.requested_value_col_width = self.user.cached_value_col_width;
+                    }
                     let size = emath::Vec2::new(w as f32, h as f32);
                     let visuals = self.get_visuals();
                     let mut surface = create_surface((w, h));

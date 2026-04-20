@@ -1676,9 +1676,9 @@ impl SystemState {
                                 right_align,
                             );
                             let layout = if right_align {
-                                Layout::right_to_left(Align::Center)
+                                Layout::right_to_left(Align::TOP)
                             } else {
-                                Layout::left_to_right(Align::Center)
+                                Layout::left_to_right(Align::TOP)
                             };
                             ui.with_layout(layout, |ui| {
                                 ui.label(

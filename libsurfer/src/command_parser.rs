@@ -316,6 +316,7 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
             "value_col_width",
             "value_col_fit",
             "value_col_align",
+            "waveform_text_size",
             "zoom_range",
             "marker_set",
             "marker_remove",
@@ -858,6 +859,15 @@ pub(crate) fn get_parser(state: &SystemState) -> Command<Message> {
                     Box::new(|word| {
                         let max_w = word.trim().parse::<f32>().ok();
                         Some(Command::Terminal(Message::FitValueCol(max_w)))
+                    }),
+                ),
+                "waveform_text_size" => single_word(
+                    vec![],
+                    Box::new(|s| {
+                        s.trim()
+                            .parse::<f32>()
+                            .ok()
+                            .map(|v| Command::Terminal(Message::SetWaveformTextSize(v)))
                     }),
                 ),
                 "value_col_align" => single_word(

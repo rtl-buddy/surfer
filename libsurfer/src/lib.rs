@@ -434,6 +434,9 @@ impl SystemState {
             Message::SetValueAlignRight(align_right) => {
                 self.user.align_values_right = Some(align_right);
             }
+            Message::SetWaveformTextSize(size) => {
+                self.user.config.layout.waveforms_text_size = size;
+            }
             Message::FocusItem(idx) => {
                 let waves = self.user.waves.as_mut()?;
 

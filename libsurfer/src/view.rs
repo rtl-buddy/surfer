@@ -1606,8 +1606,12 @@ impl SystemState {
             .get(&egui::TextStyle::Monospace)
             .cloned()
             .unwrap_or_default();
-        // Horizontal budget for value text: panel width minus item spacing on both sides.
-        let text_budget = (canvas_width - ui.spacing().item_spacing.x * 2.0).max(0.0);
+        // Width of one monospace character — used for the 1-char margin on the anchor side.
+        let value_char_width = ui.fonts_mut(|f| {
+            f.layout_no_wrap("0".to_string(), value_font_id.clone(), egui::Color32::BLACK)
+                .size()
+                .x
+        });
         let container_rect = Rect::from_min_size(Pos2::ZERO, rect.size());
         let to_screen = RectTransform::from_to(container_rect, rect);
         let cfg = DrawConfig::new(
@@ -1668,19 +1672,22 @@ impl SystemState {
                             ucursor.as_ref(),
                         );
                         if let Some(v) = v {
-                            let display_v = truncate_value(
-                                ui,
-                                &v,
-                                text_budget,
-                                &value_font_id,
-                                right_align,
-                            );
                             let layout = if right_align {
                                 Layout::right_to_left(Align::TOP)
                             } else {
                                 Layout::left_to_right(Align::TOP)
                             };
                             ui.with_layout(layout, |ui| {
+                                // Consume 1-char margin on the anchor side before the label.
+                                // In right_to_left this eats from the right; in left_to_right from the left.
+                                ui.add_space(value_char_width);
+                                let display_v = truncate_value(
+                                    ui,
+                                    &v,
+                                    ui.available_width(),
+                                    &value_font_id,
+                                    right_align,
+                                );
                                 ui.label(
                                     RichText::new(display_v)
                                         .color(self.user.config.theme.get_best_text_color(

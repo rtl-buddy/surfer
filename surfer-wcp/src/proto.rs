@@ -44,6 +44,7 @@ pub enum WcpResponse {
 pub enum WcpEvent {
     waveforms_loaded { source: String },
     goto_declaration { variable: String, timestamp: Option<u64> },
+    cursor_moved { timestamp: u64 },
     add_drivers { variable: String },
     add_loads { variable: String },
 }

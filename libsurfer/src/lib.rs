@@ -92,7 +92,7 @@ use ftr_parser::types::Transaction;
 use futures::executor::block_on;
 use itertools::Itertools;
 use message::MessageTarget;
-use num::BigInt;
+use num::{BigInt, ToPrimitive};
 use serde::Deserialize;
 use surfer_translation_types::Translator;
 use surfer_wcp::{WcpCSMessage, WcpEvent, WcpSCMessage};
@@ -1132,6 +1132,13 @@ impl SystemState {
             }
             Message::CursorSet(time) => {
                 let waves = self.user.waves.as_mut()?;
+                if let Some(ts) = time.to_u64() {
+                    self.channels.wcp_s2c_sender.as_ref().map(|ch| {
+                        block_on(ch.send(WcpSCMessage::event(WcpEvent::cursor_moved {
+                            timestamp: ts,
+                        })))
+                    });
+                }
                 waves.cursor = Some(time);
             }
             Message::ExpandParameterSection => {

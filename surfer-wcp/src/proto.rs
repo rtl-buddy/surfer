@@ -45,6 +45,7 @@ pub enum WcpEvent {
     waveforms_loaded { source: String },
     goto_declaration { variable: String, timestamp: Option<u64> },
     cursor_moved { timestamp: u64 },
+    scope_changed { scope: String },
     add_drivers { variable: String },
     add_loads { variable: String },
 }

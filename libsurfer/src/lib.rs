@@ -322,6 +322,17 @@ struct CanvasState {
 }
 
 impl SystemState {
+    /// Return the parent scope path of the variable at `vidx`, or None if not a variable.
+    fn scope_from_vidx(waves: &crate::wave_data::WaveData, vidx: crate::displayed_item_tree::VisibleItemIndex) -> Option<String> {
+        let node = waves.items_tree.get_visible(vidx)?;
+        let item = waves.displayed_items.get(&node.item_ref)?;
+        let path = match item {
+            DisplayedItem::Variable(v) => v.variable_ref.full_path_string_no_index(),
+            _ => return None,
+        };
+        path.rsplit_once('.').map(|(scope, _)| scope.to_string())
+    }
+
     pub fn update(&mut self, message: Message) -> Option<()> {
         if tracing::enabled!(tracing::Level::TRACE)
             && !matches!(message, Message::CommandPromptUpdate { .. })
@@ -443,6 +454,13 @@ impl SystemState {
                 let visible_items_len = waves.displayed_items.len();
                 if idx.0 < visible_items_len {
                     waves.focused_item = Some(idx);
+                    if let Some(scope) = Self::scope_from_vidx(waves, idx) {
+                        self.channels.wcp_s2c_sender.as_ref().map(|ch| {
+                            block_on(
+                                ch.send(WcpSCMessage::event(WcpEvent::scope_changed { scope })),
+                            )
+                        });
+                    }
                 } else {
                     error!(
                         "Can not focus variable {} because only {visible_items_len} variables are visible.",
@@ -506,6 +524,13 @@ impl SystemState {
                     waves.items_tree.xselect(new_focus_vidx, true);
                 }
                 waves.focused_item = Some(new_focus_vidx);
+                if let Some(scope) = Self::scope_from_vidx(waves, new_focus_vidx) {
+                    self.channels.wcp_s2c_sender.as_ref().map(|ch| {
+                        block_on(
+                            ch.send(WcpSCMessage::event(WcpEvent::scope_changed { scope })),
+                        )
+                    });
+                }
             }
             Message::FocusTransaction(tx_ref, tx) => {
                 if let Some(tx_ref) = tx_ref.as_ref()

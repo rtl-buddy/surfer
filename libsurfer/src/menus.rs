@@ -3,6 +3,7 @@ use egui::containers::menu::{MenuConfig, SubMenuButton};
 use egui::{Button, Panel, PopupCloseBehavior, TextWrapMode, Ui};
 use eyre::WrapErr as _;
 use futures::executor::block_on;
+use num::ToPrimitive;
 use itertools::Itertools;
 use std::sync::atomic::Ordering;
 use surfer_translation_types::{TranslationPreference, Translator};
@@ -617,9 +618,13 @@ impl SystemState {
                     && ui.button("Go to declaration").clicked()
                 {
                     let variable = variable.variable_ref.full_path_string_no_index();
+                    let timestamp = waves.cursor.as_ref().and_then(|t| t.to_u64());
                     self.channels.wcp_s2c_sender.as_ref().map(|ch| {
                         block_on(
-                            ch.send(WcpSCMessage::event(WcpEvent::goto_declaration { variable })),
+                            ch.send(WcpSCMessage::event(WcpEvent::goto_declaration {
+                                variable,
+                                timestamp,
+                            })),
                         )
                     });
                 }

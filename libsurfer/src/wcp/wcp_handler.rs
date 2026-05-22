@@ -124,10 +124,24 @@ impl SystemState {
                             self.save_current_canvas(format!("Add {} variables", variables.len()));
                         }
                         if let Some(waves) = self.user.waves.as_mut() {
-                            let variable_refs = variables
-                                .iter()
-                                .map(|n| VariableRef::from_hierarchy_string(n))
-                                .collect_vec();
+                            // Resolve every requested path up front so we can
+                            // report which inputs didn't match a variable in the
+                            // currently-loaded waveform. add_variables itself
+                            // silently drops unresolved refs, which makes the
+                            // empty-ids response indistinguishable from "all
+                            // paths bogus" for any external driver (WCP CLI,
+                            // rtl-buddy hub bridge, etc.).
+                            let wave_cont = waves.inner.as_waves().unwrap();
+                            let mut not_found: Vec<String> = Vec::new();
+                            let mut variable_refs: Vec<VariableRef> = Vec::new();
+                            for name in variables {
+                                let vref = VariableRef::from_hierarchy_string(name);
+                                if wave_cont.variable_meta(&vref).is_ok() {
+                                    variable_refs.push(vref);
+                                } else {
+                                    not_found.push(name.clone());
+                                }
+                            }
                             let (cmd, ids) = waves.add_variables(
                                 &self.translators,
                                 variable_refs,
@@ -141,6 +155,7 @@ impl SystemState {
                             }
                             self.send_response(WcpResponse::add_variables {
                                 ids: ids.into_iter().map(std::convert::Into::into).collect_vec(),
+                                not_found,
                             });
                             self.invalidate_draw_commands();
                         } else {
@@ -155,8 +170,19 @@ impl SystemState {
                         if self.user.waves.is_some() {
                             self.save_current_canvas(format!("Add scope {scope}"));
                         }
-                        let scope = ScopeRef::from_hierarchy_string(scope);
-                        let variables = self.get_scope(scope, *recursive);
+                        let scope_str = scope.clone();
+                        let scope_ref = ScopeRef::from_hierarchy_string(scope);
+                        // A scope that doesn't exist at all is a clear user
+                        // error; an existing-but-empty scope returns
+                        // not_found=[] (caller asked for nothing and got
+                        // nothing, which is fine).
+                        let mut not_found: Vec<String> = Vec::new();
+                        if let Some(waves) = self.user.waves.as_ref() {
+                            if !waves.inner.as_waves().unwrap().scope_exists(&scope_ref) {
+                                not_found.push(scope_str);
+                            }
+                        }
+                        let variables = self.get_scope(scope_ref, *recursive);
                         if let Some(waves) = self.user.waves.as_mut() {
                             let (cmd, ids) = waves.add_variables(
                                 &self.translators,
@@ -171,6 +197,7 @@ impl SystemState {
                             }
                             self.send_response(WcpResponse::add_scope {
                                 ids: ids.into_iter().map(std::convert::Into::into).collect_vec(),
+                                not_found,
                             });
                             self.invalidate_draw_commands();
                         } else {
@@ -182,11 +209,33 @@ impl SystemState {
                             self.save_current_canvas(format!("Add {} items", items.len()));
                         }
 
+                        // Each input item is treated as either a variable OR a
+                        // scope (the existing handler tries both). A path that
+                        // matches neither is reported in not_found so callers
+                        // can distinguish "no matches" from "got something".
+                        let mut not_found: Vec<String> = Vec::new();
                         let mut variables: Vec<VariableRef> = Vec::new();
                         for item in items {
                             let variable_ref = VariableRef::from_hierarchy_string(item);
                             let scope = ScopeRef::from_hierarchy_string(item);
-                            let scope_variables = self.get_scope(scope, *recursive);
+                            let scope_variables = self.get_scope(scope.clone(), *recursive);
+                            let var_ok = self
+                                .user
+                                .waves
+                                .as_ref()
+                                .and_then(|w| {
+                                    w.inner.as_waves().unwrap().variable_meta(&variable_ref).ok()
+                                })
+                                .is_some();
+                            let scope_ok = self
+                                .user
+                                .waves
+                                .as_ref()
+                                .map(|w| w.inner.as_waves().unwrap().scope_exists(&scope))
+                                .unwrap_or(false);
+                            if !var_ok && !scope_ok {
+                                not_found.push(item.clone());
+                            }
                             variables.push(variable_ref);
                             variables.extend(scope_variables);
                         }
@@ -205,6 +254,7 @@ impl SystemState {
                             }
                             self.send_response(WcpResponse::add_items {
                                 ids: ids.into_iter().map(std::convert::Into::into).collect_vec(),
+                                not_found,
                             });
                             self.invalidate_draw_commands();
                         } else {

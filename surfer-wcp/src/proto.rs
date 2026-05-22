@@ -31,9 +31,21 @@ pub struct ItemInfo {
 pub enum WcpResponse {
     get_item_list { ids: Vec<DisplayedItemRef> },
     get_item_info { results: Vec<ItemInfo> },
-    add_items { ids: Vec<DisplayedItemRef> },
-    add_variables { ids: Vec<DisplayedItemRef> },
-    add_scope { ids: Vec<DisplayedItemRef> },
+    add_items {
+        ids: Vec<DisplayedItemRef>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        not_found: Vec<String>,
+    },
+    add_variables {
+        ids: Vec<DisplayedItemRef>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        not_found: Vec<String>,
+    },
+    add_scope {
+        ids: Vec<DisplayedItemRef>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        not_found: Vec<String>,
+    },
     add_markers { ids: Vec<DisplayedItemRef> },
     ack,
 }

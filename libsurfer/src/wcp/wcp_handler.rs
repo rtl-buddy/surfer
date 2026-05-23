@@ -2,6 +2,7 @@ use crate::{
     SystemState, WcpClientCapabilities,
     displayed_item::{DisplayedItem, DisplayedItemRef},
     message::{Message, MessageTarget},
+    time::TimeUnit,
     wave_container::{ScopeRefExt, VariableRef, VariableRefExt},
     wave_data::WaveData,
     wave_source::{LoadOptions, WaveSource, string_to_wavesource},
@@ -9,11 +10,14 @@ use crate::{
 
 use futures::executor::block_on;
 use itertools::Itertools;
+use num::BigInt;
 use std::sync::atomic::Ordering;
 use surfer_translation_types::ScopeRef;
 use tracing::{trace, warn};
 
-use surfer_wcp::{ItemInfo, MarkerInfo, WcpCSMessage, WcpCommand, WcpResponse, WcpSCMessage};
+use surfer_wcp::{
+    ItemInfo, MarkerInfo, WcpCSMessage, WcpCommand, WcpResponse, WcpSCMessage, WcpTimeUnit,
+};
 
 impl SystemState {
     pub fn handle_wcp_commands(&mut self) {
@@ -294,14 +298,42 @@ impl SystemState {
                         self.update(Message::ReloadWaveform(false));
                         self.send_response(WcpResponse::ack);
                     }
-                    WcpCommand::set_viewport_to { timestamp } => {
-                        self.update(Message::GoToTime(Some(timestamp.clone()), 0));
+                    WcpCommand::set_viewport_to {
+                        timestamp,
+                        time_unit,
+                    } => {
+                        let native = match self.wcp_to_native_ticks(timestamp, *time_unit) {
+                            Ok(v) => v,
+                            Err(msg) => {
+                                self.send_error("set_viewport_to", vec![], &msg);
+                                return;
+                            }
+                        };
+                        self.update(Message::GoToTime(Some(native), 0));
                         self.send_response(WcpResponse::ack);
                     }
-                    WcpCommand::set_viewport_range { start, end } => {
+                    WcpCommand::set_viewport_range {
+                        start,
+                        end,
+                        time_unit,
+                    } => {
+                        let native_start = match self.wcp_to_native_ticks(start, *time_unit) {
+                            Ok(v) => v,
+                            Err(msg) => {
+                                self.send_error("set_viewport_range", vec![], &msg);
+                                return;
+                            }
+                        };
+                        let native_end = match self.wcp_to_native_ticks(end, *time_unit) {
+                            Ok(v) => v,
+                            Err(msg) => {
+                                self.send_error("set_viewport_range", vec![], &msg);
+                                return;
+                            }
+                        };
                         self.update(Message::ZoomToRange {
-                            start: start.clone(),
-                            end: end.clone(),
+                            start: native_start,
+                            end: native_end,
                             viewport_idx: 0,
                         });
                         self.send_response(WcpResponse::ack);
@@ -394,8 +426,18 @@ impl SystemState {
                         });
                         self.send_response(WcpResponse::ack);
                     }
-                    WcpCommand::set_cursor { timestamp } => {
-                        self.update(Message::CursorSet(timestamp.to_owned()));
+                    WcpCommand::set_cursor {
+                        timestamp,
+                        time_unit,
+                    } => {
+                        let native = match self.wcp_to_native_ticks(timestamp, *time_unit) {
+                            Ok(v) => v,
+                            Err(msg) => {
+                                self.send_error("set_cursor", vec![], &msg);
+                                return;
+                            }
+                        };
+                        self.update(Message::CursorSet(native));
                         self.send_response(WcpResponse::ack);
                     }
                     WcpCommand::shutdown => {
@@ -487,5 +529,60 @@ impl SystemState {
             .iter_visible()
             .map(|node| node.item_ref)
             .collect_vec()
+    }
+
+    /// Convert a WCP timestamp into the loaded waveform's native tick units.
+    ///
+    /// When `unit` is `None`, the value is already in native ticks (the
+    /// historical pre-`time_unit` behaviour) and is returned unchanged. When
+    /// `unit` is set, surfer reads the loaded waveform's timescale and
+    /// rescales the value with integer arithmetic — division truncates, so
+    /// callers asking for sub-tick precision get round-toward-zero.
+    ///
+    /// Errors when no waveform is loaded or when the loaded waveform's
+    /// timescale is `Unknown` / `Auto` (a unit-bearing request can't be
+    /// honored without a known native unit on this end).
+    fn wcp_to_native_ticks(
+        &self,
+        value: &BigInt,
+        unit: Option<WcpTimeUnit>,
+    ) -> Result<BigInt, String> {
+        let Some(unit) = unit else {
+            return Ok(value.clone());
+        };
+        let Some(waves) = self.user.waves.as_ref() else {
+            return Err("no waveform loaded; can't honor time_unit".to_string());
+        };
+        let timescale = waves.inner.metadata().timescale;
+        // Match libsurfer's TimeUnit to a power-of-ten exponent. None / Auto
+        // mean the loaded format didn't declare a unit (e.g. unit-less VCD)
+        // so we can't honor a unit-bearing WCP request.
+        let ts_exp: i32 = match timescale.unit {
+            TimeUnit::ZeptoSeconds => -21,
+            TimeUnit::AttoSeconds => -18,
+            TimeUnit::FemtoSeconds => -15,
+            TimeUnit::PicoSeconds => -12,
+            TimeUnit::NanoSeconds => -9,
+            TimeUnit::MicroSeconds => -6,
+            TimeUnit::MilliSeconds => -3,
+            TimeUnit::Seconds => 0,
+            TimeUnit::None | TimeUnit::Auto => {
+                return Err(
+                    "loaded waveform has no declared timescale; can't honor time_unit".to_string(),
+                );
+            }
+        };
+        let multiplier = BigInt::from(timescale.multiplier.unwrap_or(1).max(1));
+        let from_exp = unit.exponent();
+        let diff = from_exp - ts_exp;
+        let ten = BigInt::from(10);
+        // native = value × 10^diff / multiplier
+        if diff >= 0 {
+            let factor = ten.pow(diff as u32);
+            Ok(value * factor / multiplier)
+        } else {
+            let divisor = ten.pow((-diff) as u32) * multiplier;
+            Ok(value / divisor)
+        }
     }
 }

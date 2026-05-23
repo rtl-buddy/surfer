@@ -106,6 +106,41 @@ pub struct MarkerInfo {
     pub move_focus: bool,
 }
 
+/// Unit attached to a `timestamp` / `start` / `end` value on the
+/// timestamp-bearing WCP commands. When omitted the integer is interpreted in
+/// the loaded waveform's native time unit (the historical behaviour). When
+/// set, surfer converts the value to native ticks before applying it.
+///
+/// Drivers that don't know the FST's timescale (the rtl-buddy hub bridge, a
+/// scripted CLI, etc.) can send `"fs"` and stop guessing.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+#[allow(non_camel_case_types)]
+pub enum WcpTimeUnit {
+    fs,
+    ps,
+    ns,
+    us,
+    ms,
+    s,
+}
+
+impl WcpTimeUnit {
+    /// Power-of-ten exponent of this unit relative to seconds.
+    /// e.g. `fs` → `-15`, `ns` → `-9`, `s` → `0`.
+    #[must_use]
+    pub fn exponent(self) -> i32 {
+        match self {
+            WcpTimeUnit::fs => -15,
+            WcpTimeUnit::ps => -12,
+            WcpTimeUnit::ns => -9,
+            WcpTimeUnit::us => -6,
+            WcpTimeUnit::ms => -3,
+            WcpTimeUnit::s => 0,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(tag = "command")]
 #[allow(non_camel_case_types)]
@@ -161,18 +196,30 @@ pub enum WcpCommand {
     /// Moves the viewport to center it on the specified timestamp. Does not affect the zoom
     /// level.
     /// Responds with [`WcpResponse::ack`]
+    ///
+    /// When `time_unit` is set, surfer converts `timestamp` from that unit to
+    /// the loaded waveform's native ticks before applying. When omitted,
+    /// the integer is treated as native ticks (historical behaviour).
     set_viewport_to {
         #[serde(deserialize_with = "deserialize_timestamp")]
         timestamp: BigInt,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        time_unit: Option<WcpTimeUnit>,
     },
     /// Moves the viewport to center it on the specified timestamps range. Does affect the zoom
     /// level.
     /// Responds with [`WcpResponse::ack`]
+    ///
+    /// When `time_unit` is set, surfer converts both `start` and `end` from
+    /// that unit to native ticks before applying. When omitted, the integers
+    /// are treated as native ticks (historical behaviour).
     set_viewport_range {
         #[serde(deserialize_with = "deserialize_timestamp")]
         start: BigInt,
         #[serde(deserialize_with = "deserialize_timestamp")]
         end: BigInt,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        time_unit: Option<WcpTimeUnit>,
     },
     /// Removes the specified items from the view.
     /// Responds with [`WcpResponse::ack`]
@@ -197,9 +244,15 @@ pub enum WcpCommand {
     zoom_to_fit { viewport_idx: usize },
     /// Set the cursor to the given time.
     /// Responds instantly with [`WcpResponse::ack`]
+    ///
+    /// When `time_unit` is set, surfer converts `timestamp` from that unit to
+    /// native ticks before applying. When omitted, the integer is treated as
+    /// native ticks (historical behaviour).
     set_cursor {
         #[serde(deserialize_with = "deserialize_timestamp")]
         timestamp: BigInt,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        time_unit: Option<WcpTimeUnit>,
     },
     /// Shut down the WCP server.
     // FIXME: What does this mean? Does it kill the server, the current connection or surfer itself?

@@ -371,6 +371,9 @@ wcp_test! {
         send_commands(&tx, vec![
             WcpCommand::focus_item { id: refs[1] }
         ]).await?;
+        // focus_item on a Variable emits scope_changed before ack
+        // (added in adf9f89 / #rtl-buddy-52).
+        expect_response!(rx, WcpSCMessage::event(WcpEvent::scope_changed { scope: _ }));
         expect_ack(&mut rx).await
     }
 }

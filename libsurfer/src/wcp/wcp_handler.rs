@@ -4,7 +4,7 @@ use crate::{
     message::{Message, MessageTarget},
     time::TimeUnit,
     wave_container::{ScopeRefExt, VariableRef, VariableRefExt},
-    wave_data::WaveData,
+    wave_data::{ScopeType, WaveData},
     wave_source::{LoadOptions, WaveSource, string_to_wavesource},
 };
 
@@ -207,6 +207,33 @@ impl SystemState {
                         } else {
                             self.send_error("scope_add", vec![], "No waveform loaded");
                         }
+                    }
+                    WcpCommand::set_scope { scope } => {
+                        let Some(waves) = self.user.waves.as_ref() else {
+                            self.send_error("set_scope", vec![], "No waveform loaded");
+                            return;
+                        };
+                        let scope_ref = ScopeRef::from_hierarchy_string(scope);
+                        let Some(wave_container) = waves.inner.as_waves() else {
+                            self.send_error(
+                                "set_scope",
+                                vec![scope.clone()],
+                                "set_scope is only supported for waveform containers",
+                            );
+                            return;
+                        };
+                        if !wave_container.scope_exists(&scope_ref) {
+                            self.send_error(
+                                "set_scope",
+                                vec![scope.clone()],
+                                &format!("scope {scope:?} does not exist"),
+                            );
+                            return;
+                        }
+                        self.update(Message::SetActiveScope(Some(ScopeType::WaveScope(
+                            scope_ref,
+                        ))));
+                        self.send_response(WcpResponse::ack);
                     }
                     WcpCommand::add_items { items, recursive } => {
                         if self.user.waves.is_some() {
@@ -481,6 +508,7 @@ impl SystemState {
             "cursor_set",
             "reload",
             "add_scope",
+            "set_scope",
             "add_items",
             "get_item_list",
             "set_item_color",

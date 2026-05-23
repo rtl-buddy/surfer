@@ -5,7 +5,7 @@ use crate::message::Message;
 use crate::tests::snapshot::render_and_compare;
 use itertools::Itertools;
 use surfer_wcp::{
-    MarkerInfo, WcpCSMessage, WcpCommand, WcpEvent, WcpResponse, WcpSCMessage, proto,
+    MarkerInfo, WcpCSMessage, WcpCommand, WcpEvent, WcpResponse, WcpSCMessage, WcpTimeUnit, proto,
 };
 
 use eyre::Result;
@@ -220,9 +220,7 @@ wcp_test! {
                 "tb.reset"
             ].into_iter().map(str::to_string).collect(), recursive: false
         })).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{
-            ids: indices
-        }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: indices, not_found: _ }));
 
         dbg!(&indices);
         assert_eq!(indices.len(), 4);
@@ -246,7 +244,7 @@ wcp_test! {
 
         tx.send(WcpCSMessage::command(
             proto::WcpCommand::add_items{items: vec!["tb"].into_iter().map(str::to_string).collect(), recursive: false})).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: indices }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: indices, not_found: _ }));
 
         assert_eq!(indices.len(), 4);
 
@@ -269,7 +267,7 @@ wcp_test! {
 
         tx.send(WcpCSMessage::command(
             proto::WcpCommand::add_items{items: vec!["tb"].into_iter().map(str::to_string).collect(), recursive: true})).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: indices }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: indices, not_found: _ }));
 
         assert_eq!(indices.len(), 8);
 
@@ -292,7 +290,7 @@ wcp_test! {
 
         tx.send(WcpCSMessage::command(
             proto::WcpCommand::add_items{items: vec!["tb", "tb.dut.counter"].into_iter().map(str::to_string).collect(), recursive: false})).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: indices }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: indices, not_found: _ }));
 
         assert_eq!(indices.len(), 5);
         Ok(())
@@ -308,7 +306,7 @@ wcp_test! {
             WcpCommand::add_scope {scope: "tb".to_string(), recursive: false},
             WcpCommand::add_markers { markers: vec![MarkerInfo { time: BigInt::from(100), name: Some("marker".into()), move_focus: false }] },
         ]).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_scope{ ids: _ }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_scope{ ids: _, not_found: _ }));
         expect_response!(rx, WcpSCMessage::response(WcpResponse::add_markers{ ids: _ }));
         Ok(())
     }
@@ -329,7 +327,7 @@ wcp_test! {
             recursive: false
         })).await?;
 
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: refs }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: refs, not_found: _ }));
 
         for (i, c) in [(1, "Gray"), (2, "Yellow"), (3, "Blue")] {
             tx.send(WcpCSMessage::command(
@@ -349,7 +347,7 @@ wcp_test! {
 
         tx.send(WcpCSMessage::command(
             proto::WcpCommand::add_items{items: vec!["tb"].into_iter().map(str::to_string).collect(), recursive: false})).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: refs }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: refs, not_found: _ }));
 
         send_commands(&tx, vec![
             WcpCommand::remove_items { ids: vec![refs[1], refs[2]] }
@@ -368,11 +366,14 @@ wcp_test! {
 
         tx.send(WcpCSMessage::command(
             proto::WcpCommand::add_items{items: vec!["tb"].into_iter().map(str::to_string).collect(), recursive: false})).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: refs }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: refs, not_found: _ }));
 
         send_commands(&tx, vec![
             WcpCommand::focus_item { id: refs[1] }
         ]).await?;
+        // focus_item on a Variable emits scope_changed before ack
+        // (added in adf9f89 / #rtl-buddy-52).
+        expect_response!(rx, WcpSCMessage::event(WcpEvent::scope_changed { scope: _ }));
         expect_ack(&mut rx).await
     }
 }
@@ -386,7 +387,7 @@ wcp_test! {
             WcpCommand::add_items{items: vec!["tb"].into_iter().map(str::to_string).collect(), recursive: false},
             WcpCommand::clear,
         ]).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: _ }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: _, not_found: _ }));
         expect_ack(&mut rx).await
     }
 }
@@ -398,9 +399,9 @@ wcp_test! {
 
         send_commands(&tx, vec![
             WcpCommand::add_items{items: vec!["tb"].into_iter().map(str::to_string).collect(), recursive: false},
-            WcpCommand::set_viewport_to { timestamp: BigInt::from(70) },
+            WcpCommand::set_viewport_to { timestamp: BigInt::from(70), time_unit: None },
         ]).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: _ }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: _, not_found: _ }));
         expect_ack(&mut rx).await?;
         Ok(())
     }
@@ -413,9 +414,9 @@ wcp_test! {
 
         send_commands(&tx, vec![
             WcpCommand::add_scope {scope: "tb".to_string(), recursive: false},
-            WcpCommand::set_viewport_range { start: BigInt::from(70), end: BigInt::from(120) },
+            WcpCommand::set_viewport_range { start: BigInt::from(70), end: BigInt::from(120), time_unit: None },
         ]).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_scope{ ids: _ }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_scope{ ids: _, not_found: _ }));
         expect_ack(&mut rx).await?;
         Ok(())
     }
@@ -428,13 +429,52 @@ wcp_test! {
 
         send_commands(&tx, vec![
             WcpCommand::add_items{items: vec!["tb"].into_iter().map(str::to_string).collect(), recursive: false},
-            WcpCommand::set_viewport_to { timestamp: BigInt::from(70) },
+            WcpCommand::set_viewport_to { timestamp: BigInt::from(70), time_unit: None },
             WcpCommand::zoom_to_fit { viewport_idx: 0 }
         ]).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: _ }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: _, not_found: _ }));
         expect_ack(&mut rx).await?;
         expect_ack(&mut rx).await?;
 
+        Ok(())
+    }
+}
+
+wcp_test! {
+    // Smoke test for time_unit conversion: events.vcd's `$timescale 1ps`,
+    // so 1 native tick = 1 ps = 1000 fs. Send the viewport-range commands
+    // in three different units (native ticks, fs, ns) and expect surfer to
+    // ack all three — actual rescaling correctness is covered by the unit
+    // helper's behaviour; the test here just confirms the end-to-end pipe.
+    set_viewport_with_time_unit,
+    (tx, rx) {
+        load_file(&tx, &mut rx, "../examples/events.vcd").await?;
+
+        send_commands(&tx, vec![
+            WcpCommand::add_scope { scope: "logic".to_string(), recursive: false },
+            // 100 native ticks (= 100 ps)
+            WcpCommand::set_viewport_range {
+                start: BigInt::from(0),
+                end: BigInt::from(100),
+                time_unit: None,
+            },
+            // 100_000 fs (= 100 ps = same target)
+            WcpCommand::set_viewport_range {
+                start: BigInt::from(0),
+                end: BigInt::from(100_000),
+                time_unit: Some(WcpTimeUnit::fs),
+            },
+            // 100 ns (= 100_000 ps; well past the trace, but surfer still
+            // acks — clamping is a viewport concern, not a unit concern).
+            WcpCommand::set_viewport_to {
+                timestamp: BigInt::from(100),
+                time_unit: Some(WcpTimeUnit::ns),
+            },
+        ]).await?;
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_scope{ ids: _, not_found: _ }));
+        expect_ack(&mut rx).await?;
+        expect_ack(&mut rx).await?;
+        expect_ack(&mut rx).await?;
         Ok(())
     }
 }
@@ -447,7 +487,7 @@ wcp_test! {
         send_commands(&tx, vec![
             WcpCommand::add_items{items: vec!["tb"].into_iter().map(str::to_string).collect(), recursive: false},
         ]).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: items }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: items, not_found: _ }));
 
         send_commands(&tx, vec![
             WcpCommand::get_item_info { ids: items }
@@ -486,7 +526,7 @@ wcp_test! {
         send_commands(&tx, vec![
             WcpCommand::add_items{items: vec!["tb"].into_iter().map(str::to_string).collect(), recursive: false},
         ]).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: _ }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_items{ ids: _, not_found: _ }));
 
         send_commands(&tx, vec![
             WcpCommand::get_item_info { ids: vec![proto::DisplayedItemRef(usize::MAX)] }
@@ -528,9 +568,7 @@ wcp_test! {
                 "tb.reset"
             ].into_iter().map(str::to_string).collect()
         })).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_variables{
-            ids: indices
-        }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_variables{ ids: indices, not_found: _ }));
 
         assert_eq!(indices.len(), 4);
 
@@ -553,7 +591,7 @@ wcp_test! {
 
         tx.send(WcpCSMessage::command(
             proto::WcpCommand::add_scope {scope: "tb".to_string(), recursive: false})).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_scope{ ids: indices }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_scope{ ids: indices, not_found: _ }));
 
         assert_eq!(indices.len(), 4);
 
@@ -576,7 +614,7 @@ wcp_test! {
 
         tx.send(WcpCSMessage::command(
             proto::WcpCommand::add_scope {scope: "tb".to_string(), recursive: true})).await?;
-        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_scope{ ids: indices }));
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_scope{ ids: indices, not_found: _ }));
 
         assert_eq!(indices.len(), 8);
 

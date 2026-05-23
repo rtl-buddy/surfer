@@ -113,3 +113,7 @@ image-compare.workspace = true
 port_check.workspace = true
 project-root.workspace = true
 test-log.workspace = true
+# Inline `#[cfg(test)] fn ... tokio::runtime::Runtime::new()` in
+# `remote/client.rs` needs the rt feature; the main `tokio` dep only
+# enables `macros`.
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }

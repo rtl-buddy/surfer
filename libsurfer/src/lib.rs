@@ -66,6 +66,7 @@ pub mod wave_source;
 pub mod wcp;
 pub mod wellen;
 
+#[cfg(all(not(target_arch = "wasm32"), feature = "wasm_plugins"))]
 use crate::channels::checked_send;
 use crate::config::AutoLoad;
 use crate::displayed_item_tree::ItemIndex;

@@ -47,7 +47,58 @@ pub enum WcpResponse {
         not_found: Vec<String>,
     },
     add_markers { ids: Vec<DisplayedItemRef> },
+    query_variable_values {
+        /// Native ticks at which the values were sampled. When the
+        /// caller asked for a specific timestamp (with optional
+        /// `time_unit` conversion), this is that value after conversion.
+        /// When the caller asked for "at the cursor" by omitting
+        /// `timestamp`, this is the cursor's current position. A driver
+        /// can echo this back as the `timestamp` on a follow-up query
+        /// to ensure the same sample point.
+        ///
+        /// Serialized as a decimal string to dodge JSON number precision
+        /// loss for long simulations at fs resolution. Matches the
+        /// `t_fs` convention used elsewhere in the rtl-buddy stack.
+        #[serde(
+            serialize_with = "serialize_bigint_as_string",
+            deserialize_with = "deserialize_bigint_from_string"
+        )]
+        timestamp: BigInt,
+        /// Per-variable values, in the same order as the request. A
+        /// variable that resolved but had no recorded transitions
+        /// before `timestamp` appears with `value: null`.
+        values: Vec<QueryVariableValue>,
+        /// Inputs that did not resolve to a variable in the loaded
+        /// waveform. Same shape as the equivalent field on
+        /// `add_variables`. Missing in the response when empty.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        not_found: Vec<String>,
+    },
     ack,
+}
+
+/// One per (variable, value) row returned by `query_variable_values`.
+/// `value` is the per-bit multi-state string (`"0"`, `"1"`, `"x"`,
+/// `"z"`, …) matching the encoding `add_variables`-resolved variables
+/// use internally. Drivers re-format to hex / decimal / SV-literal as
+/// needed.
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct QueryVariableValue {
+    /// The variable's hierarchy string, echoed verbatim from the
+    /// request. Lets the driver join the response back to its own
+    /// expected order without indexing.
+    pub variable: String,
+    /// Per-bit multi-state string. `None` when the variable resolved
+    /// but had no recorded transitions strictly before `timestamp`
+    /// (e.g. asking for a value before t=0 on a 1-tick-delayed signal).
+    pub value: Option<String>,
+}
+
+fn serialize_bigint_as_string<S>(value: &BigInt, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&value.to_string())
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -264,6 +315,42 @@ pub enum WcpCommand {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         time_unit: Option<WcpTimeUnit>,
     },
+    /// Sample one-or-more variables at a point in time and return the
+    /// per-bit values. Intended for drivers (the rtl-buddy hub bridge,
+    /// scripted CLIs) that want to mirror surfer's view of a signal
+    /// without having to add the variable to the displayed panel.
+    ///
+    /// `timestamp` is optional — when absent the values are sampled at
+    /// the current cursor position, which makes the no-arg form the
+    /// canonical "what does the cursor currently see?" probe. When
+    /// `timestamp` is set, `time_unit` follows the same rules as
+    /// `set_cursor` (omitted = native ticks; `"fs"` etc. = unit-aware).
+    ///
+    /// Responds with [`WcpResponse::query_variable_values`] reporting
+    /// both the timestamp actually used (after unit conversion) and
+    /// one row per variable. Variables that don't exist in the loaded
+    /// waveform land in `not_found` (same shape as `add_variables`);
+    /// variables that exist but have no transition before `timestamp`
+    /// come back with `value: null`.
+    ///
+    /// Responds with an error when no waveform is loaded, when
+    /// `timestamp` is omitted but no cursor is set, or when
+    /// `time_unit` conversion fails (same reasons as `set_cursor`).
+    query_variable_values {
+        variables: Vec<String>,
+        /// When set, sample at this timestamp instead of the cursor.
+        /// Decimal string to avoid JSON number precision loss for
+        /// long simulations.
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "deserialize_optional_timestamp",
+            serialize_with = "serialize_optional_bigint_as_string"
+        )]
+        timestamp: Option<BigInt>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        time_unit: Option<WcpTimeUnit>,
+    },
     /// Shut down the WCP server.
     // FIXME: What does this mean? Does it kill the server, the current connection or surfer itself?
     shutdown,
@@ -289,6 +376,66 @@ impl WcpCSMessage {
             commands,
         }
     }
+}
+
+fn deserialize_bigint_from_string<'de, D>(deserializer: D) -> Result<BigInt, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    s.parse::<BigInt>().map_err(de::Error::custom)
+}
+
+fn serialize_optional_bigint_as_string<S>(
+    value: &Option<BigInt>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match value {
+        Some(v) => serializer.serialize_str(&v.to_string()),
+        None => serializer.serialize_none(),
+    }
+}
+
+/// Accept either a JSON number (back-compat with existing
+/// timestamp-bearing requests) or a decimal string (forward-compat with
+/// the response shape on `query_variable_values`).
+fn deserialize_optional_timestamp<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Either {
+        Num(Number),
+        Str(String),
+    }
+    let opt = Option::<Either>::deserialize(deserializer)?;
+    let Some(either) = opt else { return Ok(None) };
+    let bigint = match either {
+        Either::Num(num) => {
+            if let Some(n) = num.as_u128() {
+                BigInt::from(n)
+            } else if let Some(n) = num.as_i128() {
+                BigInt::from(n)
+            } else if let Some(n) = num.as_f64() {
+                BigInt::from_f64(n).ok_or_else(|| {
+                    <D::Error as serde::de::Error>::invalid_value(
+                        serde::de::Unexpected::Float(n),
+                        &"a finite value",
+                    )
+                })?
+            } else {
+                return Err(de::Error::custom(format!(
+                    "Error during deserialization of timestamp value {num}"
+                )));
+            }
+        }
+        Either::Str(s) => s.parse::<BigInt>().map_err(de::Error::custom)?,
+    };
+    Ok(Some(bigint))
 }
 
 fn deserialize_timestamp<'de, D>(deserializer: D) -> Result<BigInt, D::Error>

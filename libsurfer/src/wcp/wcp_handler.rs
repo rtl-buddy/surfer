@@ -15,8 +15,11 @@ use std::sync::atomic::Ordering;
 use surfer_translation_types::ScopeRef;
 use tracing::{trace, warn};
 
+use num::BigUint;
+use surfer_translation_types::VariableValue;
 use surfer_wcp::{
-    ItemInfo, MarkerInfo, WcpCSMessage, WcpCommand, WcpResponse, WcpSCMessage, WcpTimeUnit,
+    ItemInfo, MarkerInfo, QueryVariableValue, WcpCSMessage, WcpCommand, WcpResponse, WcpSCMessage,
+    WcpTimeUnit,
 };
 
 impl SystemState {
@@ -467,6 +470,13 @@ impl SystemState {
                         self.update(Message::CursorSet(native));
                         self.send_response(WcpResponse::ack);
                     }
+                    WcpCommand::query_variable_values {
+                        variables,
+                        timestamp,
+                        time_unit,
+                    } => {
+                        self.handle_query_variable_values(variables, timestamp, *time_unit);
+                    }
                     WcpCommand::shutdown => {
                         warn!("WCP Shutdown message should not reach this place");
                     }
@@ -520,6 +530,7 @@ impl SystemState {
             "zoom_to_fit",
             "add_markers",
             "set_viewport_range_to",
+            "query_variable_values",
         ]
         .into_iter()
         .map(str::to_string)
@@ -557,6 +568,90 @@ impl SystemState {
             .iter_visible()
             .map(|node| node.item_ref)
             .collect_vec()
+    }
+
+    fn handle_query_variable_values(
+        &mut self,
+        variables: &[String],
+        timestamp: &Option<BigInt>,
+        time_unit: Option<WcpTimeUnit>,
+    ) {
+        let Some(waves) = self.user.waves.as_ref() else {
+            self.send_error(
+                "query_variable_values",
+                vec![],
+                "No waveform loaded",
+            );
+            return;
+        };
+
+        // Resolve the sample point. ``timestamp = None`` means "sample
+        // at the cursor", which is the common-case driver flow (mirror
+        // surfer's view of the world after a CursorSet). Without a
+        // cursor set we fail loud rather than picking an arbitrary t,
+        // since the driver almost certainly expected one.
+        let native_timestamp: BigInt = match timestamp {
+            Some(t) => match self.wcp_to_native_ticks(t, time_unit) {
+                Ok(v) => v,
+                Err(msg) => {
+                    self.send_error("query_variable_values", vec![], &msg);
+                    return;
+                }
+            },
+            None => match &waves.cursor {
+                Some(c) => c.clone(),
+                None => {
+                    self.send_error(
+                        "query_variable_values",
+                        vec![],
+                        "No cursor set; pass `timestamp` explicitly to sample at a specific time.",
+                    );
+                    return;
+                }
+            },
+        };
+
+        // query_variable wants a non-negative BigUint. Pre-cursor /
+        // pre-zero queries would produce a hard error from the wave
+        // container; clamp to zero so the driver gets a clean per-
+        // variable ``value: null`` instead.
+        let query_time: BigUint = native_timestamp.to_biguint().unwrap_or_default();
+
+        let wave_cont = waves.inner.as_waves().unwrap();
+        let mut rows: Vec<QueryVariableValue> = Vec::with_capacity(variables.len());
+        let mut not_found: Vec<String> = Vec::new();
+        for name in variables {
+            let vref = VariableRef::from_hierarchy_string(name);
+            if wave_cont.variable_meta(&vref).is_err() {
+                not_found.push(name.clone());
+                continue;
+            }
+            // Sample. ``query_variable`` returns the most-recent value
+            // change at-or-before ``query_time``; a variable that
+            // never transitions before the sample point comes back as
+            // ``current: None`` → ``value: null`` on the wire.
+            let value = match wave_cont.query_variable(&vref, &query_time) {
+                Ok(Some(qr)) => qr.current.map(|(_t, v)| variable_value_to_wire(v)),
+                Ok(None) => None,
+                Err(e) => {
+                    self.send_error(
+                        "query_variable_values",
+                        vec![name.clone()],
+                        &format!("{e}"),
+                    );
+                    return;
+                }
+            };
+            rows.push(QueryVariableValue {
+                variable: name.clone(),
+                value,
+            });
+        }
+        self.send_response(WcpResponse::query_variable_values {
+            timestamp: native_timestamp,
+            values: rows,
+            not_found,
+        });
     }
 
     /// Convert a WCP timestamp into the loaded waveform's native tick units.
@@ -612,5 +707,17 @@ impl SystemState {
             let divisor = ten.pow((-diff) as u32) * multiplier;
             Ok(value / divisor)
         }
+    }
+}
+
+/// Format a [`VariableValue`] for the WCP wire. Matches the per-bit
+/// multi-state encoding used by `surfer_translation_types::handle_bits`:
+/// numeric values render as binary (no leading-zero padding), and raw
+/// strings (which may contain `x`/`z`/etc.) pass through untouched. The
+/// receiver is free to re-encode to hex / decimal / SV-literal.
+fn variable_value_to_wire(v: VariableValue) -> String {
+    match v {
+        VariableValue::BigUint(big) => format!("{big:b}"),
+        VariableValue::String(s) => s,
     }
 }

@@ -5,7 +5,8 @@ use crate::message::Message;
 use crate::tests::snapshot::render_and_compare;
 use itertools::Itertools;
 use surfer_wcp::{
-    MarkerInfo, WcpCSMessage, WcpCommand, WcpEvent, WcpResponse, WcpSCMessage, WcpTimeUnit, proto,
+    MarkerInfo, QueryVariableValue, WcpCSMessage, WcpCommand, WcpEvent, WcpResponse, WcpSCMessage,
+    WcpTimeUnit, proto,
 };
 
 use eyre::Result;
@@ -174,6 +175,7 @@ async fn greet(tx: &Sender<WcpCSMessage>, rx: &mut Receiver<WcpSCMessage>) -> Re
         "zoom_to_fit",
         "add_markers",
         "set_viewport_range_to",
+        "query_variable_values",
     ];
     assert_eq!(commands, e_commands);
 
@@ -661,4 +663,196 @@ wcp_test! {
 
         Ok(())
     }
+}
+
+wcp_test! {
+    query_variable_values_at_explicit_timestamp,
+    (tx, rx) {
+        load_file(&tx, &mut rx, "../examples/counter.vcd").await?;
+
+        // ``query_variable`` only returns values for signals whose
+        // signal data is loaded into the wave container — typically a
+        // side-effect of being added to the displayed panel. The hub
+        // bridge always calls add_variables on the user's clicked
+        // flops before issuing the cursor-driven query, so we mirror
+        // that flow here.
+        send_commands(&tx, vec![
+            WcpCommand::add_variables {
+                variables: vec!["tb.clk".to_string(), "tb.reset".to_string()],
+            },
+        ]).await?;
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_variables { ids: _, not_found: _ }));
+
+        // Sample well into the simulation. ``counter.vcd`` uses a 1 s
+        // timescale and runs past tick 5, so at native t=5 every signal
+        // has had at least one transition recorded — the query lands on
+        // a populated row rather than the empty pre-history.
+        send_commands(&tx, vec![
+            WcpCommand::query_variable_values {
+                variables: vec!["tb.clk".to_string(), "tb.reset".to_string()],
+                timestamp: Some(BigInt::from(5u64)),
+                time_unit: None,
+            },
+        ]).await?;
+        expect_response!(
+            rx,
+            WcpSCMessage::response(WcpResponse::query_variable_values { timestamp, values, not_found })
+        );
+        assert_eq!(timestamp, BigInt::from(5u64));
+        assert!(not_found.is_empty(), "all known signals; got not_found={not_found:?}");
+        assert_eq!(values.len(), 2);
+        assert_eq!(values[0].variable, "tb.clk");
+        assert_eq!(values[1].variable, "tb.reset");
+        // Each well-formed sample is a non-empty per-bit string (binary
+        // literal characters including x/z).
+        for row in &values {
+            let v = row
+                .value
+                .as_ref()
+                .unwrap_or_else(|| panic!("{}: expected Some value at t=5", row.variable));
+            assert!(!v.is_empty(), "{}: empty value string", row.variable);
+            for c in v.chars() {
+                assert!(
+                    matches!(c, '0' | '1' | 'x' | 'z' | 'h' | 'l' | 'u' | 'w' | '-'),
+                    "{}: unexpected char {c:?} in value {v:?}",
+                    row.variable
+                );
+            }
+        }
+
+        Ok(())
+    }
+}
+
+wcp_test! {
+    query_variable_values_falls_back_to_cursor,
+    (tx, rx) {
+        load_file(&tx, &mut rx, "../examples/counter.vcd").await?;
+
+        send_commands(&tx, vec![
+            WcpCommand::add_variables { variables: vec!["tb.clk".to_string()] },
+        ]).await?;
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_variables { ids: _, not_found: _ }));
+
+        // Position the cursor first; the no-timestamp query samples there.
+        send_commands(&tx, vec![
+            WcpCommand::set_cursor { timestamp: BigInt::from(0u64), time_unit: None },
+        ]).await?;
+        expect_response!(rx, WcpSCMessage::event(WcpEvent::cursor_moved { timestamp: _ }));
+        expect_ack(&mut rx).await?;
+
+        send_commands(&tx, vec![
+            WcpCommand::query_variable_values {
+                variables: vec!["tb.clk".to_string()],
+                timestamp: None,
+                time_unit: None,
+            },
+        ]).await?;
+        expect_response!(
+            rx,
+            WcpSCMessage::response(WcpResponse::query_variable_values { timestamp, values, not_found })
+        );
+        assert_eq!(timestamp, BigInt::from(0u64));
+        assert!(not_found.is_empty());
+        assert_eq!(values.len(), 1);
+        assert_eq!(values[0].variable, "tb.clk");
+
+        Ok(())
+    }
+}
+
+wcp_test! {
+    query_variable_values_reports_not_found,
+    (tx, rx) {
+        load_file(&tx, &mut rx, "../examples/counter.vcd").await?;
+
+        send_commands(&tx, vec![
+            WcpCommand::add_variables { variables: vec!["tb.clk".to_string()] },
+        ]).await?;
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_variables { ids: _, not_found: _ }));
+
+        send_commands(&tx, vec![
+            WcpCommand::query_variable_values {
+                variables: vec![
+                    "tb.clk".to_string(),
+                    "tb.no_such_signal".to_string(),
+                    "totally.bogus".to_string(),
+                ],
+                timestamp: Some(BigInt::from(0u64)),
+                time_unit: None,
+            },
+        ]).await?;
+        expect_response!(
+            rx,
+            WcpSCMessage::response(WcpResponse::query_variable_values { timestamp: _, values, not_found })
+        );
+        // Resolved signals come back in request order, with the
+        // unresolved ones flowing into not_found in request order.
+        assert_eq!(values.len(), 1);
+        assert_eq!(values[0].variable, "tb.clk");
+        assert_eq!(not_found, vec!["tb.no_such_signal".to_string(), "totally.bogus".to_string()]);
+
+        Ok(())
+    }
+}
+
+wcp_test! {
+    query_variable_values_errors_without_cursor,
+    (tx, rx) {
+        load_file(&tx, &mut rx, "../examples/counter.vcd").await?;
+
+        send_commands(&tx, vec![
+            WcpCommand::query_variable_values {
+                variables: vec!["tb.clk".to_string()],
+                timestamp: None,
+                time_unit: None,
+            },
+        ]).await?;
+        expect_response!(
+            rx,
+            WcpSCMessage::error { error, arguments: _, message }
+        );
+        assert_eq!(error, "query_variable_values");
+        assert!(message.to_lowercase().contains("cursor"), "got message={message:?}");
+
+        Ok(())
+    }
+}
+
+wcp_test! {
+    query_variable_values_with_time_unit,
+    (tx, rx) {
+        load_file(&tx, &mut rx, "../examples/counter.vcd").await?;
+
+        send_commands(&tx, vec![
+            WcpCommand::add_variables { variables: vec!["tb.clk".to_string()] },
+        ]).await?;
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::add_variables { ids: _, not_found: _ }));
+
+        // ``counter.vcd``'s timescale is ``1 s``. 5_000_000_000_000_000 fs
+        // = 5 s = 5 native ticks. We verify the response echoes back the
+        // converted-to-native timestamp so the driver can pin to the same
+        // sample point on a follow-up call.
+        send_commands(&tx, vec![
+            WcpCommand::query_variable_values {
+                variables: vec!["tb.clk".to_string()],
+                timestamp: Some(BigInt::from(5_000_000_000_000_000u64)),
+                time_unit: Some(WcpTimeUnit::fs),
+            },
+        ]).await?;
+        expect_response!(
+            rx,
+            WcpSCMessage::response(WcpResponse::query_variable_values { timestamp, values, not_found })
+        );
+        assert!(not_found.is_empty());
+        assert_eq!(values.len(), 1);
+        assert_eq!(timestamp, BigInt::from(5u64));
+
+        Ok(())
+    }
+}
+
+#[allow(dead_code)] // silence: QueryVariableValue used only in match patterns above
+fn _query_variable_value_compile_check() -> QueryVariableValue {
+    QueryVariableValue { variable: String::new(), value: None }
 }

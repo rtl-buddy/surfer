@@ -173,6 +173,16 @@ pub enum WcpCommand {
         #[serde(default)]
         recursive: bool,
     },
+    /// Navigate surfer's active scope to the named one WITHOUT adding
+    /// its variables to the displayed item list. Symmetric in payload
+    /// to `add_scope` but does not mutate the variable panel — intended
+    /// for cross-view "follow source-focus" tinting where the driver
+    /// does not want to spam the user's selected signal set.
+    ///
+    /// Responds with [`WcpResponse::ack`].
+    /// Responds with an error if no waveforms are loaded or if the
+    /// scope does not exist in the loaded waveform.
+    set_scope { scope: String },
     /// Adds the specified variables or variables in the specified scopes to the view.
     /// Does so recursively if specified
     /// Responds with [`WcpResponse::add_items`] which contains a list of the item references

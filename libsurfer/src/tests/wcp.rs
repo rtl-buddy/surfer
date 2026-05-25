@@ -162,6 +162,7 @@ async fn greet(tx: &Sender<WcpCSMessage>, rx: &mut Receiver<WcpSCMessage>) -> Re
         "cursor_set",
         "reload",
         "add_scope",
+        "set_scope",
         "add_items",
         "get_item_list",
         "set_item_color",
@@ -436,6 +437,46 @@ wcp_test! {
         expect_ack(&mut rx).await?;
         expect_ack(&mut rx).await?;
 
+        Ok(())
+    }
+}
+
+wcp_test! {
+    // `set_scope` navigates surfer's active scope without mutating
+    // the displayed item list. After the command surfer should still
+    // have zero displayed items (in contrast to `add_scope` which
+    // would populate the panel with the scope's variables).
+    set_scope_navigates_without_adding_variables,
+    (tx, rx) {
+        load_file(&tx, &mut rx, "../examples/counter.vcd").await?;
+
+        send_commands(&tx, vec![
+            WcpCommand::set_scope { scope: "tb".to_string() },
+            WcpCommand::get_item_list,
+        ]).await?;
+        expect_ack(&mut rx).await?;
+        expect_response!(rx, WcpSCMessage::response(WcpResponse::get_item_list { ids }));
+        assert!(
+            ids.is_empty(),
+            "set_scope must not add variables; got {} item(s)", ids.len()
+        );
+        Ok(())
+    }
+}
+
+wcp_test! {
+    // Unknown scope → structured error (not an ack), payload carries the
+    // offending name so callers can debug typos.
+    set_scope_unknown_scope_errors,
+    (tx, rx) {
+        load_file(&tx, &mut rx, "../examples/counter.vcd").await?;
+
+        send_commands(&tx, vec![
+            WcpCommand::set_scope { scope: "no_such_scope".to_string() },
+        ]).await?;
+        expect_response!(rx, WcpSCMessage::error { error, arguments, message: _ });
+        assert_eq!(error, "set_scope");
+        assert_eq!(arguments, vec!["no_such_scope".to_string()]);
         Ok(())
     }
 }

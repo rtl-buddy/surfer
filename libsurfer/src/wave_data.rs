@@ -563,6 +563,24 @@ impl WaveData {
         );
     }
 
+    /// Like [`Self::add_divider`] but returns the new item's reference so a
+    /// WCP / automation caller can address (move / remove) it later.
+    pub fn add_divider_ref(
+        &mut self,
+        name: Option<String>,
+        vidx: Option<VisibleItemIndex>,
+    ) -> DisplayedItemRef {
+        self.insert_item(
+            DisplayedItem::Divider(DisplayedDivider {
+                color: None,
+                background_color: None,
+                name,
+            }),
+            self.insert_position(vidx),
+            true,
+        )
+    }
+
     pub fn add_timeline(&mut self, vidx: Option<VisibleItemIndex>) {
         self.insert_item(
             DisplayedItem::TimeLine(DisplayedTimeLine {

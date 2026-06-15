@@ -544,11 +544,13 @@ impl SystemState {
                             self.send_error("add_dividers", vec![], "No waveform loaded");
                             return;
                         };
-                        // Resolve the optional anchor to the visible slot just
-                        // after it; None appends at the end.
+                        // Resolve the optional anchor to its own visible index;
+                        // insert_position() inserts *after* that index, so the
+                        // first divider lands directly after `after`. None
+                        // appends at the end.
                         let mut insert_at: Option<VisibleItemIndex> = match after {
                             Some(id) => match waves.get_displayed_item_index(&id.into()) {
-                                Some(VisibleItemIndex(v)) => Some(VisibleItemIndex(v + 1)),
+                                Some(vidx) => Some(vidx),
                                 None => {
                                     self.send_error(
                                         "add_dividers",

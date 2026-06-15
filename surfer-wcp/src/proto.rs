@@ -47,6 +47,7 @@ pub enum WcpResponse {
         not_found: Vec<String>,
     },
     add_markers { ids: Vec<DisplayedItemRef> },
+    add_dividers { ids: Vec<DisplayedItemRef> },
     query_variable_values {
         /// Native ticks at which the values were sampled. When the
         /// caller asked for a specific timestamp (with optional
@@ -350,6 +351,35 @@ pub enum WcpCommand {
         timestamp: Option<BigInt>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         time_unit: Option<WcpTimeUnit>,
+    },
+    /// Reorder displayed items. Moves the items named in `ids` (preserving
+    /// their relative order) so the block starts at `target_index` in the
+    /// visible item list (`target_index >= len` appends at the end, top
+    /// level). Intended for drivers (the rtl-buddy hub bridge, scripted
+    /// CLIs) that curate the wave view by item id.
+    ///
+    /// Responds with [`WcpResponse::ack`].
+    /// Responds with an error if no waveform is loaded, if any id is not a
+    /// currently-displayed item, or if the move is illegal (e.g. moving an
+    /// item into its own subtree).
+    move_items {
+        ids: Vec<DisplayedItemRef>,
+        target_index: usize,
+    },
+    /// Add one or more divider ("comment") rows to the view, in order.
+    /// Each entry in `names` becomes one divider; a `null` entry is an
+    /// unnamed divider. When `after` is set the dividers are inserted just
+    /// after that item, otherwise they are appended.
+    ///
+    /// Responds with [`WcpResponse::add_dividers`] carrying the new item
+    /// references (so they can be moved / removed later), mirroring
+    /// `add_markers`.
+    /// Responds with an error if no waveform is loaded or `after` names a
+    /// non-existent item.
+    add_dividers {
+        names: Vec<Option<String>>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        after: Option<DisplayedItemRef>,
     },
     /// Shut down the WCP server.
     // FIXME: What does this mean? Does it kill the server, the current connection or surfer itself?

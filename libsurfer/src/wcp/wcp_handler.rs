@@ -1,6 +1,7 @@
 use crate::{
     SystemState, WcpClientCapabilities,
     displayed_item::{DisplayedItem, DisplayedItemRef},
+    displayed_item_tree::{ItemIndex, TargetPosition, VisibleItemIndex},
     message::{Message, MessageTarget},
     time::TimeUnit,
     wave_container::{ScopeRefExt, VariableRef, VariableRefExt},
@@ -477,6 +478,101 @@ impl SystemState {
                     } => {
                         self.handle_query_variable_values(variables, timestamp, *time_unit);
                     }
+                    WcpCommand::move_items { ids, target_index } => {
+                        self.save_current_canvas("Move items".into());
+                        let Some(waves) = self.user.waves.as_mut() else {
+                            self.send_error("move_items", vec![], "No waveform loaded");
+                            return;
+                        };
+                        // Resolve each id to its (currently visible) item index.
+                        let mut indices: Vec<ItemIndex> = Vec::new();
+                        for id in ids {
+                            let Some(vidx) = waves.get_displayed_item_index(&id.into()) else {
+                                self.send_error(
+                                    "move_items",
+                                    vec![],
+                                    &format!("No item with id {id:?}"),
+                                );
+                                return;
+                            };
+                            let Some(item_index) = waves.items_tree.to_displayed(vidx) else {
+                                self.send_error(
+                                    "move_items",
+                                    vec![],
+                                    &format!("Item {id:?} is not visible"),
+                                );
+                                return;
+                            };
+                            indices.push(item_index);
+                        }
+                        // Resolve the target visible index to an insert
+                        // position + nesting level. Past the end appends at
+                        // top level.
+                        let visible_count = waves.items_tree.iter_visible().count();
+                        let target = if *target_index >= visible_count {
+                            TargetPosition {
+                                before: ItemIndex(waves.items_tree.len()),
+                                level: 0,
+                            }
+                        } else {
+                            let vidx = VisibleItemIndex(*target_index);
+                            // in-range by construction, so to_displayed is Some
+                            let before = waves.items_tree.to_displayed(vidx).unwrap();
+                            let level =
+                                waves.items_tree.get(before).map(|n| n.level).unwrap_or(0);
+                            TargetPosition { before, level }
+                        };
+                        match waves.items_tree.move_items(indices, target) {
+                            Ok(()) => {
+                                self.invalidate_draw_commands();
+                                self.send_response(WcpResponse::ack);
+                            }
+                            Err(e) => {
+                                self.send_error(
+                                    "move_items",
+                                    vec![],
+                                    &format!("Cannot move items: {e:?}"),
+                                );
+                            }
+                        }
+                    }
+                    WcpCommand::add_dividers { names, after } => {
+                        if self.user.waves.is_some() {
+                            self.save_current_canvas(format!("Add {} dividers", names.len()));
+                        }
+                        let Some(waves) = self.user.waves.as_mut() else {
+                            self.send_error("add_dividers", vec![], "No waveform loaded");
+                            return;
+                        };
+                        // Resolve the optional anchor to the visible slot just
+                        // after it; None appends at the end.
+                        let mut insert_at: Option<VisibleItemIndex> = match after {
+                            Some(id) => match waves.get_displayed_item_index(&id.into()) {
+                                Some(VisibleItemIndex(v)) => Some(VisibleItemIndex(v + 1)),
+                                None => {
+                                    self.send_error(
+                                        "add_dividers",
+                                        vec![],
+                                        &format!("No item with id {id:?}"),
+                                    );
+                                    return;
+                                }
+                            },
+                            None => None,
+                        };
+                        let mut ids = vec![];
+                        for name in names {
+                            let id = waves.add_divider_ref(name.clone(), insert_at);
+                            ids.push(id.into());
+                            // Advance the anchor so successive dividers keep
+                            // the caller's order.
+                            if let Some(VisibleItemIndex(v)) = insert_at {
+                                insert_at = Some(VisibleItemIndex(v + 1));
+                            }
+                        }
+                        self.invalidate_draw_commands();
+                        self.send_response(WcpResponse::add_dividers { ids });
+                    }
                     WcpCommand::shutdown => {
                         warn!("WCP Shutdown message should not reach this place");
                     }
@@ -531,6 +627,8 @@ impl SystemState {
             "add_markers",
             "set_viewport_range_to",
             "query_variable_values",
+            "move_items",
+            "add_dividers",
         ]
         .into_iter()
         .map(str::to_string)
